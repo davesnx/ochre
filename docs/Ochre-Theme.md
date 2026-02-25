@@ -1,10 +1,6 @@
 
 # Module `Ochre.Theme`
 
-TextMate / VS Code theme loading and representation.
-
-Themes define the color scheme used to style syntax-highlighted code. Ochre supports the same JSON format as VS Code themes, including the `colors` and `tokenColors` fields.
-
 ```
 type color = string
 ```
@@ -28,7 +24,7 @@ type font_style = Token.font_style =
 ```
 
 ```
-Font style variants, mirroring [`Token.font_style`](./Ochre-Token.md#type-font_style).
+Font style variants.
 
 ```
 type token_color_settings = {
@@ -65,11 +61,6 @@ type theme = {
 ```
 A loaded theme with resolved default colors and token coloring rules.
 
-```ocaml
-  let theme = Theme.load_from_file "path/to/dark-plus.json" in
-  Printf.printf "Theme: %s (fg: %s, bg: %s)\n"
-    theme.name theme.fg theme.bg
-```
 ```
 val load_from_file : string -> theme
 ```
@@ -85,7 +76,7 @@ val load_from_string : string -> theme
 Parse a theme from a JSON string.
 
 ```ocaml
-  let theme = Theme.load_from_string {|{
+  let theme = Ochre.Theme.load_from_string {|{
     "name": "my-theme",
     "colors": {
       "editor.foreground": "#d4d4d4",

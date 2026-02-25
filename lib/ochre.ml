@@ -1,33 +1,6 @@
-type t = {
-  mutable theme : Theme.theme option;
-  mutable grammar_loader : Grammar_loader.t;
-}
+type t = { grammar_loader : Grammar_loader.t }
 
-let create ?theme ?(grammar_paths = []) () =
-  {
-    theme;
-    grammar_loader = Grammar_loader.create ~grammar_paths ();
-  }
-
-let load_theme t theme = t.theme <- Some theme
-
-let load_theme_from_file t path =
-  let theme = Theme.load_from_file path in
-  load_theme t theme
-
-let add_grammar_path t path =
-  t.grammar_loader <- Grammar_loader.add_grammar_path t.grammar_loader path
-
-let get_theme t =
-  match t.theme with
-  | Some theme -> theme
-  | None ->
-      {
-        Theme.name = "default";
-        fg = "#000000";
-        bg = "#ffffff";
-        token_colors = [];
-      }
+let create ~grammars () = { grammar_loader = Grammar_loader.create ~grammars () }
 
 let tokenize_with_grammar tm_collection grammar source =
   let lines = String.split_on_char '\n' source in
@@ -82,20 +55,18 @@ let apply_theme theme tokens_per_line =
         line_tokens)
     tokens_per_line
 
-let highlight_to_tokens t ~lang source =
-  let grammar = Grammar_loader.load_grammar t.grammar_loader lang in
-  let theme = get_theme t in
-  let tokens = tokenize_with_grammar t.grammar_loader.Grammar_loader.tm_collection grammar source in
+let highlight_to_tokens t ~theme ~lang source =
+  let grammar = Grammar_loader.find_grammar t.grammar_loader lang in
+  let tm_collection = Grammar_loader.tm_collection t.grammar_loader in
+  let tokens = tokenize_with_grammar tm_collection grammar source in
   apply_theme theme tokens
 
-let highlight_to_html t ~lang source =
-  let tokens = highlight_to_tokens t ~lang source in
-  let theme = get_theme t in
+let highlight_to_html t ~theme ~lang source =
+  let tokens = highlight_to_tokens t ~theme ~lang source in
   Render_html.render theme tokens
 
-let highlight_to_ansi t ~lang source =
-  let tokens = highlight_to_tokens t ~lang source in
-  let theme = get_theme t in
+let highlight_to_ansi t ~theme ~lang source =
+  let tokens = highlight_to_tokens t ~theme ~lang source in
   Render_ansi.render theme tokens
 
 module Token = Token

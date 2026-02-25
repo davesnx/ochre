@@ -18,7 +18,7 @@ let html = Ochre.highlight_to_html hl ~lang:"ocaml" {|let x = 42|}
 
 ## Documentation
 
-- [Library API](docs/ochre.md) — `Ochre` module reference
+- [Library API](docs/Ochre.md) — `Ochre` module reference
 - [CLI reference](docs/cli.md) — command-line usage
 
 Regenerate docs with `make docs`.

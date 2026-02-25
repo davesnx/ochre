@@ -6,42 +6,122 @@
     {2 Quick start}
 
     {[
-      let hl = Ochre.create ~grammar_paths:["/path/to/grammars"] () in
-      Ochre.load_theme_from_file hl "path/to/theme.json";
-      let html = Ochre.highlight_to_html hl ~lang:"ocaml" source_code
+      let theme = Ochre.Theme.load_from_file "path/to/theme.json" in
+      let hl = Ochre.create ~grammars:["/path/to/ocaml.tmLanguage.json"] () in
+      let html = Ochre.highlight_to_html hl ~theme ~lang:"ocaml" source_code
     ]} *)
+
+(** {1 Token types} *)
+
+module Token : sig
+  (** Hex color string (e.g. ["#ff0000"]). *)
+  type color = string
+
+  (** Font style that can be applied to a token. *)
+  type font_style = Token.font_style =
+    | Bold
+    | Italic
+    | Underline
+    | Strikethrough
+
+  (** A token with resolved styling from a theme.
+
+      Each token represents a fragment of source code with its associated
+      colors and font styles, as determined by TextMate scope matching. *)
+  type styled_token = Token.styled_token = {
+    text : string;
+    foreground : color option;
+    background : color option;
+    font_style : font_style list;
+    scopes : string list;
+  }
+
+  (** A line of styled tokens. *)
+  type line = styled_token list
+
+  (** Complete highlighted code: a list of lines, each containing styled tokens. *)
+  type highlighted_code = line list
+end
+
+(** {1 Themes} *)
+
+module Theme : sig
+  (** Hex color string (e.g. ["#569cd6"]). *)
+  type color = string
+
+  (** Font style variants. *)
+  type font_style = Token.font_style =
+    | Bold
+    | Italic
+    | Underline
+    | Strikethrough
+
+  (** Color and style settings resolved from a theme rule. *)
+  type token_color_settings = Theme.token_color_settings = {
+    foreground : color option;
+    background : color option;
+    font_style : font_style list;
+  }
+
+  (** A rule mapping TextMate scopes to visual settings.
+
+      Each rule contains a list of scope selectors and the styling
+      to apply when a token matches one of those selectors. *)
+  type token_color_rule = Theme.token_color_rule = {
+    scope : string list;
+    settings : token_color_settings;
+  }
+
+  (** A loaded theme with resolved default colors and token coloring rules. *)
+  type theme = Theme.theme = {
+    name : string;
+    fg : color;
+    bg : color;
+    token_colors : token_color_rule list;
+  }
+
+  (** Load a theme from a VS Code theme JSON file.
+
+      Falls back to the filename as the theme name when none is specified
+      in the JSON.
+
+      Raises an exception if the file contains invalid JSON. *)
+  val load_from_file : string -> theme
+
+  (** Parse a theme from a JSON string.
+
+      {[
+        let theme = Ochre.Theme.load_from_string {|{
+          "name": "my-theme",
+          "colors": {
+            "editor.foreground": "#d4d4d4",
+            "editor.background": "#1e1e1e"
+          },
+          "tokenColors": [
+            { "scope": "comment",
+              "settings": { "foreground": "#6a9955", "fontStyle": "italic" } }
+          ]
+        }|}
+      ]} *)
+  val load_from_string : string -> theme
+end
 
 (** {1 Highlighter} *)
 
-(** Highlighter instance. Holds the current theme and grammar loader state. *)
+(** Highlighter instance. Holds loaded grammars and tokenization state. *)
 type t
 
-(** Create a new highlighter.
+(** Create a new highlighter with the given grammar files.
 
-    @param theme Optional pre-loaded theme.
-    @param grammar_paths Directories to search for [.tmLanguage.json] files.
+    Each grammar is a path to a [.tmLanguage.json] file. The language
+    identifier is derived from the filename (e.g.
+    ["ocaml.tmLanguage.json"] registers as ["ocaml"]).
 
     {[
       let hl = Ochre.create
-        ~grammar_paths:["/usr/share/grammars"; "./my-grammars"] ()
+        ~grammars:["/usr/share/grammars/ocaml.tmLanguage.json"] ()
     ]} *)
-val create : ?theme:Theme.theme -> ?grammar_paths:string list -> unit -> t
-
-(** Set the active theme for highlighting. *)
-val load_theme : t -> Theme.theme -> unit
-
-(** Load a theme from a JSON file and set it as the active theme.
-
-    {[
-      Ochre.load_theme_from_file hl "themes/dark-plus.json"
-    ]} *)
-val load_theme_from_file : t -> string -> unit
-
-(** Add a directory to the grammar search path.
-
-    Grammars are resolved by language identifier, trying
-    [<lang>.tmLanguage.json], [<lang>.json], and [<lang>] in order. *)
-val add_grammar_path : t -> string -> unit
+val create : grammars:string list -> unit -> t
 
 (** {1 Highlighting} *)
 
@@ -52,14 +132,15 @@ val add_grammar_path : t -> string -> unit
     Raises [Failure] if the grammar for [lang] cannot be found.
 
     {[
-      let tokens = Ochre.highlight_to_tokens hl ~lang:"ocaml" code in
+      let tokens = Ochre.highlight_to_tokens hl ~theme ~lang:"ocaml" code in
       List.iter (fun line ->
-        List.iter (fun (tok : Token.styled_token) ->
+        List.iter (fun (tok : Ochre.Token.styled_token) ->
           Printf.printf "%s" tok.text
         ) line
       ) tokens
     ]} *)
-val highlight_to_tokens : t -> lang:string -> string -> Token.highlighted_code
+val highlight_to_tokens :
+  t -> theme:Theme.theme -> lang:string -> string -> Token.highlighted_code
 
 (** Highlight source code to HTML with inline styles.
 
@@ -68,21 +149,18 @@ val highlight_to_tokens : t -> lang:string -> string -> Token.highlighted_code
     Raises [Failure] if the grammar for [lang] cannot be found.
 
     {[
-      let html = Ochre.highlight_to_html hl ~lang:"ocaml" "let x = 42"
+      let html = Ochre.highlight_to_html hl ~theme ~lang:"ocaml" "let x = 42"
     ]} *)
-val highlight_to_html : t -> lang:string -> string -> string
+val highlight_to_html :
+  t -> theme:Theme.theme -> lang:string -> string -> string
 
 (** Highlight source code to ANSI terminal escape sequences.
 
     Produces text with embedded 24-bit ANSI color codes for terminal display.
 
     Raises [Failure] if the grammar for [lang] cannot be found. *)
-val highlight_to_ansi : t -> lang:string -> string -> string
-
-(** {1 Re-exported modules} *)
-
-module Token = Token
-module Theme = Theme
+val highlight_to_ansi :
+  t -> theme:Theme.theme -> lang:string -> string -> string
 
 (**/**)
 module Scope = Scope

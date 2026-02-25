@@ -1,0 +1,11 @@
+(copy_files
+ (alias doc-markdown)
+ (mode
+  (promote (until-clean)))
+ (files %{workspace_root}/_doc/_markdown/ochre/Ochre*.md))
+
+(copy_files
+ (alias doc-markdown)
+ (mode
+  (promote (until-clean)))
+ (files %{workspace_root}/_doc/_markdown/ochre-cli/cli.md))

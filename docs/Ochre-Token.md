@@ -1,10 +1,6 @@
 
 # Module `Ochre.Token`
 
-Core types for styled syntax highlighting.
-
-These types represent the output of the highlighting pipeline: source code tokenized and styled according to a TextMate theme.
-
 ```
 type color = string
 ```
@@ -54,14 +50,3 @@ A line of styled tokens.
 type highlighted_code = line list
 ```
 Complete highlighted code: a list of lines, each containing styled tokens.
-
-```ocaml
-  let code : Token.highlighted_code =
-    Ochre.highlight_to_tokens hl ~lang:"ocaml" "let x = 42"
-  in
-  List.iter (fun line ->
-    List.iter (fun (tok : Token.styled_token) ->
-      Printf.printf "%s" tok.text
-    ) line
-  ) code
-```

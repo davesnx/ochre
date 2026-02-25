@@ -73,8 +73,3 @@ subst: ## Run dune substitute
 .PHONY: docs
 docs: ## Generate markdown documentation from mli files
 	$(DUNE) build @doc-markdown
-	mkdir -p docs
-	cp _build/default/_doc/_markdown/ochre/Ochre.md docs/ochre.md
-	cp _build/default/_doc/_markdown/ochre/Ochre-Token.md docs/ochre-token.md
-	cp _build/default/_doc/_markdown/ochre/Ochre-Theme.md docs/ochre-theme.md
-	cp _build/default/_doc/_markdown/ochre-cli/cli.md docs/cli.md

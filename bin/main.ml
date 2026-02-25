@@ -21,13 +21,18 @@ let read_stdin () =
   in
   String.concat "\n" (read_lines [])
 
-let highlight lang theme_path grammar_dirs format use_stdin input_file =
-  try
-    let highlighter = Ochre.create ~grammar_paths:grammar_dirs () in
+let default_theme : Ochre.Theme.theme =
+  { name = "default"; fg = "#000000"; bg = "#ffffff"; token_colors = [] }
 
-    (match theme_path with
-    | Some path -> Ochre.load_theme_from_file highlighter path
-    | None -> ());
+let highlight lang theme_path grammars format use_stdin input_file =
+  try
+    let theme =
+      match theme_path with
+      | Some path -> Ochre.Theme.load_from_file path
+      | None -> default_theme
+    in
+
+    let highlighter = Ochre.create ~grammars () in
 
     let source =
       if use_stdin then read_stdin ()
@@ -39,11 +44,12 @@ let highlight lang theme_path grammar_dirs format use_stdin input_file =
 
     let output =
       match format with
-      | "html" -> Ochre.highlight_to_html highlighter ~lang source
-      | "ansi" -> Ochre.highlight_to_ansi highlighter ~lang source
+      | "html" -> Ochre.highlight_to_html highlighter ~theme ~lang source
+      | "ansi" -> Ochre.highlight_to_ansi highlighter ~theme ~lang source
       | "tokens" ->
-          let tokens = Ochre.highlight_to_tokens highlighter ~lang source in
-          (* Simple token dump for debugging *)
+          let tokens =
+            Ochre.highlight_to_tokens highlighter ~theme ~lang source
+          in
           List.map
             (fun line ->
               List.map
@@ -74,12 +80,11 @@ let theme_path =
   let doc = "Path to a TextMate theme JSON file" in
   Arg.(value & opt (some string) None & info [ "theme"; "t" ] ~docv:"PATH" ~doc)
 
-let grammar_dirs =
+let grammars =
   let doc =
-    "Directory containing .tmLanguage.json grammar files (can be specified \
-     multiple times)"
+    "Path to a .tmLanguage.json grammar file (can be specified multiple times)"
   in
-  Arg.(value & opt_all string [] & info [ "grammar-dir"; "g" ] ~docv:"DIR" ~doc)
+  Arg.(value & opt_all string [] & info [ "grammar"; "g" ] ~docv:"FILE" ~doc)
 
 let format =
   let doc = "Output format: html, ansi, or tokens" in
@@ -99,7 +104,7 @@ let cmd =
   Cmd.v info
     Term.(
       ret
-        (const highlight $ lang $ theme_path $ grammar_dirs $ format $ use_stdin
+        (const highlight $ lang $ theme_path $ grammars $ format $ use_stdin
         $ input_file))
 
 let () = exit (Cmd.eval cmd)
