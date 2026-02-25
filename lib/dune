@@ -1,0 +1,6 @@
+(library
+ (name ochre)
+ (public_name ochre)
+ (libraries textmate-language yojson melange-json-native)
+ (preprocess
+  (pps melange-json-native.ppx)))

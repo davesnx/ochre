@@ -1,0 +1,51 @@
+open Token
+
+let escape_html str =
+  let buf = Buffer.create (String.length str * 2) in
+  String.iter
+    (function
+      | '<' -> Buffer.add_string buf "&lt;"
+      | '>' -> Buffer.add_string buf "&gt;"
+      | '&' -> Buffer.add_string buf "&amp;"
+      | '"' -> Buffer.add_string buf "&quot;"
+      | c -> Buffer.add_char buf c)
+    str;
+  Buffer.contents buf
+
+let font_style_to_css = function
+  | Bold -> "font-weight:bold"
+  | Italic -> "font-style:italic"
+  | Underline -> "text-decoration:underline"
+  | Strikethrough -> "text-decoration:line-through"
+
+let token_style_to_css token =
+  let styles = [] in
+  let styles =
+    match token.foreground with
+    | Some color -> ("color:" ^ color) :: styles
+    | None -> styles
+  in
+  let styles =
+    match token.background with
+    | Some color -> ("background-color:" ^ color) :: styles
+    | None -> styles
+  in
+  let styles =
+    List.map font_style_to_css token.font_style @ styles
+  in
+  String.concat ";" styles
+
+let render_token token =
+  let style = token_style_to_css token in
+  let text = escape_html token.text in
+  if style = "" then text else Printf.sprintf "<span style=\"%s\">%s</span>" style text
+
+let render_line line =
+  String.concat "" (List.map render_token line)
+
+let render theme code =
+  let lines = List.map render_line code in
+  let code_content = String.concat "\n" lines in
+  Printf.sprintf
+    "<pre class=\"ochre\" style=\"background-color:%s;color:%s\"><code>%s</code></pre>"
+    theme.Theme.bg theme.Theme.fg code_content

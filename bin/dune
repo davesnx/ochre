@@ -1,0 +1,8 @@
+(executable
+ (name main)
+ (public_name ochre)
+ (package ochre-cli)
+ (libraries ochre cmdliner))
+
+(documentation
+ (package ochre-cli))

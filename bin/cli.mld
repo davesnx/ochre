@@ -1,0 +1,61 @@
+{0 ochre CLI}
+
+Command-line interface for the ochre syntax highlighter.
+
+{1 Synopsis}
+
+{v
+ochre LANG [FILE] [--theme PATH] [--grammar-dir DIR]... [--format FORMAT] [--stdin]
+v}
+
+{1 Arguments}
+
+{ul
+{- [LANG] — Language identifier (e.g. [ocaml], [javascript], [python]). Required.}
+{- [FILE] — Input file path. Optional when using [--stdin].}
+}
+
+{1 Options}
+
+{ul
+{- [--theme PATH], [-t PATH] — Path to a VS Code / TextMate theme JSON file.}
+{- [--grammar-dir DIR], [-g DIR] — Directory containing [.tmLanguage.json] grammar files. Can be specified multiple times.}
+{- [--format FORMAT], [-f FORMAT] — Output format: [html] (default), [ansi], or [tokens].}
+{- [--stdin], [-s] — Read source code from standard input instead of a file.}
+}
+
+{1 Examples}
+
+Highlight an OCaml file to HTML:
+
+{v
+ochre ocaml file.ml --grammar-dir ./grammars --theme theme.json
+v}
+
+Highlight from stdin with ANSI terminal colors:
+
+{v
+cat file.js | ochre javascript --stdin --grammar-dir ./grammars --format ansi
+v}
+
+Dump raw token information for debugging:
+
+{v
+ochre python script.py --grammar-dir ./grammars --format tokens
+v}
+
+{1 Grammars}
+
+Ochre looks for TextMate grammar files in each [--grammar-dir] directory,
+trying [{<lang>}.tmLanguage.json], [{<lang>}.json], and [{<lang>}] in order.
+
+Common sources for grammars:
+{ul
+{- VS Code extensions: [~/.vscode/extensions/]}
+{- {{:https://github.com/shikijs/textmate-grammars-themes} shikijs/textmate-grammars-themes} on GitHub}
+}
+
+{1 Themes}
+
+Themes use the VS Code / TextMate JSON format with [colors] and [tokenColors] fields.
+See {{:https://vscodethemes.com/} VS Code Theme Gallery} for available themes.
