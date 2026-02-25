@@ -25,8 +25,7 @@ let match_selector scopes selector =
             if scope_matches_selector_part scope part then
               let spec = calculate_specificity part in
               match_parts rest (idx + 1) (total_specificity + spec)
-            else
-              find_matching_scope (idx + 1)
+            else find_matching_scope (idx + 1)
         in
         find_matching_scope scope_idx
   in

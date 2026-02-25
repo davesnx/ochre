@@ -44,18 +44,15 @@ let highlight lang theme_path grammars format use_stdin input_file =
 
     let output =
       match format with
-      | "html" -> Ochre.highlight_to_html highlighter ~theme ~lang source
-      | "ansi" -> Ochre.highlight_to_ansi highlighter ~theme ~lang source
+      | "html" -> Ochre.to_html highlighter ~theme ~lang source
+      | "ansi" -> Ochre.to_ansi highlighter ~theme ~lang source
       | "tokens" ->
-          let tokens =
-            Ochre.highlight_to_tokens highlighter ~theme ~lang source
-          in
+          let tokens = Ochre.to_tokens highlighter ~theme ~lang source in
           List.map
             (fun line ->
               List.map
                 (fun (t : Ochre.Token.styled_token) ->
-                  Printf.sprintf "{%s}[%s]" t.text
-                    (String.concat "," t.scopes))
+                  Printf.sprintf "{%s}[%s]" t.text (String.concat "," t.scopes))
                 line
               |> String.concat "")
             tokens
@@ -105,6 +102,6 @@ let cmd =
     Term.(
       ret
         (const highlight $ lang $ theme_path $ grammars $ format $ use_stdin
-        $ input_file))
+       $ input_file))
 
 let () = exit (Cmd.eval cmd)

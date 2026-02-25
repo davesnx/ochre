@@ -1,10 +1,5 @@
 type color = string
-
-type font_style =
-  | Bold
-  | Italic
-  | Underline
-  | Strikethrough
+type font_style = Bold | Italic | Underline | Strikethrough
 
 type styled_token = {
   text : string;
@@ -15,5 +10,4 @@ type styled_token = {
 }
 
 type line = styled_token list
-
 type highlighted_code = line list

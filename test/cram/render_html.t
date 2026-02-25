@@ -1,32 +1,26 @@
-Plain token with no styling
-  $ ./test_render_html.exe plain
-  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code>hello world</code></pre>
+Keyword and number coloring in HTML output
+  $ ./test_render_html.exe keyword-and-number
+  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code><span style="font-weight:bold;color:#ff0000">let</span><span style="color:#d4d4d4"> x = </span><span style="color:#0000ff">42</span><span style="color:#d4d4d4">
+  </span></code></pre>
 
-Token with foreground color
-  $ ./test_render_html.exe colored
-  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code><span style="color:#ff0000">red text</span></code></pre>
+Comment with italic styling in HTML
+  $ ./test_render_html.exe comment
+  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code><span style="font-style:italic;color:#888888"># a comment</span><span style="color:#d4d4d4">
+  </span></code></pre>
 
-Token with foreground color and font styles
-  $ ./test_render_html.exe styled
-  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code><span style="font-weight:bold;font-style:italic;color:#00ff00">styled</span></code></pre>
+String coloring in HTML
+  $ ./test_render_html.exe string
+  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code><span style="font-weight:bold;color:#ff0000">let</span><span style="color:#d4d4d4"> s = </span><span style="color:#00ff00">&quot;hello&quot;</span><span style="color:#d4d4d4">
+  </span></code></pre>
 
-HTML special characters are escaped
-  $ ./test_render_html.exe escaping
-  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code>&lt;div class=&quot;test&quot;&gt;&amp;amp;&lt;/div&gt;</code></pre>
-
-Multiple tokens across multiple lines
+Multiple lines of highlighted HTML
   $ ./test_render_html.exe multi-line
-  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code><span style="color:#569cd6">let</span> x = <span style="color:#b5cea8">42</span>
-  <span style="color:#569cd6">let</span> y = <span style="color:#b5cea8">10</span></code></pre>
+  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code><span style="font-weight:bold;color:#ff0000">let</span><span style="color:#d4d4d4"> x = </span><span style="color:#0000ff">42</span><span style="color:#d4d4d4">
+  </span>
+  <span style="font-weight:bold;color:#ff0000">let</span><span style="color:#d4d4d4"> y = </span><span style="color:#0000ff">10</span><span style="color:#d4d4d4">
+  </span></code></pre>
 
-Token with both foreground and background colors
-  $ ./test_render_html.exe background
-  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code><span style="background-color:#f00;color:#fff">highlighted</span></code></pre>
-
-Empty line
-  $ ./test_render_html.exe empty
-  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code></code></pre>
-
-All four font styles combined
-  $ ./test_render_html.exe all-styles
-  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code><span style="font-weight:bold;font-style:italic;text-decoration:underline;text-decoration:line-through;color:#abc">everything</span></code></pre>
+HTML entities are escaped in output
+  $ ./test_render_html.exe escaping
+  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code><span style="font-style:italic;color:#888888"># &lt;div&gt;&amp;amp;&lt;/div&gt;</span><span style="color:#d4d4d4">
+  </span></code></pre>

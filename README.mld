@@ -1,0 +1,36 @@
+{0 Ochre}
+
+A syntax highlighter for OCaml using TextMate grammars and themes, inspired by {{:https://shiki.style/} Shiki}.
+
+{1 Installation}
+
+{v
+opam pin add . -y
+v}
+
+{1 Quick start}
+
+{[
+let theme = Ochre.Theme.load_from_file "path/to/theme.json" in
+let hl = Ochre.create ~grammars:["path/to/ocaml.tmLanguage.json"] () in
+let html = Ochre.to_html hl ~theme ~lang:"ocaml" source_code
+]}
+
+{1 Documentation}
+
+{ul
+{- {{:docs/Ochre.md} Library API} — [Ochre] module reference}
+{- {{:docs/cli.md} CLI reference} — command-line usage}
+{- Regenerate docs with [make docs].}
+}
+
+{1 License}
+
+MIT — see {{:LICENSE} LICENSE}.
+
+{1 Credits}
+
+{ul
+{- Inspired by {{:https://shiki.style/} Shiki} by Pine Wu and Anthony Fu}
+{- Uses {{:https://github.com/alan-j-hu/ocaml-textmate-language} textmate-language} by Alan Hu}
+}

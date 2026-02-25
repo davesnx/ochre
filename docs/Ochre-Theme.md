@@ -76,7 +76,9 @@ val load_from_string : string -> theme
 Parse a theme from a JSON string.
 
 ```ocaml
-  let theme = Ochre.Theme.load_from_string {|{
+  let theme =
+    Ochre.Theme.load_from_string
+      {|{
     "name": "my-theme",
     "colors": {
       "editor.foreground": "#d4d4d4",

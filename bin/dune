@@ -4,5 +4,10 @@
  (package ochre-cli)
  (libraries ochre cmdliner))
 
+(rule
+ (deps %{workspace_root}/docs/cli.mld)
+ (action
+  (copy %{workspace_root}/docs/cli.mld cli.mld)))
+
 (documentation
  (package ochre-cli))

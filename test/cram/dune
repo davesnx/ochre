@@ -1,10 +1,10 @@
 (executables
- (names test_theme test_scope test_render_html test_render_ansi)
+ (names test_theme test_highlight test_render_html test_render_ansi)
  (libraries ochre))
 
 (cram
  (deps
   test_theme.exe
-  test_scope.exe
+  test_highlight.exe
   test_render_html.exe
   test_render_ansi.exe))

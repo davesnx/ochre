@@ -30,22 +30,21 @@ let token_style_to_css token =
     | Some color -> ("background-color:" ^ color) :: styles
     | None -> styles
   in
-  let styles =
-    List.map font_style_to_css token.font_style @ styles
-  in
+  let styles = List.map font_style_to_css token.font_style @ styles in
   String.concat ";" styles
 
 let render_token token =
   let style = token_style_to_css token in
   let text = escape_html token.text in
-  if style = "" then text else Printf.sprintf "<span style=\"%s\">%s</span>" style text
+  if style = "" then text
+  else Printf.sprintf "<span style=\"%s\">%s</span>" style text
 
-let render_line line =
-  String.concat "" (List.map render_token line)
+let render_line line = String.concat "" (List.map render_token line)
 
 let render theme code =
   let lines = List.map render_line code in
   let code_content = String.concat "\n" lines in
   Printf.sprintf
-    "<pre class=\"ochre\" style=\"background-color:%s;color:%s\"><code>%s</code></pre>"
+    "<pre class=\"ochre\" \
+     style=\"background-color:%s;color:%s\"><code>%s</code></pre>"
     theme.Theme.bg theme.Theme.fg code_content

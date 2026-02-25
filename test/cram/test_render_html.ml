@@ -1,66 +1,54 @@
-let token ?(fg = None) ?(bg = None) ?(styles = []) text
-    : Ochre.Token.styled_token =
-  { text; foreground = fg; background = bg; font_style = styles; scopes = [] }
+let grammar_json =
+  {|{
+  "scopeName": "source.test",
+  "name": "test",
+  "patterns": [
+    { "match": "#.*", "name": "comment.line.test" },
+    { "match": "\\b(let|if|then|else|fun)\\b", "name": "keyword.control.test" },
+    { "match": "\"[^\"]*\"", "name": "string.quoted.double.test" },
+    { "match": "\\b[0-9]+\\b", "name": "constant.numeric.test" }
+  ]
+}|}
 
-let theme : Ochre.Theme.theme =
-  { name = "test"; fg = "#d4d4d4"; bg = "#1e1e1e"; token_colors = [] }
+let theme_json =
+  {|{
+  "name": "test-theme",
+  "colors": {
+    "editor.foreground": "#d4d4d4",
+    "editor.background": "#1e1e1e"
+  },
+  "tokenColors": [
+    { "scope": "comment", "settings": { "foreground": "#888888", "fontStyle": "italic" } },
+    { "scope": "keyword", "settings": { "foreground": "#ff0000", "fontStyle": "bold" } },
+    { "scope": "string", "settings": { "foreground": "#00ff00" } },
+    { "scope": "constant.numeric", "settings": { "foreground": "#0000ff" } }
+  ]
+}|}
+
+let setup () =
+  let path = "test.tmLanguage.json" in
+  let oc = open_out path in
+  output_string oc grammar_json;
+  close_out oc;
+  let hl = Ochre.create ~grammars:[ path ] () in
+  Sys.remove path;
+  let theme = Ochre.Theme.load_from_string theme_json in
+  (hl, theme)
 
 let () =
+  let hl, theme = setup () in
   match Sys.argv.(1) with
-  | "plain" ->
-    print_endline (Ochre.Render_html.render theme [ [ token "hello world" ] ])
-  | "colored" ->
-    print_endline
-      (Ochre.Render_html.render theme
-         [ [ token ~fg:(Some "#ff0000") "red text" ] ])
-  | "styled" ->
-    print_endline
-      (Ochre.Render_html.render theme
-         [
-           [
-             token ~fg:(Some "#00ff00")
-               ~styles:[ Bold; Italic ]
-               "styled";
-           ];
-         ])
-  | "escaping" ->
-    print_endline
-      (Ochre.Render_html.render theme
-         [ [ token {|<div class="test">&amp;</div>|} ] ])
+  | "keyword-and-number" ->
+      print_endline (Ochre.to_html hl ~theme ~lang:"test" "let x = 42")
+  | "comment" ->
+      print_endline (Ochre.to_html hl ~theme ~lang:"test" "# a comment")
+  | "string" ->
+      print_endline (Ochre.to_html hl ~theme ~lang:"test" {|let s = "hello"|})
   | "multi-line" ->
-    print_endline
-      (Ochre.Render_html.render theme
-         [
-           [
-             token ~fg:(Some "#569cd6") "let";
-             token " x = ";
-             token ~fg:(Some "#b5cea8") "42";
-           ];
-           [
-             token ~fg:(Some "#569cd6") "let";
-             token " y = ";
-             token ~fg:(Some "#b5cea8") "10";
-           ];
-         ])
-  | "background" ->
-    print_endline
-      (Ochre.Render_html.render theme
-         [
-           [
-             token ~fg:(Some "#fff") ~bg:(Some "#f00") "highlighted";
-           ];
-         ])
-  | "empty" ->
-    print_endline (Ochre.Render_html.render theme [ [] ])
-  | "all-styles" ->
-    print_endline
-      (Ochre.Render_html.render theme
-         [
-           [
-             token
-               ~fg:(Some "#abc")
-               ~styles:[ Bold; Italic; Underline; Strikethrough ]
-               "everything";
-           ];
-         ])
-  | s -> Printf.eprintf "unknown: %s\n" s; exit 1
+      print_endline
+        (Ochre.to_html hl ~theme ~lang:"test" "let x = 42\nlet y = 10")
+  | "escaping" ->
+      print_endline (Ochre.to_html hl ~theme ~lang:"test" "# <div>&amp;</div>")
+  | s ->
+      Printf.eprintf "unknown: %s\n" s;
+      exit 1

@@ -9,8 +9,8 @@ let print_rule (rule : Ochre.Theme.token_color_rule) =
   Printf.printf "  fg: %s\n"
     (Option.value ~default:"none" rule.settings.foreground);
   (match rule.settings.background with
-   | Some c -> Printf.printf "  bg: %s\n" c
-   | None -> ());
+  | Some c -> Printf.printf "  bg: %s\n" c
+  | None -> ());
   let styles = List.map style_to_string rule.settings.font_style in
   if styles <> [] then
     Printf.printf "  styles: [%s]\n" (String.concat ", " styles)
@@ -23,7 +23,8 @@ let print_theme (theme : Ochre.Theme.theme) =
   List.iter print_rule theme.token_colors
 
 let test_load () =
-  Ochre.Theme.load_from_string {|{
+  Ochre.Theme.load_from_string
+    {|{
     "name": "test-theme",
     "colors": {
       "editor.foreground": "#abcdef",
@@ -48,12 +49,11 @@ let test_load () =
   }|}
   |> print_theme
 
-let test_defaults () =
-  Ochre.Theme.load_from_string {|{}|}
-  |> print_theme
+let test_defaults () = Ochre.Theme.load_from_string {|{}|} |> print_theme
 
 let test_multiple_styles () =
-  Ochre.Theme.load_from_string {|{
+  Ochre.Theme.load_from_string
+    {|{
     "name": "multi-style",
     "tokenColors": [
       {
@@ -67,7 +67,8 @@ let test_multiple_styles () =
   |> print_theme
 
 let test_no_settings () =
-  Ochre.Theme.load_from_string {|{
+  Ochre.Theme.load_from_string
+    {|{
     "name": "no-settings",
     "tokenColors": [
       { "scope": "comment" }
@@ -76,7 +77,8 @@ let test_no_settings () =
   |> print_theme
 
 let test_array_scope () =
-  Ochre.Theme.load_from_string {|{
+  Ochre.Theme.load_from_string
+    {|{
     "name": "array-scope",
     "tokenColors": [
       {
@@ -88,7 +90,8 @@ let test_array_scope () =
   |> print_theme
 
 let test_alt_keys () =
-  Ochre.Theme.load_from_string {|{
+  Ochre.Theme.load_from_string
+    {|{
     "name": "alt-keys",
     "fg": "#aabbcc",
     "bg": "#112233"
@@ -103,4 +106,6 @@ let () =
   | "no-settings" -> test_no_settings ()
   | "array-scope" -> test_array_scope ()
   | "alt-keys" -> test_alt_keys ()
-  | s -> Printf.eprintf "unknown: %s\n" s; exit 1
+  | s ->
+      Printf.eprintf "unknown: %s\n" s;
+      exit 1

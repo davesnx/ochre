@@ -8,8 +8,10 @@ type settings_json = {
 [@@deriving of_json] [@@json.allow_extra_fields]
 
 type colors = {
-  editor_foreground : string option; [@json.option] [@json.key "editor.foreground"]
-  editor_background : string option; [@json.option] [@json.key "editor.background"]
+  editor_foreground : string option;
+      [@json.option] [@json.key "editor.foreground"]
+  editor_background : string option;
+      [@json.option] [@json.key "editor.background"]
 }
 [@@deriving of_json] [@@json.allow_extra_fields]
 
@@ -22,12 +24,7 @@ type theme_json = {
 [@@deriving of_json] [@@json.allow_extra_fields]
 
 type color = string
-
-type font_style = Token.font_style =
-  | Bold
-  | Italic
-  | Underline
-  | Strikethrough
+type font_style = Token.font_style = Bold | Italic | Underline | Strikethrough
 
 type token_color_settings = {
   foreground : color option;
@@ -35,10 +32,7 @@ type token_color_settings = {
   font_style : font_style list;
 }
 
-type token_color_rule = {
-  scope : string list;
-  settings : token_color_settings;
-}
+type token_color_rule = { scope : string list; settings : token_color_settings }
 
 type theme = {
   name : string;
