@@ -5,7 +5,7 @@ Command-line interface for the ochre syntax highlighter.
 {1 Synopsis}
 
 {v
-ochre LANG [FILE] [--theme PATH] [--grammar-dir DIR]... [--format FORMAT] [--stdin]
+ochre LANG [FILE] [--theme PATH] [--grammar FILE]... [--format FORMAT] [--stdin]
 v}
 
 {1 Arguments}
@@ -19,35 +19,46 @@ v}
 
 {ul
 {- [--theme PATH], [-t PATH] — Path to a VS Code / TextMate theme JSON file.}
-{- [--grammar-dir DIR], [-g DIR] — Directory containing [.tmLanguage.json] grammar files. Can be specified multiple times.}
+{- [--grammar FILE], [-g FILE] — Path to a [.tmLanguage.json] grammar file. Can be specified multiple times.}
 {- [--format FORMAT], [-f FORMAT] — Output format: [html] (default), [ansi], or [tokens].}
 {- [--stdin], [-s] — Read source code from standard input instead of a file.}
 }
 
 {1 Examples}
 
-Highlight an OCaml file to HTML:
+{2 Highlight an OCaml file to HTML}
 
 {v
-ochre ocaml file.ml --grammar-dir ./grammars --theme theme.json
+ochre ocaml file.ml --grammar ./grammars/ocaml.tmLanguage.json --theme theme.json
 v}
 
 Highlight from stdin with ANSI terminal colors:
 
 {v
-cat file.js | ochre javascript --stdin --grammar-dir ./grammars --format ansi
+cat file.js | ochre javascript --stdin --grammar ./grammars/javascript.tmLanguage.json --format ansi
 v}
 
-Dump raw token information for debugging:
+{2 Load multiple grammars (e.g. for embedded languages)}
 
 {v
-ochre python script.py --grammar-dir ./grammars --format tokens
+ochre html index.html \
+  --grammar ./grammars/html.tmLanguage.json \
+  --grammar ./grammars/css.tmLanguage.json \
+  --grammar ./grammars/javascript.tmLanguage.json \
+  --theme theme.json
+v}
+
+or using the short flag:
+
+{v
+ochre html index.html -g ./grammars/html.tmLanguage.json -g ./grammars/css.tmLanguage.json -g ./grammars/javascript.tmLanguage.json
 v}
 
 {1 Grammars}
 
-Ochre looks for TextMate grammar files in each [--grammar-dir] directory,
-trying [{<lang>}.tmLanguage.json], [{<lang>}.json], and [{<lang>}] in order.
+Each [--grammar] flag takes a path to a [.tmLanguage.json] file. The language
+identifier is derived from the filename (e.g. [ocaml.tmLanguage.json] registers
+as [ocaml]).
 
 Common sources for grammars:
 {ul
