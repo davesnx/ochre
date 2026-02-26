@@ -1,4 +1,4 @@
-# Ochre
+# ochre
 
 A syntax highlighter for OCaml using TextMate grammars and themes, inspired by [Shiki](https://shiki.style/).
 
