@@ -5,7 +5,7 @@ Command-line interface for the ochre syntax highlighter.
 {1 Synopsis}
 
 {v
-ochre LANG [FILE] [--theme PATH] [--grammar FILE]... [--format FORMAT] [--stdin]
+ochre LANG [FILE] [--theme NAME_OR_PATH] [--theme-dark NAME_OR_PATH] [--theme-light NAME_OR_PATH] [--grammar FILE]... [--format FORMAT] [--stdin]
 v}
 
 {1 Arguments}
@@ -18,7 +18,9 @@ v}
 {1 Options}
 
 {ul
-{- [--theme PATH], [-t PATH] — Path to a VS Code / TextMate theme JSON file.}
+{- [--theme NAME_OR_PATH], [-t NAME_OR_PATH] — Built-in theme name ([opencode-dark], [opencode-light], [dark], [light]) or path to a VS Code / TextMate theme JSON file.}
+{- [--theme-dark NAME_OR_PATH] — Theme used when terminal mode is detected as dark (same name-or-path resolution as [--theme]).}
+{- [--theme-light NAME_OR_PATH] — Theme used when terminal mode is detected as light (same name-or-path resolution as [--theme]).}
 {- [--grammar FILE], [-g FILE] — Path to a [.tmLanguage.json] grammar file. Can be specified multiple times.}
 {- [--format FORMAT], [-f FORMAT] — Output format: [html] (default), [ansi], or [tokens].}
 {- [--stdin], [-s] — Read source code from standard input instead of a file.}

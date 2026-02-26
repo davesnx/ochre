@@ -6,7 +6,7 @@
     {2 Quick start}
 
     {[
-      let theme = Ochre.Theme.load_from_file "path/to/theme.json" in
+      let theme = Ochre.Theme.load "path/to/theme.json" in
       let hl = Ochre.create ~grammars:["/path/to/ocaml.tmLanguage.json"] () in
       let html = Ochre.to_html hl ~theme ~lang:"ocaml" source_code
     ]} *)
@@ -81,13 +81,23 @@ module Theme : sig
   }
   (** A loaded theme with resolved default colors and token coloring rules. *)
 
-  val load_from_file : string -> theme
+  val load : string -> theme
   (** Load a theme from a VS Code theme JSON file.
 
       Falls back to the filename as the theme name when none is specified in the
       JSON.
 
       Raises an exception if the file contains invalid JSON. *)
+
+  val available_names : string list
+  (** Names of built-in themes that can be loaded without a file path. *)
+
+  val make : string -> theme option
+  (** Load a built-in theme by name.
+
+      Supports canonical names like [opencode-dark] and [opencode-light], plus
+      aliases like [dark] and [light]. Returns [None] when the name is not a
+      built-in theme. *)
 
   val load_from_string : string -> theme
   (** Parse a theme from a JSON string.

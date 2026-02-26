@@ -32,9 +32,14 @@ let render_token token =
 let render_line line = String.concat "" (List.map render_token line)
 
 let render theme code =
-  let lines = List.map render_line code in
+  let lines =
+    List.map
+      (fun line ->
+        Printf.sprintf "<span class=\"line\">%s</span>" (render_line line))
+      code
+  in
   let code_content = String.concat "\n" lines in
   Printf.sprintf
-    "<pre class=\"ochre\" \
-     style=\"background-color:%s;color:%s\"><code>%s</code></pre>"
+    "<pre class=\"ochre\" style=\"background-color:%s;color:%s\"><code \
+     style=\"display:block;padding:20px\">%s</code></pre>"
     theme.Theme.bg theme.Theme.fg code_content

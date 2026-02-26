@@ -4,6 +4,8 @@ let escape_latex str =
   let buf = Buffer.create (String.length str * 2) in
   String.iter
     (function
+      | ' ' -> Buffer.add_string buf "\\ "
+      | '\n' -> ()
       | '\\' -> Buffer.add_string buf "\\textbackslash{}"
       | '{' -> Buffer.add_string buf "\\{"
       | '}' -> Buffer.add_string buf "\\}"
@@ -45,7 +47,7 @@ let render_line line = String.concat "" (List.map render_token line)
 
 let render theme (code : highlighted_code) =
   let lines = List.map render_line code in
-  let code_content = String.concat "\n" lines in
+  let code_content = String.concat "\\\\\n" lines in
   Printf.sprintf "\\begin{ochrehighlight}{%s}{%s}\n%s\n\\end{ochrehighlight}"
     (strip_hash theme.Theme.bg)
     (strip_hash theme.Theme.fg)

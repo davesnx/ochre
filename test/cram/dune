@@ -6,7 +6,7 @@
   test_render_ansi
   test_render_latex
   test_render_svg)
- (libraries ochre))
+ (libraries ochre unix))
 
 (cram
  (deps

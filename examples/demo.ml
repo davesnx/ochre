@@ -16,7 +16,7 @@ let () = hello "World"
   Printf.printf "via ~grammars when calling Ochre.create.\n"
 
 let demo_theme_loading () =
-  let theme = Ochre.Theme.load_from_file "examples/themes/simple-dark.json" in
+  let theme = Ochre.Theme.load "examples/themes/simple-dark.json" in
   Printf.printf "Theme: %s\n" theme.name;
   Printf.printf "Foreground: %s\n" theme.fg;
   Printf.printf "Background: %s\n" theme.bg;

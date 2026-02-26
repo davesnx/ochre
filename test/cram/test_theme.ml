@@ -98,6 +98,22 @@ let test_alt_keys () =
   }|}
   |> print_theme
 
+let test_builtin_name name =
+  match Ochre.Theme.make name with
+  | Some theme -> print_theme theme
+  | None ->
+      Printf.eprintf "unknown built-in theme: %s\n" name;
+      exit 1
+
+let test_builtin_alias name =
+  match Ochre.Theme.make name with
+  | Some theme -> print_theme theme
+  | None ->
+      Printf.eprintf "unknown built-in theme: %s\n" name;
+      exit 1
+
+let test_available () = List.iter print_endline Ochre.Theme.available_names
+
 let () =
   match Sys.argv.(1) with
   | "load" -> test_load ()
@@ -106,6 +122,11 @@ let () =
   | "no-settings" -> test_no_settings ()
   | "array-scope" -> test_array_scope ()
   | "alt-keys" -> test_alt_keys ()
+  | "builtin-dark" -> test_builtin_name "opencode-dark"
+  | "builtin-light" -> test_builtin_name "opencode-light"
+  | "tokyonight" -> test_builtin_name "tokyonight"
+  | "load-dark-alias" -> test_builtin_alias "dark"
+  | "available" -> test_available ()
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1

@@ -31,6 +31,32 @@ clean: ## Clean artifacts
 test: ## Run the unit tests
 	$(DUNE) build @runtest
 
+.PHONY: test-browser
+test-browser: ## Serve sample highlighted page on port 5000
+	$(DUNE) exec test/test_html.exe
+
+.PHONY: test-latex
+test-latex: ## Generate and compile LaTeX preview PDF
+	mkdir -p _build/latex-preview
+	$(DUNE) build test/latex-preview.tex --auto-promote
+	cp test/latex-preview.tex _build/latex-preview/ochre-preview.tex
+	@if command -v pdflatex >/dev/null 2>&1; then \
+		pdflatex -interaction=nonstopmode -halt-on-error -output-directory _build/latex-preview _build/latex-preview/ochre-preview.tex >/dev/null; \
+	else \
+		echo "No LaTeX compiler found. Install 'pdflatex'."; \
+		exit 1; \
+	fi
+	@echo "Built: _build/latex-preview/ochre-preview.pdf"
+
+.PHONY: test-svg
+test-svg: ## Promote SVG preview for GitHub rendering
+	$(DUNE) build test/svg-preview.svg --auto-promote
+	@echo "Promoted: test/svg-preview.svg"
+
+.PHONY: test-svg-serve
+test-svg-serve: ## Serve SVG preview page on port 5000
+	$(DUNE) exec test/test_svg.exe
+
 .PHONY: test-watch
 test-watch: ## Run the unit tests in watch mode
 	$(DUNE) build @runtest -w

@@ -1,0 +1,82 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+\usepackage{soul}
+\usepackage{tcolorbox}
+\setlength{\parindent}{0pt}
+\newenvironment{ochrehighlight}[2]{%
+  \par\smallskip\noindent
+  \begingroup
+  \definecolor{ochrebg}{HTML}{#1}
+  \definecolor{ochrefg}{HTML}{#2}
+  \begin{tcolorbox}[colback=ochrebg,coltext=ochrefg,boxrule=0pt,arc=0pt,left=2mm,right=2mm,top=1mm,bottom=1mm]
+  \ttfamily\small\obeylines\obeyspaces
+}{%
+  \end{tcolorbox}
+  \endgroup\smallskip
+}
+\begin{document}
+\section*{Ochre LaTeX Theme Preview}
+\subsection*{tokyonight}
+\begin{ochrehighlight}{1a1b26}{c0caf5}
+\textcolor[HTML]{7aa2f7}{let}\textcolor[HTML]{c0caf5}{\ answer\ =\ }\textcolor[HTML]{ff9e64}{42}\textcolor[HTML]{c0caf5}{}\\
+\textcolor[HTML]{565f89}{(*\ LaTeX\ preview\ *)}\textcolor[HTML]{c0caf5}{}\\
+\textcolor[HTML]{7aa2f7}{let}\textcolor[HTML]{c0caf5}{\ greet\ =\ }\textcolor[HTML]{9ece6a}{"hello\ from\ ochre"}\textcolor[HTML]{c0caf5}{}
+\end{ochrehighlight}
+\subsection*{everforest}
+\begin{ochrehighlight}{2d353b}{d3c6aa}
+\textcolor[HTML]{e67e80}{let}\textcolor[HTML]{d3c6aa}{\ answer\ =\ }\textcolor[HTML]{d699b6}{42}\textcolor[HTML]{d3c6aa}{}\\
+\textcolor[HTML]{859289}{(*\ LaTeX\ preview\ *)}\textcolor[HTML]{d3c6aa}{}\\
+\textcolor[HTML]{e67e80}{let}\textcolor[HTML]{d3c6aa}{\ greet\ =\ }\textcolor[HTML]{a7c080}{"hello\ from\ ochre"}\textcolor[HTML]{d3c6aa}{}
+\end{ochrehighlight}
+\subsection*{ayu}
+\begin{ochrehighlight}{0a0e14}{b3b1ad}
+\textcolor[HTML]{ffb454}{let}\textcolor[HTML]{b3b1ad}{\ answer\ =\ }\textcolor[HTML]{ff8f40}{42}\textcolor[HTML]{b3b1ad}{}\\
+\textcolor[HTML]{5c6773}{(*\ LaTeX\ preview\ *)}\textcolor[HTML]{b3b1ad}{}\\
+\textcolor[HTML]{ffb454}{let}\textcolor[HTML]{b3b1ad}{\ greet\ =\ }\textcolor[HTML]{aad94c}{"hello\ from\ ochre"}\textcolor[HTML]{b3b1ad}{}
+\end{ochrehighlight}
+\subsection*{catppuccin}
+\begin{ochrehighlight}{1e1e2e}{cdd6f4}
+\textcolor[HTML]{cba6f7}{let}\textcolor[HTML]{cdd6f4}{\ answer\ =\ }\textcolor[HTML]{fab387}{42}\textcolor[HTML]{cdd6f4}{}\\
+\textcolor[HTML]{6c7086}{(*\ LaTeX\ preview\ *)}\textcolor[HTML]{cdd6f4}{}\\
+\textcolor[HTML]{cba6f7}{let}\textcolor[HTML]{cdd6f4}{\ greet\ =\ }\textcolor[HTML]{a6e3a1}{"hello\ from\ ochre"}\textcolor[HTML]{cdd6f4}{}
+\end{ochrehighlight}
+\subsection*{catppuccin-macchiato}
+\begin{ochrehighlight}{24273a}{cad3f5}
+\textcolor[HTML]{c6a0f6}{let}\textcolor[HTML]{cad3f5}{\ answer\ =\ }\textcolor[HTML]{f5a97f}{42}\textcolor[HTML]{cad3f5}{}\\
+\textcolor[HTML]{6e738d}{(*\ LaTeX\ preview\ *)}\textcolor[HTML]{cad3f5}{}\\
+\textcolor[HTML]{c6a0f6}{let}\textcolor[HTML]{cad3f5}{\ greet\ =\ }\textcolor[HTML]{a6da95}{"hello\ from\ ochre"}\textcolor[HTML]{cad3f5}{}
+\end{ochrehighlight}
+\subsection*{gruvbox}
+\begin{ochrehighlight}{282828}{ebdbb2}
+\textcolor[HTML]{fb4934}{let}\textcolor[HTML]{ebdbb2}{\ answer\ =\ }\textcolor[HTML]{d3869b}{42}\textcolor[HTML]{ebdbb2}{}\\
+\textcolor[HTML]{928374}{(*\ LaTeX\ preview\ *)}\textcolor[HTML]{ebdbb2}{}\\
+\textcolor[HTML]{fb4934}{let}\textcolor[HTML]{ebdbb2}{\ greet\ =\ }\textcolor[HTML]{b8bb26}{"hello\ from\ ochre"}\textcolor[HTML]{ebdbb2}{}
+\end{ochrehighlight}
+\subsection*{kanagawa}
+\begin{ochrehighlight}{1f1f28}{dcd7ba}
+\textcolor[HTML]{957fb8}{let}\textcolor[HTML]{dcd7ba}{\ answer\ =\ }\textcolor[HTML]{ffa066}{42}\textcolor[HTML]{dcd7ba}{}\\
+\textcolor[HTML]{727169}{(*\ LaTeX\ preview\ *)}\textcolor[HTML]{dcd7ba}{}\\
+\textcolor[HTML]{957fb8}{let}\textcolor[HTML]{dcd7ba}{\ greet\ =\ }\textcolor[HTML]{98bb6c}{"hello\ from\ ochre"}\textcolor[HTML]{dcd7ba}{}
+\end{ochrehighlight}
+\subsection*{nord}
+\begin{ochrehighlight}{2e3440}{d8dee9}
+\textcolor[HTML]{81a1c1}{let}\textcolor[HTML]{d8dee9}{\ answer\ =\ }\textcolor[HTML]{b48ead}{42}\textcolor[HTML]{d8dee9}{}\\
+\textcolor[HTML]{616e88}{(*\ LaTeX\ preview\ *)}\textcolor[HTML]{d8dee9}{}\\
+\textcolor[HTML]{81a1c1}{let}\textcolor[HTML]{d8dee9}{\ greet\ =\ }\textcolor[HTML]{a3be8c}{"hello\ from\ ochre"}\textcolor[HTML]{d8dee9}{}
+\end{ochrehighlight}
+\subsection*{matrix}
+\begin{ochrehighlight}{000000}{00ff41}
+\textcolor[HTML]{39ff14}{let}\textcolor[HTML]{00ff41}{\ answer\ =\ }\textcolor[HTML]{66ff66}{42}\textcolor[HTML]{00ff41}{}\\
+\textcolor[HTML]{008f11}{(*\ LaTeX\ preview\ *)}\textcolor[HTML]{00ff41}{}\\
+\textcolor[HTML]{39ff14}{let}\textcolor[HTML]{00ff41}{\ greet\ =\ }\textcolor[HTML]{00cc33}{"hello\ from\ ochre"}\textcolor[HTML]{00ff41}{}
+\end{ochrehighlight}
+\subsection*{one-dark}
+\begin{ochrehighlight}{282c34}{abb2bf}
+\textcolor[HTML]{c678dd}{let}\textcolor[HTML]{abb2bf}{\ answer\ =\ }\textcolor[HTML]{d19a66}{42}\textcolor[HTML]{abb2bf}{}\\
+\textcolor[HTML]{5c6370}{(*\ LaTeX\ preview\ *)}\textcolor[HTML]{abb2bf}{}\\
+\textcolor[HTML]{c678dd}{let}\textcolor[HTML]{abb2bf}{\ greet\ =\ }\textcolor[HTML]{98c379}{"hello\ from\ ochre"}\textcolor[HTML]{abb2bf}{}
+\end{ochrehighlight}
+\end{document}
