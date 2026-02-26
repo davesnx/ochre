@@ -6,9 +6,8 @@
     {2 Quick start}
 
     {[
-      let theme = Ochre.Theme.load "path/to/theme.json" in
       let hl = Ochre.create ~grammars:["/path/to/ocaml.tmLanguage.json"] () in
-      let html = Ochre.to_html hl ~theme ~lang:"ocaml" source_code
+      let html = Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" "let x = 42"
     ]} *)
 
 (** {1 Token types} *)
@@ -92,12 +91,26 @@ module Theme : sig
   val available_names : string list
   (** Names of built-in themes that can be loaded without a file path. *)
 
+  val dark : theme
+  val light : theme
+  val tokyonight : theme
+  val everforest : theme
+  val ayu : theme
+  val catppuccin : theme
+  val catppuccin_macchiato : theme
+  val gruvbox : theme
+  val kanagawa : theme
+  val nord : theme
+  val matrix : theme
+
+  val one_dark : theme
+  (** Built-in themes exposed as values. *)
+
   val make : string -> theme option
   (** Load a built-in theme by name.
 
-      Supports canonical names like [opencode-dark] and [opencode-light], plus
-      aliases like [dark] and [light]. Returns [None] when the name is not a
-      built-in theme. *)
+      Supports names like [dark], [light], and [tokyonight]. Returns [None] when
+      the name is not a built-in theme. *)
 
   val load_from_string : string -> theme
   (** Parse a theme from a JSON string.

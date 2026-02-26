@@ -83,6 +83,57 @@ let render_svg ~highlighter ~source name =
       Printf.eprintf "Missing built-in theme: %s\n" name;
       exit 1
 
+let svg_body svg =
+  match String.index_opt svg '>' with
+  | None -> svg
+  | Some open_end ->
+      let close_tag = "</svg>" in
+      let close_tag_len = String.length close_tag in
+      let len = String.length svg in
+      if
+        len >= close_tag_len
+        && String.sub svg (len - close_tag_len) close_tag_len = close_tag
+      then String.sub svg (open_end + 1) (len - open_end - close_tag_len - 1)
+      else String.sub svg (open_end + 1) (len - open_end - 1)
+
+let render_theme_gallery_svg ~highlighter ~source =
+  let card_width = 280 in
+  let page_width = 320 in
+  let top_padding = 24 in
+  let block_height = 120 in
+  let page_height = top_padding + (List.length preview_themes * block_height) in
+  let theme_blocks =
+    List.mapi
+      (fun idx name ->
+        let y = top_padding + (idx * block_height) in
+        let body = render_svg ~highlighter ~source name |> svg_body in
+        String.concat "\n"
+          [
+            Printf.sprintf
+              "<text x=\"20\" y=\"%d\" font-size=\"12px\" \
+               font-family=\"monospace\" fill=\"#6b7280\" \
+               letter-spacing=\"0.08em\">%s</text>"
+              (y + 12) name;
+            Printf.sprintf
+              "<svg x=\"20\" y=\"%d\" width=\"%d\" height=\"79\" \
+               xmlns=\"http://www.w3.org/2000/svg\">"
+              (y + 20) card_width;
+            body;
+            "</svg>";
+          ])
+      preview_themes
+  in
+  String.concat "\n"
+    ([
+       Printf.sprintf
+         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"%d\" height=\"%d\">"
+         page_width page_height;
+       Printf.sprintf
+         "<rect x=\"0\" y=\"0\" width=\"%d\" height=\"%d\" fill=\"#f5f5f5\"/>"
+         page_width page_height;
+     ]
+    @ theme_blocks @ [ "</svg>" ])
+
 let () =
   let highlighter =
     Ochre.create_from_json ~grammars:[ ("ocaml", grammar_json) ] ()
@@ -93,7 +144,7 @@ let () =
      let greet = \"hello from ochre\""
   in
   if Array.length Sys.argv > 1 && Sys.argv.(1) = "--github-preview" then
-    print_endline (render_svg ~highlighter ~source "tokyonight")
+    print_endline (render_theme_gallery_svg ~highlighter ~source)
   else
     let render_theme name =
       let svg = render_svg ~highlighter ~source name in

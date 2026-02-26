@@ -100,5 +100,3 @@ subst: ## Run dune substitute
 .PHONY: docs
 docs: ## Generate markdown documentation from mli files
 	$(DUNE) build @doc-markdown
-	tail -n +2 _build/default/_doc/_markdown/ochre/README.md > README.md
-	cp _build/default/_doc/_markdown/ochre/Ochre*.md docs/

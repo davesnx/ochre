@@ -3,3 +3,12 @@
  (mode
   (promote (until-clean)))
  (files %{workspace_root}/_doc/_markdown/ochre/Ochre*.md))
+
+(rule
+ (alias doc-markdown)
+ (mode
+  (promote (until-clean)))
+ (deps %{workspace_root}/_doc/_markdown/ochre-cli/cli.md)
+ (targets cli.md)
+ (action
+  (copy %{workspace_root}/_doc/_markdown/ochre-cli/cli.md %{targets})))

@@ -1,4 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="280" height="79" font-family="monospace" font-size="14px">
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="1224">
+<rect x="0" y="0" width="320" height="1224" fill="#f5f5f5"/>
+<text x="20" y="36" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">tokyonight</text>
+<svg x="20" y="44" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
+
  <rect width="100%" height="100%" fill="#1a1b26"/>
   <text x="10" y="24.0" xml:space="preserve"><tspan fill="#7aa2f7">let</tspan><tspan fill="#c0caf5"> answer = </tspan><tspan fill="#ff9e64">42</tspan><tspan fill="#c0caf5">
 </tspan></text>
@@ -6,4 +10,114 @@
 </tspan></text>
   <text x="10" y="63.2" xml:space="preserve"><tspan fill="#7aa2f7">let</tspan><tspan fill="#c0caf5"> greet = </tspan><tspan fill="#9ece6a">&quot;hello from ochre&quot;</tspan><tspan fill="#c0caf5">
 </tspan></text>
+
+</svg>
+<text x="20" y="156" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">everforest</text>
+<svg x="20" y="164" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
+
+ <rect width="100%" height="100%" fill="#2d353b"/>
+  <text x="10" y="24.0" xml:space="preserve"><tspan fill="#e67e80">let</tspan><tspan fill="#d3c6aa"> answer = </tspan><tspan fill="#d699b6">42</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="43.6" xml:space="preserve"><tspan fill="#859289">(* open this in a browser *)</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="63.2" xml:space="preserve"><tspan fill="#e67e80">let</tspan><tspan fill="#d3c6aa"> greet = </tspan><tspan fill="#a7c080">&quot;hello from ochre&quot;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+
+</svg>
+<text x="20" y="276" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">ayu</text>
+<svg x="20" y="284" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
+
+ <rect width="100%" height="100%" fill="#0a0e14"/>
+  <text x="10" y="24.0" xml:space="preserve"><tspan fill="#ffb454">let</tspan><tspan fill="#b3b1ad"> answer = </tspan><tspan fill="#ff8f40">42</tspan><tspan fill="#b3b1ad">
+</tspan></text>
+  <text x="10" y="43.6" xml:space="preserve"><tspan fill="#5c6773">(* open this in a browser *)</tspan><tspan fill="#b3b1ad">
+</tspan></text>
+  <text x="10" y="63.2" xml:space="preserve"><tspan fill="#ffb454">let</tspan><tspan fill="#b3b1ad"> greet = </tspan><tspan fill="#aad94c">&quot;hello from ochre&quot;</tspan><tspan fill="#b3b1ad">
+</tspan></text>
+
+</svg>
+<text x="20" y="396" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">catppuccin</text>
+<svg x="20" y="404" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
+
+ <rect width="100%" height="100%" fill="#1e1e2e"/>
+  <text x="10" y="24.0" xml:space="preserve"><tspan fill="#cba6f7">let</tspan><tspan fill="#cdd6f4"> answer = </tspan><tspan fill="#fab387">42</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+  <text x="10" y="43.6" xml:space="preserve"><tspan fill="#6c7086">(* open this in a browser *)</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+  <text x="10" y="63.2" xml:space="preserve"><tspan fill="#cba6f7">let</tspan><tspan fill="#cdd6f4"> greet = </tspan><tspan fill="#a6e3a1">&quot;hello from ochre&quot;</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+
+</svg>
+<text x="20" y="516" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">catppuccin-macchiato</text>
+<svg x="20" y="524" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
+
+ <rect width="100%" height="100%" fill="#24273a"/>
+  <text x="10" y="24.0" xml:space="preserve"><tspan fill="#c6a0f6">let</tspan><tspan fill="#cad3f5"> answer = </tspan><tspan fill="#f5a97f">42</tspan><tspan fill="#cad3f5">
+</tspan></text>
+  <text x="10" y="43.6" xml:space="preserve"><tspan fill="#6e738d">(* open this in a browser *)</tspan><tspan fill="#cad3f5">
+</tspan></text>
+  <text x="10" y="63.2" xml:space="preserve"><tspan fill="#c6a0f6">let</tspan><tspan fill="#cad3f5"> greet = </tspan><tspan fill="#a6da95">&quot;hello from ochre&quot;</tspan><tspan fill="#cad3f5">
+</tspan></text>
+
+</svg>
+<text x="20" y="636" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">gruvbox</text>
+<svg x="20" y="644" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
+
+ <rect width="100%" height="100%" fill="#282828"/>
+  <text x="10" y="24.0" xml:space="preserve"><tspan fill="#fb4934">let</tspan><tspan fill="#ebdbb2"> answer = </tspan><tspan fill="#d3869b">42</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+  <text x="10" y="43.6" xml:space="preserve"><tspan fill="#928374">(* open this in a browser *)</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+  <text x="10" y="63.2" xml:space="preserve"><tspan fill="#fb4934">let</tspan><tspan fill="#ebdbb2"> greet = </tspan><tspan fill="#b8bb26">&quot;hello from ochre&quot;</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+
+</svg>
+<text x="20" y="756" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">kanagawa</text>
+<svg x="20" y="764" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
+
+ <rect width="100%" height="100%" fill="#1f1f28"/>
+  <text x="10" y="24.0" xml:space="preserve"><tspan fill="#957fb8">let</tspan><tspan fill="#dcd7ba"> answer = </tspan><tspan fill="#ffa066">42</tspan><tspan fill="#dcd7ba">
+</tspan></text>
+  <text x="10" y="43.6" xml:space="preserve"><tspan fill="#727169">(* open this in a browser *)</tspan><tspan fill="#dcd7ba">
+</tspan></text>
+  <text x="10" y="63.2" xml:space="preserve"><tspan fill="#957fb8">let</tspan><tspan fill="#dcd7ba"> greet = </tspan><tspan fill="#98bb6c">&quot;hello from ochre&quot;</tspan><tspan fill="#dcd7ba">
+</tspan></text>
+
+</svg>
+<text x="20" y="876" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">nord</text>
+<svg x="20" y="884" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
+
+ <rect width="100%" height="100%" fill="#2e3440"/>
+  <text x="10" y="24.0" xml:space="preserve"><tspan fill="#81a1c1">let</tspan><tspan fill="#d8dee9"> answer = </tspan><tspan fill="#b48ead">42</tspan><tspan fill="#d8dee9">
+</tspan></text>
+  <text x="10" y="43.6" xml:space="preserve"><tspan fill="#616e88">(* open this in a browser *)</tspan><tspan fill="#d8dee9">
+</tspan></text>
+  <text x="10" y="63.2" xml:space="preserve"><tspan fill="#81a1c1">let</tspan><tspan fill="#d8dee9"> greet = </tspan><tspan fill="#a3be8c">&quot;hello from ochre&quot;</tspan><tspan fill="#d8dee9">
+</tspan></text>
+
+</svg>
+<text x="20" y="996" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">matrix</text>
+<svg x="20" y="1004" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
+
+ <rect width="100%" height="100%" fill="#000000"/>
+  <text x="10" y="24.0" xml:space="preserve"><tspan fill="#39ff14">let</tspan><tspan fill="#00ff41"> answer = </tspan><tspan fill="#66ff66">42</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="43.6" xml:space="preserve"><tspan fill="#008f11">(* open this in a browser *)</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="63.2" xml:space="preserve"><tspan fill="#39ff14">let</tspan><tspan fill="#00ff41"> greet = </tspan><tspan fill="#00cc33">&quot;hello from ochre&quot;</tspan><tspan fill="#00ff41">
+</tspan></text>
+
+</svg>
+<text x="20" y="1116" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">one-dark</text>
+<svg x="20" y="1124" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
+
+ <rect width="100%" height="100%" fill="#282c34"/>
+  <text x="10" y="24.0" xml:space="preserve"><tspan fill="#c678dd">let</tspan><tspan fill="#abb2bf"> answer = </tspan><tspan fill="#d19a66">42</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="43.6" xml:space="preserve"><tspan fill="#5c6370">(* open this in a browser *)</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="63.2" xml:space="preserve"><tspan fill="#c678dd">let</tspan><tspan fill="#abb2bf"> greet = </tspan><tspan fill="#98c379">&quot;hello from ochre&quot;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+
+</svg>
 </svg>

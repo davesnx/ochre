@@ -122,8 +122,8 @@ let () =
   | "no-settings" -> test_no_settings ()
   | "array-scope" -> test_array_scope ()
   | "alt-keys" -> test_alt_keys ()
-  | "builtin-dark" -> test_builtin_name "opencode-dark"
-  | "builtin-light" -> test_builtin_name "opencode-light"
+  | "builtin-dark" -> test_builtin_name "dark"
+  | "builtin-light" -> test_builtin_name "light"
   | "tokyonight" -> test_builtin_name "tokyonight"
   | "load-dark-alias" -> test_builtin_alias "dark"
   | "available" -> test_available ()

@@ -56,9 +56,7 @@ let detect_theme_mode () =
 
 let default_theme =
   let fallback =
-    match detect_theme_mode () with
-    | Dark -> "opencode-dark"
-    | Light -> "opencode-light"
+    match detect_theme_mode () with Dark -> "dark" | Light -> "light"
   in
   match Ochre.Theme.make fallback with
   | Some theme -> theme

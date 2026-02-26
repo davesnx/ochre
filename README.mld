@@ -4,16 +4,35 @@ A syntax highlighter for OCaml using TextMate grammars and themes, inspired by {
 
 {1 Installation}
 
-{v
-opam pin add . -y
-v}
+{@bash[
+opam install ochre -y
+]}
 
 {1 Quick start}
 
-{[
-let theme = Ochre.Theme.load_from_file "path/to/theme.json" in
+{@ocaml[
+let theme = Ochre.Theme.nord in
 let hl = Ochre.create ~grammars:["path/to/ocaml.tmLanguage.json"] () in
 let html = Ochre.to_html hl ~theme ~lang:"ocaml" source_code
+]}
+
+{1 Load any TextMate grammar with tm-grammars}
+
+{{:https://github.com/davesnx/tm-grammars} tm-grammars} provides a curated collection of TextMate grammars packaged for OCaml. It integrates cleanly with ochre, so you can use any grammar definitions without managing JSON grammar files manually.
+
+Install the bundled grammar package:
+
+{v
+opam install tm-grammars-all -y
+v}
+
+Then load a grammar from OCaml and create a highlighter. [tm-grammars] handles grammar distribution, while [ochre] focuses on tokenization and rendering, making the two libraries a strong combination:
+
+{[
+let theme = Ochre.Theme.nord in
+let grammar = Option.get (Tm_grammars_all.find "ocaml") in
+let hl = Ochre.create_from_json ~grammars:[ ("ocaml", grammar) ] () in
+let html = Ochre.to_html hl ~theme ~lang:"ocaml" "let x = 42"
 ]}
 
 {1 Documentation}
@@ -21,8 +40,24 @@ let html = Ochre.to_html hl ~theme ~lang:"ocaml" source_code
 {ul
 {- {{:docs/Ochre.md} Library API} — [Ochre] module reference}
 {- {{:docs/cli.md} CLI reference} — command-line usage}
-{- Regenerate docs with [make docs].}
 }
+
+{1 Browser preview test}
+
+Serve a highlighted sample on port 5000:
+
+{v
+make test-browser
+v}
+
+Then open [http://localhost:5000] (or use SSH port forwarding).
+Stop it with Ctrl+C.
+
+If port 5000 is busy, pick another one:
+
+{v
+PORT=5001 make test-browser
+v}
 
 {1 License}
 

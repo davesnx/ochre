@@ -1,15 +1,6 @@
 type t = { grammar_loader : Grammar_loader.t }
 type output_format = Html | Ansi | Latex | Svg | Tokens
 
-let output_formats =
-  [
-    ("html", Html);
-    ("ansi", Ansi);
-    ("latex", Latex);
-    ("svg", Svg);
-    ("tokens", Tokens);
-  ]
-
 let string_of_output_format = function
   | Html -> "html"
   | Ansi -> "ansi"
@@ -18,7 +9,18 @@ let string_of_output_format = function
   | Tokens -> "tokens"
 
 let output_format_of_string value =
-  List.assoc_opt (String.lowercase_ascii value) output_formats
+  match String.lowercase_ascii value with
+  | "html" -> Some Html
+  | "ansi" -> Some Ansi
+  | "latex" -> Some Latex
+  | "svg" -> Some Svg
+  | "tokens" -> Some Tokens
+  | _ -> None
+
+let output_formats =
+  List.map
+    (fun f -> (string_of_output_format f, f))
+    [ Html; Ansi; Latex; Svg; Tokens ]
 
 let create ~grammars () =
   { grammar_loader = Grammar_loader.create ~grammars () }

@@ -53,9 +53,9 @@ Alternative fg/bg keys
   bg: #112233
   rules: 0
 
-Load built-in opencode dark theme
+Load built-in dark theme
   $ ./test_theme.exe builtin-dark
-  name: opencode-dark
+  name: dark
   fg: #d4d4d4
   bg: #1e1e1e
   rules: 6
@@ -72,9 +72,9 @@ Load built-in opencode dark theme
     scopes: [entity.name.type]
     fg: #4ec9b0
 
-Load built-in opencode light theme
+Load built-in light theme
   $ ./test_theme.exe builtin-light
-  name: opencode-light
+  name: light
   fg: #1f2328
   bg: #ffffff
   rules: 6
@@ -93,7 +93,7 @@ Load built-in opencode light theme
 
 Load by alias with name-or-path API
   $ ./test_theme.exe load-dark-alias
-  name: opencode-dark
+  name: dark
   fg: #d4d4d4
   bg: #1e1e1e
   rules: 6
@@ -112,8 +112,8 @@ Load by alias with name-or-path API
 
 Built-in theme catalog includes all shipped themes
   $ ./test_theme.exe available
-  opencode-dark
-  opencode-light
+  dark
+  light
   tokyonight
   everforest
   ayu

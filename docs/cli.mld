@@ -18,7 +18,7 @@ v}
 {1 Options}
 
 {ul
-{- [--theme NAME_OR_PATH], [-t NAME_OR_PATH] — Built-in theme name ([opencode-dark], [opencode-light], [dark], [light]) or path to a VS Code / TextMate theme JSON file.}
+{- [--theme NAME_OR_PATH], [-t NAME_OR_PATH] — Optional. Built-in theme name (for example [dark], [light], or [tokyonight]) or path to a VS Code / TextMate theme JSON file.}
 {- [--theme-dark NAME_OR_PATH] — Theme used when terminal mode is detected as dark (same name-or-path resolution as [--theme]).}
 {- [--theme-light NAME_OR_PATH] — Theme used when terminal mode is detected as light (same name-or-path resolution as [--theme]).}
 {- [--grammar FILE], [-g FILE] — Path to a [.tmLanguage.json] grammar file. Can be specified multiple times.}
@@ -72,3 +72,27 @@ Common sources for grammars:
 
 Themes use the VS Code / TextMate JSON format with [colors] and [tokenColors] fields.
 See {{:https://vscodethemes.com/} VS Code Theme Gallery} for available themes.
+
+For the CLI, [--theme] is optional. Ochre uses a built-in theme and auto-picks
+dark/light from your terminal (using [OCHRE_THEME_MODE], [TERM_THEME], or
+[COLORFGBG]).
+
+You can also pass a built-in name directly, for example [--theme dark], instead
+of a file path.
+
+Built-in themes:
+
+{ul
+{- [dark] — Default dark Ochre theme}
+{- [light] — Default light Ochre theme}
+{- [tokyonight] — Based on the Tokyonight theme}
+{- [everforest] — Based on the Everforest theme}
+{- [ayu] — Based on the Ayu dark theme}
+{- [catppuccin] — Based on the Catppuccin theme}
+{- [catppuccin-macchiato] — Based on the Catppuccin theme}
+{- [gruvbox] — Based on the Gruvbox theme}
+{- [kanagawa] — Based on the Kanagawa theme}
+{- [nord] — Based on the Nord theme}
+{- [matrix] — Hacker-style green on black theme}
+{- [one-dark] — Based on the Atom One Dark theme}
+}

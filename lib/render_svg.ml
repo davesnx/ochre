@@ -5,6 +5,10 @@ let line_height = 1.4
 let char_width = 0.6
 let padding = 10.0
 
+let font_family =
+  "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, \
+   Courier New, monospace"
+
 let line_char_count line =
   List.fold_left
     (fun acc (tok : styled_token) -> acc + String.length tok.text)
@@ -69,8 +73,8 @@ let render theme (code : highlighted_code) =
   let body = String.concat "\n" lines in
   Printf.sprintf
     "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"%.0f\" height=\"%.0f\" \
-     font-family=\"monospace\" font-size=\"%.0fpx\">\n\
+     font-family=\"%s\" font-size=\"%.0fpx\">\n\
     \ <rect width=\"100%%\" height=\"100%%\" fill=\"%s\"/>\n\
      %s\n\
      </svg>"
-    width height font_size theme.Theme.bg body
+    width height font_family font_size theme.Theme.bg body
