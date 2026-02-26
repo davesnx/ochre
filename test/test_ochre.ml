@@ -65,6 +65,41 @@ let test_scope_matching () =
         "keyword gets red" (Some "#ff0000") first.foreground
   | _ -> Alcotest.fail "expected at least one token"
 
+let test_capture_arrays_in_grammar () =
+  let grammar_with_capture_array =
+    {|{
+    "scopeName": "source.capture-array",
+    "name": "capture-array",
+    "patterns": [
+      {
+        "begin": "(let)",
+        "end": "$",
+        "beginCaptures": [
+          { "name": "keyword.control.test" }
+        ]
+      }
+    ]
+  }|}
+  in
+  let hl =
+    Ochre.create_from_json
+      ~grammars:[ ("capture-array", grammar_with_capture_array) ]
+      ()
+  in
+  let theme =
+    Ochre.Theme.load_from_string
+      {|{
+      "name": "test",
+      "colors": {
+        "editor.foreground": "#d4d4d4",
+        "editor.background": "#1e1e1e"
+      },
+      "tokenColors": []
+    }|}
+  in
+  let _ = Ochre.to_tokens hl ~theme ~lang:"capture-array" "let x = 1" in
+  ()
+
 let () =
   let open Alcotest in
   run "Ochre"
@@ -72,4 +107,9 @@ let () =
       ("theme", [ test_case "Load theme from string" `Quick test_theme_loading ]);
       ( "scope",
         [ test_case "Scope matching via tokens" `Quick test_scope_matching ] );
+      ( "grammar",
+        [
+          test_case "Accept capture arrays" `Quick
+            test_capture_arrays_in_grammar;
+        ] );
     ]

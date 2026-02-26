@@ -1,17 +1,5 @@
 open Token
 
-let escape_html str =
-  let buf = Buffer.create (String.length str * 2) in
-  String.iter
-    (function
-      | '<' -> Buffer.add_string buf "&lt;"
-      | '>' -> Buffer.add_string buf "&gt;"
-      | '&' -> Buffer.add_string buf "&amp;"
-      | '"' -> Buffer.add_string buf "&quot;"
-      | c -> Buffer.add_char buf c)
-    str;
-  Buffer.contents buf
-
 let font_style_to_css = function
   | Bold -> "font-weight:bold"
   | Italic -> "font-style:italic"
@@ -35,7 +23,9 @@ let token_style_to_css token =
 
 let render_token token =
   let style = token_style_to_css token in
-  let text = escape_html token.text in
+  let buf = Buffer.create (String.length token.text) in
+  Escape.html buf token.text;
+  let text = Buffer.contents buf in
   if style = "" then text
   else Printf.sprintf "<span style=\"%s\">%s</span>" style text
 

@@ -34,6 +34,44 @@ type t
 Highlighter instance. Holds loaded grammars and tokenization state.
 
 ```
+type output_format = 
+```
+```
+| Html
+```
+```
+| Ansi
+```
+```
+| Latex
+```
+```
+| Svg
+```
+```
+| Tokens
+```
+Supported output formats.
+
+```
+
+```
+```
+val output_formats : (string * output_format) list
+```
+Mapping of CLI/output format names to typed variants.
+
+```
+val string_of_output_format : output_format -> string
+```
+Convert a format variant to its canonical lowercase name.
+
+```
+val output_format_of_string : string -> output_format option
+```
+Parse a lowercase/uppercase format name into a variant.
+
+```
 val create : grammars:string list -> unit -> t
 ```
 Create a new highlighter with the given grammar files.
@@ -45,6 +83,17 @@ Each grammar is a path to a `.tmLanguage.json` file. The language identifier is 
     Ochre.create
       ~grammars:[ "/usr/share/grammars/ocaml.tmLanguage.json" ]
       ()
+```
+```
+val create_from_json : grammars:(string * string) list -> unit -> t
+```
+Create a highlighter from grammar JSON strings.
+
+Each pair is `(lang_id, json_content)` where `lang_id` is the language identifier and `json_content` is the raw TextMate grammar JSON.
+
+```ocaml
+  let hl =
+    Ochre.create_from_json ~grammars:[ ("ocaml", Tm_grammar_ocaml.json) ] ()
 ```
 
 ## Highlighting
@@ -93,3 +142,41 @@ Highlight source code to ANSI terminal escape sequences.
 Produces text with embedded 24-bit ANSI color codes for terminal display.
 
 Raises `Failure` if the grammar for `lang` cannot be found.
+
+```
+val to_latex : t -> theme:Theme.theme -> lang:string -> string -> string
+```
+Highlight source code to LaTeX with `\textcolor` commands.
+
+Produces a block wrapped in an `ochrehighlight` environment. Requires the `xcolor` and `soul` LaTeX packages.
+
+Raises `Failure` if the grammar for `lang` cannot be found.
+
+```
+val to_svg : t -> theme:Theme.theme -> lang:string -> string -> string
+```
+Highlight source code to a self-contained SVG element.
+
+Produces an `<svg>` with monospace `<text>` elements and per-token `<tspan>` styling. Suitable for embedding in documents or rendering as an image.
+
+Raises `Failure` if the grammar for `lang` cannot be found.
+
+```
+val to_debug_tokens : t -> theme:Theme.theme -> lang:string -> string -> string
+```
+Highlight source code and render each token as `{text}[scope1,scope2,...]`.
+
+Useful for debugging grammar and scope matching.
+
+Raises `Failure` if the grammar for `lang` cannot be found.
+
+```
+val to_string : 
+  t ->
+  format:output_format ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+```
+Highlight source code to one of the supported output formats.

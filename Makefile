@@ -62,6 +62,7 @@ install: ## Install opam dependencies
 .PHONY: pin
 pin: ## Pin dependencies
 	opam pin dune https://github.com/ocaml/dune.git#main -y
+	opam pin textmate-language https://github.com/davesnx/ocaml-textmate-language.git#grammar-compatibility-fixes -y
 
 .PHONY: init
 init: setup-githooks create-switch pin install ## Create a local dev environment

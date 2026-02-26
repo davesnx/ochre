@@ -1,8 +1,8 @@
 (executable
- (name main)
+ (name cli)
  (public_name ochre)
  (package ochre-cli)
- (libraries ochre cmdliner))
+ (libraries ochre tm-grammars-all cmdliner))
 
 (rule
  (deps %{workspace_root}/docs/cli.mld)

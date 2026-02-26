@@ -1,7 +1,30 @@
 type t = { grammar_loader : Grammar_loader.t }
+type output_format = Html | Ansi | Latex | Svg | Tokens
+
+let output_formats =
+  [
+    ("html", Html);
+    ("ansi", Ansi);
+    ("latex", Latex);
+    ("svg", Svg);
+    ("tokens", Tokens);
+  ]
+
+let string_of_output_format = function
+  | Html -> "html"
+  | Ansi -> "ansi"
+  | Latex -> "latex"
+  | Svg -> "svg"
+  | Tokens -> "tokens"
+
+let output_format_of_string value =
+  List.assoc_opt (String.lowercase_ascii value) output_formats
 
 let create ~grammars () =
   { grammar_loader = Grammar_loader.create ~grammars () }
+
+let create_from_json ~grammars () =
+  { grammar_loader = Grammar_loader.create_from_json ~grammars () }
 
 let tokenize_with_grammar tm_collection grammar source =
   let lines = String.split_on_char '\n' source in
@@ -56,13 +79,23 @@ let to_tokens t ~theme ~lang source =
   let tokens = tokenize_with_grammar tm_collection grammar source in
   apply_theme theme tokens
 
-let to_html t ~theme ~lang source =
+let render_to_string t ~theme ~lang render source =
   let tokens = to_tokens t ~theme ~lang source in
-  Render_html.render theme tokens
+  render theme tokens
 
-let to_ansi t ~theme ~lang source =
-  let tokens = to_tokens t ~theme ~lang source in
-  Render_ansi.render theme tokens
+let to_html t = render_to_string t Render_html.render
+let to_ansi t = render_to_string t Render_ansi.render
+let to_latex t = render_to_string t Render_latex.render
+let to_svg t = render_to_string t Render_svg.render
+let to_debug_tokens t = render_to_string t Render_tokens.render
+
+let to_string t ~format ~theme ~lang source =
+  match format with
+  | Html -> to_html t ~theme ~lang source
+  | Ansi -> to_ansi t ~theme ~lang source
+  | Latex -> to_latex t ~theme ~lang source
+  | Svg -> to_svg t ~theme ~lang source
+  | Tokens -> to_debug_tokens t ~theme ~lang source
 
 module Token = Token
 module Theme = Theme

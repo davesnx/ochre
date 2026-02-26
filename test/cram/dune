@@ -1,5 +1,11 @@
 (executables
- (names test_theme test_highlight test_render_html test_render_ansi)
+ (names
+  test_theme
+  test_highlight
+  test_render_html
+  test_render_ansi
+  test_render_latex
+  test_render_svg)
  (libraries ochre))
 
 (cram
@@ -7,4 +13,6 @@
   test_theme.exe
   test_highlight.exe
   test_render_html.exe
-  test_render_ansi.exe))
+  test_render_ansi.exe
+  test_render_latex.exe
+  test_render_svg.exe))

@@ -24,50 +24,39 @@ let read_stdin () =
 let default_theme : Ochre.Theme.theme =
   { name = "default"; fg = "#000000"; bg = "#ffffff"; token_colors = [] }
 
+let error msg = `Error (false, msg)
+
+let render highlighter ~theme ~lang ~format source =
+  print_endline (Ochre.to_string highlighter ~format ~theme ~lang source);
+  `Ok ()
+
 let highlight lang theme_path grammars format use_stdin input_file =
-  try
-    let theme =
-      match theme_path with
-      | Some path -> Ochre.Theme.load_from_file path
-      | None -> default_theme
-    in
-
-    let highlighter = Ochre.create ~grammars () in
-
-    let source =
-      if use_stdin then read_stdin ()
-      else
-        match input_file with
-        | Some path -> read_file path
-        | None -> failwith "Either provide a file path or use --stdin"
-    in
-
-    let output =
-      match format with
-      | "html" -> Ochre.to_html highlighter ~theme ~lang source
-      | "ansi" -> Ochre.to_ansi highlighter ~theme ~lang source
-      | "tokens" ->
-          let tokens = Ochre.to_tokens highlighter ~theme ~lang source in
-          List.map
-            (fun line ->
-              List.map
-                (fun (t : Ochre.Token.styled_token) ->
-                  Printf.sprintf "{%s}[%s]" t.text (String.concat "," t.scopes))
-                line
-              |> String.concat "")
-            tokens
-          |> String.concat "\n"
-      | _ -> failwith ("Unknown format: " ^ format)
-    in
-    print_endline output;
-    `Ok ()
-  with
-  | Failure msg ->
-      Printf.eprintf "Error: %s\n" msg;
-      `Error (false, msg)
-  | e ->
-      Printf.eprintf "Error: %s\n" (Printexc.to_string e);
-      `Error (false, Printexc.to_string e)
+  let theme =
+    match theme_path with
+    | Some path -> Ochre.Theme.load_from_file path
+    | None -> default_theme
+  in
+  let source =
+    if use_stdin then Some (read_stdin ()) else Option.map read_file input_file
+  in
+  match source with
+  | None -> error "Either provide a file path or use --stdin"
+  | Some source -> (
+      match grammars with
+      | _ :: _ -> render (Ochre.create ~grammars ()) ~theme ~lang ~format source
+      | [] -> (
+          match Tm_grammars_all.find lang with
+          | Some json ->
+              render
+                (Ochre.create_from_json ~grammars:[ (lang, json) ] ())
+                ~theme ~lang ~format source
+          | None ->
+              error
+                (Printf.sprintf
+                   "No bundled grammar for '%s'. Available: %s. Use --grammar \
+                    to provide one."
+                   lang
+                   (String.concat ", " Tm_grammars_all.available))))
 
 let lang =
   let doc = "Language identifier (e.g., ocaml, javascript, python)" in
@@ -84,8 +73,11 @@ let grammars =
   Arg.(value & opt_all string [] & info [ "grammar"; "g" ] ~docv:"FILE" ~doc)
 
 let format =
-  let doc = "Output format: html, ansi, or tokens" in
-  Arg.(value & opt string "html" & info [ "format"; "f" ] ~docv:"FORMAT" ~doc)
+  let doc = "Output format: html, ansi, latex, svg, or tokens" in
+  Arg.(
+    value
+    & opt (enum Ochre.output_formats) Ochre.Html
+    & info [ "format"; "f" ] ~docv:"FORMAT" ~doc)
 
 let use_stdin =
   let doc = "Read source code from stdin" in
