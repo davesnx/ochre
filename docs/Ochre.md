@@ -179,3 +179,98 @@ val to_string :
   string
 ```
 Highlight source code to one of the supported output formats.
+
+
+## Transforms
+
+```
+module Transform : sig ... end
+```
+
+## Built-in transforms
+
+```
+module Transform_builtin : sig ... end
+```
+
+## Highlighting with transforms
+
+These functions are like their counterparts above but accept a `~transforms` list that is applied after tokenization and theming, before rendering. The original functions behave as if `~transforms:[]` were passed.
+
+```
+val to_tokens_with : 
+  t ->
+  transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  Token.highlighted_code
+```
+Like [`to_tokens`](./#val-to_tokens) but applies transforms before returning.
+
+```
+val to_html_with : 
+  t ->
+  transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+```
+Like [`to_html`](./#val-to_html) but applies transforms before rendering.
+
+```
+val to_ansi_with : 
+  t ->
+  transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+```
+Like [`to_ansi`](./#val-to_ansi) but applies transforms before rendering.
+
+```
+val to_latex_with : 
+  t ->
+  transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+```
+Like [`to_latex`](./#val-to_latex) but applies transforms before rendering.
+
+```
+val to_svg_with : 
+  t ->
+  transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+```
+Like [`to_svg`](./#val-to_svg) but applies transforms before rendering.
+
+```
+val to_debug_tokens_with : 
+  t ->
+  transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+```
+Like [`to_debug_tokens`](./#val-to_debug_tokens) but applies transforms before rendering.
+
+```
+val to_string_with : 
+  t ->
+  transforms:Transform.t list ->
+  format:output_format ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+```
+Like [`to_string`](./#val-to_string) but applies transforms before rendering.

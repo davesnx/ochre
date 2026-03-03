@@ -81,8 +81,16 @@ let to_tokens t ~theme ~lang source =
   let tokens = tokenize_with_grammar tm_collection grammar source in
   apply_theme theme tokens
 
+let to_tokens_with t ~transforms ~theme ~lang source =
+  let tokens = to_tokens t ~theme ~lang source in
+  Transform.run transforms tokens
+
 let render_to_string t ~theme ~lang render source =
   let tokens = to_tokens t ~theme ~lang source in
+  render theme tokens
+
+let render_to_string_with t ~transforms ~theme ~lang render source =
+  let tokens = to_tokens_with t ~transforms ~theme ~lang source in
   render theme tokens
 
 let to_html t = render_to_string t Render_html.render
@@ -90,6 +98,11 @@ let to_ansi t = render_to_string t Render_ansi.render
 let to_latex t = render_to_string t Render_latex.render
 let to_svg t = render_to_string t Render_svg.render
 let to_debug_tokens t = render_to_string t Render_tokens.render
+let to_html_with t = render_to_string_with t Render_html.render
+let to_ansi_with t = render_to_string_with t Render_ansi.render
+let to_latex_with t = render_to_string_with t Render_latex.render
+let to_svg_with t = render_to_string_with t Render_svg.render
+let to_debug_tokens_with t = render_to_string_with t Render_tokens.render
 
 let to_string t ~format ~theme ~lang source =
   match format with
@@ -99,5 +112,15 @@ let to_string t ~format ~theme ~lang source =
   | Svg -> to_svg t ~theme ~lang source
   | Tokens -> to_debug_tokens t ~theme ~lang source
 
+let to_string_with t ~transforms ~format ~theme ~lang source =
+  match format with
+  | Html -> to_html_with t ~transforms ~theme ~lang source
+  | Ansi -> to_ansi_with t ~transforms ~theme ~lang source
+  | Latex -> to_latex_with t ~transforms ~theme ~lang source
+  | Svg -> to_svg_with t ~transforms ~theme ~lang source
+  | Tokens -> to_debug_tokens_with t ~transforms ~theme ~lang source
+
 module Token = Token
 module Theme = Theme
+module Transform = Transform
+module Transform_builtin = Transform_builtin

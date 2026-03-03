@@ -248,3 +248,150 @@ val to_string :
   string ->
   string
 (** Highlight source code to one of the supported output formats. *)
+
+(** {1 Transforms} *)
+
+module Transform : sig
+  type token = Token.styled_token
+  (** Alias for a styled token. *)
+
+  type line = token list
+  (** A line of styled tokens. *)
+
+  type document = line list
+  (** The full highlighted document (list of lines). *)
+
+  type t = Transform.t = {
+    name : string;
+    before_line : (line_index:int -> line -> line) option;
+    after_line : (line_index:int -> line -> line) option;
+    before_render : (document -> document) option;
+    after_render : (document -> document) option;
+  }
+  (** A transform with named hooks.
+
+      Each hook is optional. The pipeline calls them in this order:
+      + [before_render] on the full document
+      + [before_line] for each line (by index)
+      + [after_line] for each line (by index)
+      + [after_render] on the full document
+
+      When multiple transforms are provided, each hook phase folds over all
+      transforms in list order before moving to the next phase. *)
+
+  val make :
+    ?before_line:(line_index:int -> line -> line) ->
+    ?after_line:(line_index:int -> line -> line) ->
+    ?before_render:(document -> document) ->
+    ?after_render:(document -> document) ->
+    string ->
+    t
+  (** [make ?before_line ?after_line ?before_render ?after_render name] creates
+      a transform with the given hooks. *)
+
+  val run : t list -> document -> document
+  (** [run transforms document] applies all transforms to the document.
+
+      Transforms are applied in list order. An empty list returns the document
+      unchanged. *)
+end
+
+(** {1 Built-in transforms} *)
+
+module Transform_builtin : sig
+  val line_highlight : ?background:string -> int list -> Transform.t
+  (** [line_highlight ~background lines] highlights the given line indices
+      (0-based) by setting every token's background color.
+
+      Default background: ["#ffffff22"]. *)
+
+  val word_highlight :
+    ?foreground:string ->
+    ?font_style:Token.font_style list ->
+    string list ->
+    Transform.t
+  (** [word_highlight ~foreground ~font_style words] highlights tokens whose
+      text matches one of the given words.
+
+      Default foreground: ["#ffff00"]. Default font style: [[Bold]]. *)
+
+  val diff_markers : Transform.t
+  (** Strips leading [+] or [-] from the first token of each line and applies a
+      green or red background to the entire line. *)
+
+  val scope_marker : ?background:string -> string -> Transform.t
+  (** [scope_marker ~background prefix] highlights tokens that have at least one
+      scope starting with [prefix].
+
+      Default background: ["#ffff0033"]. *)
+end
+
+(** {1 Highlighting with transforms}
+
+    These functions are like their counterparts above but accept a [~transforms]
+    list that is applied after tokenization and theming, before rendering. The
+    original functions behave as if [~transforms:[]] were passed. *)
+
+val to_tokens_with :
+  t ->
+  transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  Token.highlighted_code
+(** Like {!to_tokens} but applies transforms before returning. *)
+
+val to_html_with :
+  t ->
+  transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+(** Like {!to_html} but applies transforms before rendering. *)
+
+val to_ansi_with :
+  t ->
+  transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+(** Like {!to_ansi} but applies transforms before rendering. *)
+
+val to_latex_with :
+  t ->
+  transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+(** Like {!to_latex} but applies transforms before rendering. *)
+
+val to_svg_with :
+  t ->
+  transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+(** Like {!to_svg} but applies transforms before rendering. *)
+
+val to_debug_tokens_with :
+  t ->
+  transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+(** Like {!to_debug_tokens} but applies transforms before rendering. *)
+
+val to_string_with :
+  t ->
+  transforms:Transform.t list ->
+  format:output_format ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+(** Like {!to_string} but applies transforms before rendering. *)
