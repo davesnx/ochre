@@ -10,7 +10,8 @@
  (target test_latex.tex)
  (deps test_latex.exe)
  (action
-  (with-stdout-to %{target}
+  (with-stdout-to
+   %{target}
    (run %{dep:test_latex.exe}))))
 
 (rule
@@ -18,7 +19,8 @@
  (mode promote)
  (deps test_latex.exe)
  (action
-  (with-stdout-to %{target}
+  (with-stdout-to
+   %{target}
    (run %{dep:test_latex.exe}))))
 
 (rule
@@ -26,5 +28,6 @@
  (mode promote)
  (deps test_svg.exe)
  (action
-  (with-stdout-to %{target}
+  (with-stdout-to
+   %{target}
    (run %{dep:test_svg.exe} --github-preview))))

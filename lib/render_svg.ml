@@ -44,6 +44,19 @@ let render_token (token : styled_token) =
     | None -> attrs
   in
   let attrs = font_style_attrs token.font_style @ attrs in
+  let attrs =
+    match token.decoration with
+    | None -> attrs
+    | Some dec -> (
+        let attrs =
+          match dec.class_ with
+          | Some c -> Printf.sprintf "class=\"%s\"" c :: attrs
+          | None -> attrs
+        in
+        match dec.style with
+        | Some s -> Printf.sprintf "style=\"%s\"" s :: attrs
+        | None -> attrs)
+  in
   if attrs = [] then text
   else Printf.sprintf "<tspan %s>%s</tspan>" (String.concat " " attrs) text
 

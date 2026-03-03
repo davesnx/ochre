@@ -6,7 +6,8 @@
   test_render_ansi
   test_render_latex
   test_render_svg
-  test_transform)
+  test_transform
+  test_decoration)
  (libraries ochre unix))
 
 (cram
@@ -17,4 +18,5 @@
   test_render_ansi.exe
   test_render_latex.exe
   test_render_svg.exe
-  test_transform.exe))
+  test_transform.exe
+  test_decoration.exe))

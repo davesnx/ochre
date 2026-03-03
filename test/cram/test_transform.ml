@@ -108,6 +108,41 @@ let () =
           "let x = 42\nlet y = 10"
       in
       List.iter (fun line -> List.iter print_token line) tokens
+  | "notation-highlight" ->
+      let transforms = [ Ochre.Transform_builtin.notation_highlight () ] in
+      let tokens =
+        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test"
+          "let x = 42 # [!code highlight]\nlet y = 10"
+      in
+      List.iter (fun line -> List.iter print_token line) tokens
+  | "notation-diff" ->
+      let transforms = [ Ochre.Transform_builtin.notation_diff () ] in
+      let tokens =
+        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test"
+          "let x = 42 # [!code ++]\nlet y = 10 # [!code --]\nlet z = 0"
+      in
+      List.iter (fun line -> List.iter print_token line) tokens
+  | "notation-word-highlight" ->
+      let transforms = [ Ochre.Transform_builtin.notation_word_highlight () ] in
+      let tokens =
+        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test"
+          "let x = 42 # [!code word:x]"
+      in
+      List.iter (fun line -> List.iter print_token line) tokens
+  | "notation-highlight-no-match" ->
+      let transforms = [ Ochre.Transform_builtin.notation_highlight () ] in
+      let tokens =
+        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test"
+          "let x = 42\nlet y = 10"
+      in
+      List.iter (fun line -> List.iter print_token line) tokens
+  | "notation-diff-mixed" ->
+      let transforms = [ Ochre.Transform_builtin.notation_diff () ] in
+      let tokens =
+        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test"
+          "let x = 42 # [!code ++]\nlet y = 10\nlet z = 0 # [!code --]"
+      in
+      List.iter (fun line -> List.iter print_token line) tokens
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1

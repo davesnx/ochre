@@ -135,3 +135,147 @@ Combined transforms (line-highlight + word-highlight)
   text: "10"
     fg: #0000ff
     scopes: [constant.numeric.test, source.test]
+
+Notation highlight (// [!code highlight])
+  $ ./test_transform.exe notation-highlight
+  text: "let"
+    fg: #ff0000
+    bg: #ffffff22
+    styles: [bold]
+    scopes: [keyword.control.test, source.test]
+  text: "x ="
+    fg: #d4d4d4
+    bg: #ffffff22
+    scopes: [source.test]
+  text: "42"
+    fg: #0000ff
+    bg: #ffffff22
+    scopes: [constant.numeric.test, source.test]
+  text: "let"
+    fg: #ff0000
+    styles: [bold]
+    scopes: [keyword.control.test, source.test]
+  text: "y ="
+    fg: #d4d4d4
+    scopes: [source.test]
+  text: "10"
+    fg: #0000ff
+    scopes: [constant.numeric.test, source.test]
+
+Notation diff (// [!code ++] and // [!code --])
+  $ ./test_transform.exe notation-diff
+  text: "let"
+    fg: #ff0000
+    bg: #22883322
+    styles: [bold]
+    scopes: [keyword.control.test, source.test]
+  text: "x ="
+    fg: #d4d4d4
+    bg: #22883322
+    scopes: [source.test]
+  text: "42"
+    fg: #0000ff
+    bg: #22883322
+    scopes: [constant.numeric.test, source.test]
+  text: "let"
+    fg: #ff0000
+    bg: #88222222
+    styles: [bold]
+    scopes: [keyword.control.test, source.test]
+  text: "y ="
+    fg: #d4d4d4
+    bg: #88222222
+    scopes: [source.test]
+  text: "10"
+    fg: #0000ff
+    bg: #88222222
+    scopes: [constant.numeric.test, source.test]
+  text: "let"
+    fg: #ff0000
+    styles: [bold]
+    scopes: [keyword.control.test, source.test]
+  text: "z ="
+    fg: #d4d4d4
+    scopes: [source.test]
+  text: "0"
+    fg: #0000ff
+    scopes: [constant.numeric.test, source.test]
+
+Notation word highlight (// [!code word:xxx])
+  $ ./test_transform.exe notation-word-highlight
+  text: "let"
+    fg: #ff0000
+    styles: [bold]
+    scopes: [keyword.control.test, source.test]
+  text: "x"
+    fg: #ffff00
+    styles: [bold]
+    scopes: [source.test]
+  text: "="
+    fg: #d4d4d4
+    scopes: [source.test]
+  text: "42"
+    fg: #0000ff
+    scopes: [constant.numeric.test, source.test]
+
+Notation highlight with no matches (passthrough)
+  $ ./test_transform.exe notation-highlight-no-match
+  text: "let"
+    fg: #ff0000
+    styles: [bold]
+    scopes: [keyword.control.test, source.test]
+  text: "x ="
+    fg: #d4d4d4
+    scopes: [source.test]
+  text: "42"
+    fg: #0000ff
+    scopes: [constant.numeric.test, source.test]
+  text: "let"
+    fg: #ff0000
+    styles: [bold]
+    scopes: [keyword.control.test, source.test]
+  text: "y ="
+    fg: #d4d4d4
+    scopes: [source.test]
+  text: "10"
+    fg: #0000ff
+    scopes: [constant.numeric.test, source.test]
+
+Notation diff with mixed lines (some marked, some not)
+  $ ./test_transform.exe notation-diff-mixed
+  text: "let"
+    fg: #ff0000
+    bg: #22883322
+    styles: [bold]
+    scopes: [keyword.control.test, source.test]
+  text: "x ="
+    fg: #d4d4d4
+    bg: #22883322
+    scopes: [source.test]
+  text: "42"
+    fg: #0000ff
+    bg: #22883322
+    scopes: [constant.numeric.test, source.test]
+  text: "let"
+    fg: #ff0000
+    styles: [bold]
+    scopes: [keyword.control.test, source.test]
+  text: "y ="
+    fg: #d4d4d4
+    scopes: [source.test]
+  text: "10"
+    fg: #0000ff
+    scopes: [constant.numeric.test, source.test]
+  text: "let"
+    fg: #ff0000
+    bg: #88222222
+    styles: [bold]
+    scopes: [keyword.control.test, source.test]
+  text: "z ="
+    fg: #d4d4d4
+    bg: #88222222
+    scopes: [source.test]
+  text: "0"
+    fg: #0000ff
+    bg: #88222222
+    scopes: [constant.numeric.test, source.test]
