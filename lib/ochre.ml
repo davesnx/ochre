@@ -71,7 +71,14 @@ let apply_theme theme tokens_per_line =
           let font_style =
             match settings with Some s -> s.Theme.font_style | None -> []
           in
-          { Token.text; foreground; background; font_style; scopes })
+          {
+            Token.text;
+            foreground;
+            background;
+            font_style;
+            scopes;
+            decoration = None;
+          })
         line_tokens)
     tokens_per_line
 
@@ -81,28 +88,94 @@ let to_tokens t ~theme ~lang source =
   let tokens = tokenize_with_grammar tm_collection grammar source in
   apply_theme theme tokens
 
-let to_tokens_with t ~transforms ~theme ~lang source =
+let to_tokens_with t ?(decorations = []) ~transforms ~theme ~lang source =
   let tokens = to_tokens t ~theme ~lang source in
+  let tokens = Decoration.apply ~source decorations tokens in
   Transform.run transforms tokens
 
 let render_to_string t ~theme ~lang render source =
   let tokens = to_tokens t ~theme ~lang source in
   render theme tokens
 
-let render_to_string_with t ~transforms ~theme ~lang render source =
-  let tokens = to_tokens_with t ~transforms ~theme ~lang source in
+let render_to_string_with t ?(decorations = []) ~transforms ~theme ~lang render
+    source =
+  let tokens = to_tokens_with t ~decorations ~transforms ~theme ~lang source in
   render theme tokens
 
-let to_html t = render_to_string t Render_html.render
+(** Resolve the default theme and extra themes from the optional arguments.
+    - [~theme] alone: single-theme render.
+    - [~theme ~themes]: theme is default, themes are extras.
+    - [~themes] alone: first entry becomes the default, rest are extras. *)
+let resolve_themes ?theme ?(themes = []) () =
+  match (theme, themes) with
+  | Some t, _ -> (t, themes)
+  | None, (_, first_theme) :: rest -> (first_theme, rest)
+  | None, [] ->
+      invalid_arg "Ochre.to_html: either ~theme or ~themes is required"
+
+let to_html t ?theme ?themes ~lang source =
+  let default_theme, extras = resolve_themes ?theme ?themes () in
+  match extras with
+  | [] ->
+      let tokens = to_tokens t ~theme:default_theme ~lang source in
+      Render_html.render default_theme tokens
+  | _ ->
+      let grammar = Grammar_loader.find_grammar t.grammar_loader lang in
+      let tm_collection = Grammar_loader.tm_collection t.grammar_loader in
+      let raw_tokens = tokenize_with_grammar tm_collection grammar source in
+      let default_code = apply_theme default_theme raw_tokens in
+      let themed_extras =
+        List.map
+          (fun (label, theme) -> (label, theme, apply_theme theme raw_tokens))
+          extras
+      in
+      Render_html.render default_theme ~themes:themed_extras default_code
+
+let to_html_with t ?(decorations = []) ~transforms ?theme ?themes ~lang source =
+  let default_theme, extras = resolve_themes ?theme ?themes () in
+  match extras with
+  | [] ->
+      let tokens =
+        to_tokens_with t ~decorations ~transforms ~theme:default_theme ~lang
+          source
+      in
+      Render_html.render default_theme tokens
+  | _ ->
+      let grammar = Grammar_loader.find_grammar t.grammar_loader lang in
+      let tm_collection = Grammar_loader.tm_collection t.grammar_loader in
+      let raw_tokens = tokenize_with_grammar tm_collection grammar source in
+      let default_code = apply_theme default_theme raw_tokens in
+      let default_code = Decoration.apply ~source decorations default_code in
+      let default_code = Transform.run transforms default_code in
+      let themed_extras =
+        List.map
+          (fun (label, theme) ->
+            let code = apply_theme theme raw_tokens in
+            let code = Decoration.apply ~source decorations code in
+            let code = Transform.run transforms code in
+            (label, theme, code))
+          extras
+      in
+      Render_html.render default_theme ~themes:themed_extras default_code
+
+let html_dark_mode_css = Render_html.dark_mode_css
+let html_css_for_theme = Render_html.css_for_theme
 let to_ansi t = render_to_string t Render_ansi.render
 let to_latex t = render_to_string t Render_latex.render
 let to_svg t = render_to_string t Render_svg.render
 let to_debug_tokens t = render_to_string t Render_tokens.render
-let to_html_with t = render_to_string_with t Render_html.render
-let to_ansi_with t = render_to_string_with t Render_ansi.render
-let to_latex_with t = render_to_string_with t Render_latex.render
-let to_svg_with t = render_to_string_with t Render_svg.render
-let to_debug_tokens_with t = render_to_string_with t Render_tokens.render
+
+let to_ansi_with t ?decorations =
+  render_to_string_with t ?decorations Render_ansi.render
+
+let to_latex_with t ?decorations =
+  render_to_string_with t ?decorations Render_latex.render
+
+let to_svg_with t ?decorations =
+  render_to_string_with t ?decorations Render_svg.render
+
+let to_debug_tokens_with t ?decorations =
+  render_to_string_with t ?decorations Render_tokens.render
 
 let to_string t ~format ~theme ~lang source =
   match format with
@@ -112,15 +185,17 @@ let to_string t ~format ~theme ~lang source =
   | Svg -> to_svg t ~theme ~lang source
   | Tokens -> to_debug_tokens t ~theme ~lang source
 
-let to_string_with t ~transforms ~format ~theme ~lang source =
+let to_string_with t ?decorations ~transforms ~format ~theme ~lang source =
   match format with
-  | Html -> to_html_with t ~transforms ~theme ~lang source
-  | Ansi -> to_ansi_with t ~transforms ~theme ~lang source
-  | Latex -> to_latex_with t ~transforms ~theme ~lang source
-  | Svg -> to_svg_with t ~transforms ~theme ~lang source
-  | Tokens -> to_debug_tokens_with t ~transforms ~theme ~lang source
+  | Html -> to_html_with t ?decorations ~transforms ~theme ~lang source
+  | Ansi -> to_ansi_with t ?decorations ~transforms ~theme ~lang source
+  | Latex -> to_latex_with t ?decorations ~transforms ~theme ~lang source
+  | Svg -> to_svg_with t ?decorations ~transforms ~theme ~lang source
+  | Tokens ->
+      to_debug_tokens_with t ?decorations ~transforms ~theme ~lang source
 
 module Token = Token
 module Theme = Theme
 module Transform = Transform
 module Transform_builtin = Transform_builtin
+module Decoration = Decoration

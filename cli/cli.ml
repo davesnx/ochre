@@ -73,6 +73,10 @@ let render highlighter ~theme ~lang ~format source =
   print_endline (Ochre.to_string highlighter ~format ~theme ~lang source);
   `Ok ()
 
+let render_html_multi highlighter ~theme ~themes ~lang source =
+  print_endline (Ochre.to_html highlighter ~theme ~themes ~lang source);
+  `Ok ()
+
 let resolve_theme ~theme_path ~theme_dark ~theme_light =
   match theme_path with
   | Some name_or_path -> resolve_theme_name_or_path name_or_path
@@ -91,30 +95,50 @@ let resolve_theme ~theme_path ~theme_dark ~theme_light =
           | Some name_or_path -> resolve_theme_name_or_path name_or_path
           | None -> default_theme))
 
+(** When --format html and both --theme-light and --theme-dark are given
+    (without --theme), use multi-theme rendering with CSS custom properties. *)
+let resolve_multi_themes ~theme_path ~theme_dark ~theme_light ~format =
+  match (format, theme_path, theme_light, theme_dark) with
+  | Ochre.Html, None, Some light_name, Some dark_name ->
+      let light = resolve_theme_name_or_path light_name in
+      let dark = resolve_theme_name_or_path dark_name in
+      Some (light, [ ("dark", dark) ])
+  | _ -> None
+
 let highlight lang theme_path theme_dark theme_light grammars format use_stdin
     input_file =
-  let theme = resolve_theme ~theme_path ~theme_dark ~theme_light in
   let source =
     if use_stdin then Some (read_stdin ()) else Option.map read_file input_file
   in
   match source with
   | None -> error "Either provide a file path or use --stdin"
   | Some source -> (
-      match grammars with
-      | _ :: _ -> render (Ochre.create ~grammars ()) ~theme ~lang ~format source
-      | [] -> (
-          match Tm_grammars_all.find lang with
-          | Some json ->
-              render
-                (Ochre.create_from_json ~grammars:[ (lang, json) ] ())
-                ~theme ~lang ~format source
+      let make_highlighter grammars_arg =
+        match grammars_arg with
+        | _ :: _ -> Ok (Ochre.create ~grammars:grammars_arg ())
+        | [] -> (
+            match Tm_grammars_all.find lang with
+            | Some json ->
+                Ok (Ochre.create_from_json ~grammars:[ (lang, json) ] ())
+            | None ->
+                Error
+                  (Printf.sprintf
+                     "No bundled grammar for '%s'. Available: %s. Use \
+                      --grammar to provide one."
+                     lang
+                     (String.concat ", " Tm_grammars_all.available)))
+      in
+      match make_highlighter grammars with
+      | Error msg -> error msg
+      | Ok highlighter -> (
+          match
+            resolve_multi_themes ~theme_path ~theme_dark ~theme_light ~format
+          with
+          | Some (theme, themes) ->
+              render_html_multi highlighter ~theme ~themes ~lang source
           | None ->
-              error
-                (Printf.sprintf
-                   "No bundled grammar for '%s'. Available: %s. Use --grammar \
-                    to provide one."
-                   lang
-                   (String.concat ", " Tm_grammars_all.available))))
+              let theme = resolve_theme ~theme_path ~theme_dark ~theme_light in
+              render highlighter ~theme ~lang ~format source))
 
 let lang =
   let doc = "Language identifier (e.g., ocaml, javascript, python)" in
@@ -133,14 +157,19 @@ let theme_path =
 
 let theme_dark =
   let doc =
-    "Theme name or path to use when terminal mode is detected as dark"
+    "Theme name or path for dark mode. When both --theme-light and \
+     --theme-dark are given with --format html, produces dual-theme output \
+     with CSS custom properties (--ochre-dark-*) for automatic dark mode \
+     switching"
   in
   Arg.(
     value & opt (some string) None & info [ "theme-dark" ] ~docv:"THEME" ~doc)
 
 let theme_light =
   let doc =
-    "Theme name or path to use when terminal mode is detected as light"
+    "Theme name or path for light mode. When both --theme-light and \
+     --theme-dark are given with --format html, produces dual-theme output \
+     with the light theme as default and dark theme as CSS custom properties"
   in
   Arg.(
     value & opt (some string) None & info [ "theme-light" ] ~docv:"THEME" ~doc)

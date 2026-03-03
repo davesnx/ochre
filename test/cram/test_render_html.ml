@@ -25,6 +25,36 @@ let theme_json =
   ]
 }|}
 
+let light_theme_json =
+  {|{
+  "name": "test-light",
+  "colors": {
+    "editor.foreground": "#24292e",
+    "editor.background": "#ffffff"
+  },
+  "tokenColors": [
+    { "scope": "comment", "settings": { "foreground": "#6a737d", "fontStyle": "italic" } },
+    { "scope": "keyword", "settings": { "foreground": "#d73a49", "fontStyle": "bold" } },
+    { "scope": "string", "settings": { "foreground": "#032f62" } },
+    { "scope": "constant.numeric", "settings": { "foreground": "#005cc5" } }
+  ]
+}|}
+
+let dim_theme_json =
+  {|{
+  "name": "test-dim",
+  "colors": {
+    "editor.foreground": "#999999",
+    "editor.background": "#111111"
+  },
+  "tokenColors": [
+    { "scope": "comment", "settings": { "foreground": "#555555", "fontStyle": "italic" } },
+    { "scope": "keyword", "settings": { "foreground": "#aa5555", "fontStyle": "bold" } },
+    { "scope": "string", "settings": { "foreground": "#55aa55" } },
+    { "scope": "constant.numeric", "settings": { "foreground": "#5555aa" } }
+  ]
+}|}
+
 let setup () =
   let path = "test.tmLanguage.json" in
   let oc = open_out path in
@@ -33,10 +63,12 @@ let setup () =
   let hl = Ochre.create ~grammars:[ path ] () in
   Sys.remove path;
   let theme = Ochre.Theme.load_from_string theme_json in
-  (hl, theme)
+  let light_theme = Ochre.Theme.load_from_string light_theme_json in
+  let dim_theme = Ochre.Theme.load_from_string dim_theme_json in
+  (hl, theme, light_theme, dim_theme)
 
 let () =
-  let hl, theme = setup () in
+  let hl, theme, light_theme, dim_theme = setup () in
   match Sys.argv.(1) with
   | "keyword-and-number" ->
       print_endline (Ochre.to_html hl ~theme ~lang:"test" "let x = 42")
@@ -49,6 +81,27 @@ let () =
         (Ochre.to_html hl ~theme ~lang:"test" "let x = 42\nlet y = 10")
   | "escaping" ->
       print_endline (Ochre.to_html hl ~theme ~lang:"test" "# <div>&amp;</div>")
+  | "themes-one-extra" ->
+      print_endline
+        (Ochre.to_html hl ~theme:light_theme
+           ~themes:[ ("dark", theme) ]
+           ~lang:"test" "let x = 42")
+  | "themes-multi-line" ->
+      print_endline
+        (Ochre.to_html hl ~theme:light_theme
+           ~themes:[ ("dark", theme) ]
+           ~lang:"test" "let x = 42\nlet y = 10")
+  | "themes-no-default" ->
+      (* omit ~theme, first entry in ~themes becomes default *)
+      print_endline
+        (Ochre.to_html hl ~themes:[ ("dark", theme) ] ~lang:"test" "let x = 42")
+  | "themes-two-extras" ->
+      print_endline
+        (Ochre.to_html hl ~theme:light_theme
+           ~themes:[ ("dark", theme); ("dim", dim_theme) ]
+           ~lang:"test" "let x = 42")
+  | "dark-mode-css" -> print_endline Ochre.html_dark_mode_css
+  | "css-for-theme" -> print_endline (Ochre.html_css_for_theme "dim")
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1

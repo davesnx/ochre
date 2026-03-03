@@ -1,5 +1,10 @@
 ## Unreleased
 
+- Add multi-theme HTML output with CSS custom properties (`--ochre-<label>`), inspired by Shiki's dual-themes approach
+- `to_html` and `to_html_with` now accept optional `?themes:(string * Theme.theme) list` for labelled extra themes
+- When `~theme` is omitted, the first entry in `~themes` becomes the default
+- Add `html_dark_mode_css` (ready-made `prefers-color-scheme` media query) and `html_css_for_theme` (rule body for any label)
+- CLI: `--theme-light` + `--theme-dark` with `--format html` produces multi-theme output automatically
 - Add composable transform pipeline (`Transform`, `Transform_builtin`) that runs after tokenization and before rendering
 - Add `*_with` entry points (`to_html_with`, `to_tokens_with`, etc.) accepting a `~transforms` list
 - Ship built-in transforms: `line_highlight`, `word_highlight`, `diff_markers`, `scope_marker`
