@@ -25,6 +25,12 @@ module Token : sig ... end
 module Theme : sig ... end
 ```
 
+## HTML options
+
+```
+module Html_options : sig ... end
+```
+
 ## Highlighter
 
 ```
@@ -124,6 +130,7 @@ Raises `Failure` if the grammar for `lang` cannot be found.
 ```
 val to_html : 
   t ->
+  ?options:Html_options.t ->
   ?theme:Theme.theme ->
   ?themes:(string * Theme.theme) list ->
   lang:string ->
@@ -148,18 +155,16 @@ Pass `~themes` with labelled extra themes. Each label becomes a CSS custom prope
     ~themes:[ ("dark", Ochre.Theme.nord) ]
     ~lang:"ocaml" "let x = 42"
 ```
-produces:
+Options
+
+Pass `~options` to control rendering behaviour:
 
 ```ocaml
-  <pre class="ochre ochre-themes light nord"
-       style="background-color:#fff;color:#24292e;--ochre-dark-bg:#2e3440;--ochre-dark:#d8dee9"
-       tabindex="0">
-    <code>
-      <span class="line">
-        <span style="color:#d73a49;--ochre-dark:#81a1c1">let</span>
-      </span>
-    </code>
-  </pre>
+  let opts =
+    Ochre.Html_options.make ~line_numbers:true
+      ~default_color:No_default_color ()
+  in
+  Ochre.to_html hl ~options:opts ~theme ~lang:"ocaml" code
 ```
 When `~theme` is omitted but `~themes` is provided, the first entry becomes the default.
 
@@ -186,9 +191,11 @@ CSS snippet that activates the `"dark"` theme variant via `@media (prefers-color
 Include this in a `<style>` tag or external stylesheet.
 
 ```
-val html_css_for_theme : string -> string
+val html_css_for_theme : ?prefix:string -> string -> string
 ```
-`html_css_for_theme label` returns a CSS rule body that activates the theme stored under `--ochre-<label>-*` variables.
+`html_css_for_theme ?prefix label` returns a CSS rule body that activates the theme stored under `--ochre-<label>-*` variables.
+
+Pass `~prefix` to match a custom [`Html_options.t.css_variable_prefix`](./Ochre-Html_options.md#type-t.css_variable_prefix). Default: `"--ochre-"`.
 
 Wrap this in your own selector (a media query, a `.dark` class, a `data-theme` attribute selector, etc.) to control when the theme activates.
 
@@ -283,6 +290,7 @@ val to_html_with :
   t ->
   ?decorations:Decoration.t list ->
   transforms:Transform.t list ->
+  ?options:Html_options.t ->
   ?theme:Theme.theme ->
   ?themes:(string * Theme.theme) list ->
   lang:string ->
@@ -291,7 +299,7 @@ val to_html_with :
 ```
 Like [`to_html`](./#val-to_html) but applies decorations and transforms before rendering.
 
-Accepts the same `~theme` / `~themes` options as [`to_html`](./#val-to_html).
+Accepts the same `~theme` / `~themes` / `~options` parameters as [`to_html`](./#val-to_html).
 
 ```
 val to_ansi_with : 

@@ -113,12 +113,12 @@ let resolve_themes ?theme ?(themes = []) () =
   | None, [] ->
       invalid_arg "Ochre.to_html: either ~theme or ~themes is required"
 
-let to_html t ?theme ?themes ~lang source =
+let to_html t ?options ?theme ?themes ~lang source =
   let default_theme, extras = resolve_themes ?theme ?themes () in
   match extras with
   | [] ->
       let tokens = to_tokens t ~theme:default_theme ~lang source in
-      Render_html.render default_theme tokens
+      Render_html.render ?options default_theme tokens
   | _ ->
       let grammar = Grammar_loader.find_grammar t.grammar_loader lang in
       let tm_collection = Grammar_loader.tm_collection t.grammar_loader in
@@ -129,9 +129,11 @@ let to_html t ?theme ?themes ~lang source =
           (fun (label, theme) -> (label, theme, apply_theme theme raw_tokens))
           extras
       in
-      Render_html.render default_theme ~themes:themed_extras default_code
+      Render_html.render ?options default_theme ~themes:themed_extras
+        default_code
 
-let to_html_with t ?(decorations = []) ~transforms ?theme ?themes ~lang source =
+let to_html_with t ?(decorations = []) ~transforms ?options ?theme ?themes ~lang
+    source =
   let default_theme, extras = resolve_themes ?theme ?themes () in
   match extras with
   | [] ->
@@ -139,7 +141,7 @@ let to_html_with t ?(decorations = []) ~transforms ?theme ?themes ~lang source =
         to_tokens_with t ~decorations ~transforms ~theme:default_theme ~lang
           source
       in
-      Render_html.render default_theme tokens
+      Render_html.render ?options default_theme tokens
   | _ ->
       let grammar = Grammar_loader.find_grammar t.grammar_loader lang in
       let tm_collection = Grammar_loader.tm_collection t.grammar_loader in
@@ -156,9 +158,10 @@ let to_html_with t ?(decorations = []) ~transforms ?theme ?themes ~lang source =
             (label, theme, code))
           extras
       in
-      Render_html.render default_theme ~themes:themed_extras default_code
+      Render_html.render ?options default_theme ~themes:themed_extras
+        default_code
 
-let html_dark_mode_css = Render_html.dark_mode_css
+let html_dark_mode_css = Render_html.dark_mode_css ()
 let html_css_for_theme = Render_html.css_for_theme
 let to_ansi t = render_to_string t Render_ansi.render
 let to_latex t = render_to_string t Render_latex.render
@@ -199,3 +202,4 @@ module Theme = Theme
 module Transform = Transform
 module Transform_builtin = Transform_builtin
 module Decoration = Decoration
+module Html_options = Html_options

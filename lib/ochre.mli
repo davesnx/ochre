@@ -145,6 +145,49 @@ module Theme : sig
       ]} *)
 end
 
+(** {1 HTML options} *)
+
+module Html_options : sig
+  (** How token colors are expressed in the output. *)
+  type style_mode = Html_options.style_mode =
+    | Inline_styles  (** Emit [style="color:..."] on each [<span>]. Default. *)
+    | Css_classes of { class_prefix : string }
+        (** Replace inline styles with deterministic CSS class names. *)
+
+  (** Whether the primary theme's colors are emitted inline. *)
+  type default_color = Html_options.default_color =
+    | Default_color
+        (** Emit inline [color:] and [background-color:]. Default. *)
+    | No_default_color
+        (** Suppress inline colors. All colors from CSS custom properties. *)
+
+  type t = Html_options.t = {
+    style_mode : style_mode;
+    default_color : default_color;
+    pre_class : string option;
+    code_class : string option;
+    line_numbers : bool;
+    css_variable_prefix : string;
+    scopes_as_data_attrs : bool;
+  }
+  (** The full set of HTML rendering options. *)
+
+  val default : t
+  (** Default options (backward compatible with legacy output). *)
+
+  val make :
+    ?style_mode:style_mode ->
+    ?default_color:default_color ->
+    ?pre_class:string ->
+    ?code_class:string ->
+    ?line_numbers:bool ->
+    ?css_variable_prefix:string ->
+    ?scopes_as_data_attrs:bool ->
+    unit ->
+    t
+  (** Construct options with defaults for any unspecified fields. *)
+end
+
 (** {1 Highlighter} *)
 
 type t
@@ -214,6 +257,7 @@ val to_tokens :
 
 val to_html :
   t ->
+  ?options:Html_options.t ->
   ?theme:Theme.theme ->
   ?themes:(string * Theme.theme) list ->
   lang:string ->
@@ -241,18 +285,16 @@ val to_html :
         ~lang:"ocaml" "let x = 42"
     ]}
 
-    produces:
+    {2 Options}
+
+    Pass [~options] to control rendering behaviour:
 
     {[
-      <pre class="ochre ochre-themes light nord"
-           style="background-color:#fff;color:#24292e;--ochre-dark-bg:#2e3440;--ochre-dark:#d8dee9"
-           tabindex="0">
-        <code>
-          <span class="line">
-            <span style="color:#d73a49;--ochre-dark:#81a1c1">let</span>
-          </span>
-        </code>
-      </pre>
+      let opts =
+        Ochre.Html_options.make ~line_numbers:true
+          ~default_color:No_default_color ()
+      in
+      Ochre.to_html hl ~options:opts ~theme ~lang:"ocaml" code
     ]}
 
     When [~theme] is omitted but [~themes] is provided, the first entry becomes
@@ -282,9 +324,12 @@ val html_dark_mode_css : string
 
     Include this in a [<style>] tag or external stylesheet. *)
 
-val html_css_for_theme : string -> string
-(** [html_css_for_theme label] returns a CSS rule body that activates the theme
-    stored under [--ochre-<label>-*] variables.
+val html_css_for_theme : ?prefix:string -> string -> string
+(** [html_css_for_theme ?prefix label] returns a CSS rule body that activates
+    the theme stored under [--ochre-<label>-*] variables.
+
+    Pass [~prefix] to match a custom {!Html_options.css_variable_prefix}.
+    Default: ["--ochre-"].
 
     Wrap this in your own selector (a media query, a [.dark] class, a
     [data-theme] attribute selector, etc.) to control when the theme activates.
@@ -541,6 +586,7 @@ val to_html_with :
   t ->
   ?decorations:Decoration.t list ->
   transforms:Transform.t list ->
+  ?options:Html_options.t ->
   ?theme:Theme.theme ->
   ?themes:(string * Theme.theme) list ->
   lang:string ->
@@ -548,7 +594,8 @@ val to_html_with :
   string
 (** Like {!to_html} but applies decorations and transforms before rendering.
 
-    Accepts the same [~theme] / [~themes] options as {!to_html}. *)
+    Accepts the same [~theme] / [~themes] / [~options] parameters as {!to_html}.
+*)
 
 val to_ansi_with :
   t ->

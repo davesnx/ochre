@@ -105,7 +105,7 @@ Scope marker (keyword prefix)
 
 HTML output with line highlight transform
   $ ./test_transform.exe html-with-transform
-  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"><code style="display:block;padding:20px"><span class="line"><span style="font-weight:bold;background-color:#ffffff22;color:#ff0000">let</span><span style="background-color:#ffffff22;color:#d4d4d4"> x = </span><span style="background-color:#ffffff22;color:#0000ff">42</span><span style="background-color:#ffffff22;color:#d4d4d4">
+  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4" tabindex="0"><code><span class="line"><span style="font-weight:bold;background-color:#ffffff22;color:#ff0000">let</span><span style="background-color:#ffffff22;color:#d4d4d4"> x = </span><span style="background-color:#ffffff22;color:#0000ff">42</span><span style="background-color:#ffffff22;color:#d4d4d4">
   </span></span>
   <span class="line"><span style="font-weight:bold;color:#ff0000">let</span><span style="color:#d4d4d4"> y = </span><span style="color:#0000ff">10</span><span style="color:#d4d4d4">
   </span></span></code></pre>

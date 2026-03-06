@@ -102,6 +102,50 @@ let () =
            ~lang:"test" "let x = 42")
   | "dark-mode-css" -> print_endline Ochre.html_dark_mode_css
   | "css-for-theme" -> print_endline (Ochre.html_css_for_theme "dim")
+  (* --- New Html_options tests --- *)
+  | "line-numbers" ->
+      let options = Ochre.Html_options.make ~line_numbers:true () in
+      print_endline
+        (Ochre.to_html hl ~options ~theme ~lang:"test" "let x = 42\nlet y = 10")
+  | "no-default-color" ->
+      let options =
+        Ochre.Html_options.make
+          ~default_color:Ochre.Html_options.No_default_color ()
+      in
+      print_endline (Ochre.to_html hl ~options ~theme ~lang:"test" "let x = 42")
+  | "no-default-color-multi" ->
+      let options =
+        Ochre.Html_options.make
+          ~default_color:Ochre.Html_options.No_default_color ()
+      in
+      print_endline
+        (Ochre.to_html hl ~options ~theme:light_theme
+           ~themes:[ ("dark", theme) ]
+           ~lang:"test" "let x = 42")
+  | "css-classes" ->
+      let options =
+        Ochre.Html_options.make
+          ~style_mode:(Ochre.Html_options.Css_classes { class_prefix = "s-" })
+          ()
+      in
+      print_endline (Ochre.to_html hl ~options ~theme ~lang:"test" "let x = 42")
+  | "custom-prefix" ->
+      let options =
+        Ochre.Html_options.make ~css_variable_prefix:"--shiki-" ()
+      in
+      print_endline
+        (Ochre.to_html hl ~options ~theme:light_theme
+           ~themes:[ ("dark", theme) ]
+           ~lang:"test" "let x = 42")
+  | "scopes-data" ->
+      let options = Ochre.Html_options.make ~scopes_as_data_attrs:true () in
+      print_endline (Ochre.to_html hl ~options ~theme ~lang:"test" "let x = 42")
+  | "pre-class" ->
+      let options = Ochre.Html_options.make ~pre_class:"my-code" () in
+      print_endline (Ochre.to_html hl ~options ~theme ~lang:"test" "let x = 42")
+  | "code-class" ->
+      let options = Ochre.Html_options.make ~code_class:"language-test" () in
+      print_endline (Ochre.to_html hl ~options ~theme ~lang:"test" "let x = 42")
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1

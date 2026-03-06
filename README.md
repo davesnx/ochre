@@ -32,8 +32,7 @@ Then load a grammar from OCaml and create a highlighter. `tm-grammars` handles g
 
 ```ocaml
 let theme = Ochre.Theme.nord in
-let grammar = Tm_grammars.ocaml in
-let hl = Ochre.create_from_json ~grammars:[ ("ocaml", grammar) ] () in
+let hl = Ochre.create_from_json ~grammars:[ ("ocaml", Tm_grammars.ocaml) ] () in
 let html = Ochre.to_html hl ~theme ~lang:"ocaml" "let x = 42"
 ```
 

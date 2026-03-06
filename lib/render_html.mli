@@ -1,43 +1,59 @@
 (** HTML renderer for highlighted code.
 
-    Produces a self-contained [<pre><code>...</code></pre>] block with inline
-    CSS styles for colors and font styles. *)
+    Produces a self-contained [<pre><code>...</code></pre>] block. By default
+    uses inline CSS styles for colors and font styles, matching the legacy
+    output. Pass [~options] to control style mode, line numbers, CSS variable
+    prefix, and other rendering behaviour. *)
+
+(** {2 Class registry}
+
+    When using [Html_options.Css_classes] mode, the renderer collects a mapping
+    from inline styles to generated class names. Use {!collect_classes} after
+    rendering to extract a CSS stylesheet. *)
+
+type class_registry
+(** Opaque type holding style-to-class mappings. *)
 
 val render :
+  ?options:Html_options.t ->
   Theme.theme ->
   ?themes:(string * Theme.theme * Token.highlighted_code) list ->
   Token.highlighted_code ->
   string
 (** Render highlighted code to an HTML string.
 
-    When called with just a theme and code, produces a single-theme block with
-    the theme's default foreground and background on the [<pre>] element:
+    {3 Default (backward-compatible) output}
 
     {[
-      <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4">
-        <code style="display:block;padding:20px">...</code>
+      <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"
+           tabindex="0">
+        <code>
+          <span class="line">...</span>
+        </code>
       </pre>
     ]}
 
+    {3 Multi-theme output}
+
     When [~themes] is provided, each [(label, theme, tokens)] entry adds CSS
     custom properties ([--ochre-<label>], [--ochre-<label>-bg], etc.) to every
-    token, and the [<pre>] element carries all theme names and variables:
+    token, and the [<pre>] element carries all theme names and variables.
 
-    {[
-      <pre class="ochre ochre-themes light dark"
-           style="background-color:#fff;color:#24292e;--ochre-dark-bg:#1e1e1e;--ochre-dark:#d4d4d4"
-           tabindex="0">
-        <code>
-          <span class="line">
-            <span style="color:#d73a49;--ochre-dark:#ff0000">let</span>
-          </span>
-        </code>
-      </pre>
-    ]} *)
+    {3 Options}
 
-val css_for_theme : string -> string
-(** [css_for_theme label] returns a CSS rule body that activates the theme
-    stored under [--ochre-<label>-*] variables.
+    Pass [~options] to control:
+    - [style_mode]: inline styles (default) or CSS classes
+    - [default_color]: whether the primary theme gets inline [color:]
+    - [line_numbers]: add [data-line="N"] to each line span
+    - [css_variable_prefix]: custom prefix for CSS vars (default ["--ochre-"])
+    - [pre_class] / [code_class]: extra classes on wrapper elements
+    - [scopes_as_data_attrs]: add [data-scope="..."] on token spans *)
+
+val css_for_theme : ?prefix:string -> string -> string
+(** [css_for_theme ?prefix label] returns a CSS rule body that activates the
+    theme stored under CSS custom properties with the given prefix and label.
+
+    Default prefix: ["--ochre-"].
 
     {[
       css_for_theme "dark"
@@ -57,8 +73,20 @@ val css_for_theme : string -> string
     Wrap this in your own selector (e.g. a media query, a [.dark] class rule, or
     a [data-theme="dark"]) to control when the theme activates. *)
 
-val dark_mode_css : string
+val dark_mode_css : ?prefix:string -> unit -> string
 (** A ready-to-use CSS snippet that activates the ["dark"] theme variant via
     [@media (prefers-color-scheme: dark)].
 
-    Equivalent to wrapping {!css_for_theme}["dark"] in the media query. *)
+    Pass [~prefix] to match a custom {!Html_options.css_variable_prefix}. *)
+
+val collect_classes : class_registry -> string
+(** Extract a CSS stylesheet from a class registry.
+
+    Returns CSS rules mapping each generated class name to its styles. Only
+    meaningful after rendering with [Css_classes] style mode. *)
+
+val render_theme_css :
+  class_prefix:string -> Theme.theme -> Token.highlighted_code -> string
+(** [render_theme_css ~class_prefix theme code] generates a complete CSS
+    stylesheet for the given theme and highlighted code. Walks all tokens to
+    discover unique styles and maps each to a deterministic class name. *)

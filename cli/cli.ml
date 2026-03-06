@@ -69,12 +69,17 @@ let resolve_theme_name_or_path name_or_path =
 
 let error msg = `Error (false, msg)
 
-let render highlighter ~theme ~lang ~format source =
-  print_endline (Ochre.to_string highlighter ~format ~theme ~lang source);
-  `Ok ()
+let render highlighter ~theme ~lang ~format ~options source =
+  match format with
+  | Ochre.Html ->
+      print_endline (Ochre.to_html highlighter ~options ~theme ~lang source);
+      `Ok ()
+  | _ ->
+      print_endline (Ochre.to_string highlighter ~format ~theme ~lang source);
+      `Ok ()
 
-let render_html_multi highlighter ~theme ~themes ~lang source =
-  print_endline (Ochre.to_html highlighter ~theme ~themes ~lang source);
+let render_html_multi highlighter ~theme ~themes ~lang ~options source =
+  print_endline (Ochre.to_html highlighter ~options ~theme ~themes ~lang source);
   `Ok ()
 
 let resolve_theme ~theme_path ~theme_dark ~theme_light =
@@ -105,8 +110,26 @@ let resolve_multi_themes ~theme_path ~theme_dark ~theme_light ~format =
       Some (light, [ ("dark", dark) ])
   | _ -> None
 
+let build_html_options ~css_classes ~line_numbers ~no_default_color
+    ~css_var_prefix ~scopes_data =
+  let style_mode =
+    if css_classes then
+      Ochre.Html_options.Css_classes { class_prefix = "ochre-" }
+    else Ochre.Html_options.Inline_styles
+  in
+  let default_color =
+    if no_default_color then Ochre.Html_options.No_default_color
+    else Ochre.Html_options.Default_color
+  in
+  let css_variable_prefix =
+    match css_var_prefix with Some p -> p | None -> "--ochre-"
+  in
+  Ochre.Html_options.make ~style_mode ~default_color ~line_numbers
+    ~css_variable_prefix ~scopes_as_data_attrs:scopes_data ()
+
 let highlight lang theme_path theme_dark theme_light grammars format use_stdin
-    input_file =
+    input_file css_classes line_numbers no_default_color css_var_prefix
+    scopes_data =
   let source =
     if use_stdin then Some (read_stdin ()) else Option.map read_file input_file
   in
@@ -128,6 +151,10 @@ let highlight lang theme_path theme_dark theme_light grammars format use_stdin
                      lang
                      (String.concat ", " Tm_grammars.available)))
       in
+      let options =
+        build_html_options ~css_classes ~line_numbers ~no_default_color
+          ~css_var_prefix ~scopes_data
+      in
       match make_highlighter grammars with
       | Error msg -> error msg
       | Ok highlighter -> (
@@ -135,10 +162,10 @@ let highlight lang theme_path theme_dark theme_light grammars format use_stdin
             resolve_multi_themes ~theme_path ~theme_dark ~theme_light ~format
           with
           | Some (theme, themes) ->
-              render_html_multi highlighter ~theme ~themes ~lang source
+              render_html_multi highlighter ~theme ~themes ~lang ~options source
           | None ->
               let theme = resolve_theme ~theme_path ~theme_dark ~theme_light in
-              render highlighter ~theme ~lang ~format source))
+              render highlighter ~theme ~lang ~format ~options source))
 
 let lang =
   let doc = "Language identifier (e.g., ocaml, javascript, python)" in
@@ -195,6 +222,43 @@ let input_file =
   let doc = "Input file path" in
   Arg.(value & pos 1 (some string) None & info [] ~docv:"FILE" ~doc)
 
+let css_classes =
+  let doc =
+    "Use CSS class names instead of inline styles for HTML output. Each unique \
+     style gets a deterministic class like ochre-<hash>"
+  in
+  Arg.(value & flag & info [ "html-css-classes" ] ~doc)
+
+let line_numbers =
+  let doc =
+    "Add data-line attributes to line spans in HTML output (1-indexed)"
+  in
+  Arg.(value & flag & info [ "line-numbers" ] ~doc)
+
+let no_default_color =
+  let doc =
+    "Suppress inline color/background-color on the primary theme. All colors \
+     come from CSS custom properties only. Useful with multi-theme output when \
+     you control theme switching entirely via CSS"
+  in
+  Arg.(value & flag & info [ "no-default-color" ] ~doc)
+
+let css_var_prefix =
+  let doc =
+    "CSS custom property prefix for multi-theme output (default: --ochre-)"
+  in
+  Arg.(
+    value
+    & opt (some string) None
+    & info [ "css-var-prefix" ] ~docv:"PREFIX" ~doc)
+
+let scopes_data =
+  let doc =
+    "Add data-scope attributes to token spans in HTML output with TextMate \
+     scope names"
+  in
+  Arg.(value & flag & info [ "scopes-data" ] ~doc)
+
 let cmd =
   let doc = "Syntax highlighter using TextMate grammars and themes" in
   let info = Cmd.info "ochre" ~version:"0.1.0" ~doc in
@@ -202,6 +266,7 @@ let cmd =
     Term.(
       ret
         (const highlight $ lang $ theme_path $ theme_dark $ theme_light
-       $ grammars $ format $ use_stdin $ input_file))
+       $ grammars $ format $ use_stdin $ input_file $ css_classes $ line_numbers
+       $ no_default_color $ css_var_prefix $ scopes_data))
 
 let () = exit (Cmd.eval cmd)
