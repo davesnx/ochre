@@ -117,7 +117,7 @@ let highlight lang theme_path theme_dark theme_light grammars format use_stdin
         match grammars_arg with
         | _ :: _ -> Ok (Ochre.create ~grammars:grammars_arg ())
         | [] -> (
-            match Tm_grammars_all.find lang with
+            match Tm_grammars.find lang with
             | Some json ->
                 Ok (Ochre.create_from_json ~grammars:[ (lang, json) ] ())
             | None ->
@@ -126,7 +126,7 @@ let highlight lang theme_path theme_dark theme_light grammars format use_stdin
                      "No bundled grammar for '%s'. Available: %s. Use \
                       --grammar to provide one."
                      lang
-                     (String.concat ", " Tm_grammars_all.available)))
+                     (String.concat ", " Tm_grammars.available)))
       in
       match make_highlighter grammars with
       | Error msg -> error msg

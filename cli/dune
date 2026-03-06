@@ -2,7 +2,7 @@
  (name cli)
  (public_name ochre)
  (package ochre-cli)
- (libraries ochre tm-grammars-all cmdliner))
+ (libraries ochre tm-grammars cmdliner))
 
 (rule
  (deps %{workspace_root}/docs/cli.mld)

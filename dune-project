@@ -46,6 +46,6 @@
    (>= 5.4.0))
   dune
   ochre
-  tm-grammars-all
+   tm-grammars
   (cmdliner
    (>= 1.1.0))))

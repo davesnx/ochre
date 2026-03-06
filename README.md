@@ -26,13 +26,13 @@ let html = Ochre.to_html hl ~theme ~lang:"ocaml" source_code
 Install the bundled grammar package:
 
 ```
-opam install tm-grammars-all -y
+opam install tm-grammars -y
 ```
 Then load a grammar from OCaml and create a highlighter. `tm-grammars` handles grammar distribution, while `ochre` focuses on tokenization and rendering, making the two libraries a strong combination:
 
 ```ocaml
 let theme = Ochre.Theme.nord in
-let grammar = Option.get (Tm_grammars_all.find "ocaml") in
+let grammar = Tm_grammars.ocaml in
 let hl = Ochre.create_from_json ~grammars:[ ("ocaml", grammar) ] () in
 let html = Ochre.to_html hl ~theme ~lang:"ocaml" "let x = 42"
 ```
