@@ -2,20 +2,31 @@ type t = { grammar_loader : Grammar_loader.t }
 type output_format = Html | Ansi | Latex | Svg | Tokens
 
 let string_of_output_format = function
-  | Html -> "html"
-  | Ansi -> "ansi"
-  | Latex -> "latex"
-  | Svg -> "svg"
-  | Tokens -> "tokens"
+  | Html ->
+      "html"
+  | Ansi ->
+      "ansi"
+  | Latex ->
+      "latex"
+  | Svg ->
+      "svg"
+  | Tokens ->
+      "tokens"
 
 let output_format_of_string value =
   match String.lowercase_ascii value with
-  | "html" -> Some Html
-  | "ansi" -> Some Ansi
-  | "latex" -> Some Latex
-  | "svg" -> Some Svg
-  | "tokens" -> Some Tokens
-  | _ -> None
+  | "html" ->
+      Some Html
+  | "ansi" ->
+      Some Ansi
+  | "latex" ->
+      Some Latex
+  | "svg" ->
+      Some Svg
+  | "tokens" ->
+      Some Tokens
+  | _ ->
+      None
 
 let output_formats =
   List.map
@@ -40,7 +51,8 @@ let tokenize_with_grammar tm_collection grammar source =
         in
         stack := new_stack;
         let rec extract_tokens prev_end = function
-          | [] -> []
+          | [] ->
+              []
           | tok :: rest ->
               let start = prev_end in
               let ending = TmLanguage.ending tok in
@@ -63,8 +75,10 @@ let apply_theme theme tokens_per_line =
           let settings = Scope.find_best_match scopes theme_rules in
           let foreground =
             match settings with
-            | Some s -> s.Theme.foreground
-            | None -> Some theme.fg
+            | Some s ->
+                s.Theme.foreground
+            | None ->
+                Some theme.fg
           in
           let background =
             match settings with Some s -> s.Theme.background | None -> None
@@ -112,9 +126,12 @@ let render_to_string_with t ?(decorations = []) ~transforms ~theme ~lang render
     - Neither: falls back to [Theme.dark]. *)
 let resolve_themes ?theme ?(themes = []) () =
   match (theme, themes) with
-  | Some t, _ -> (t, themes)
-  | None, (_, first_theme) :: rest -> (first_theme, rest)
-  | None, [] -> (Theme.dark, [])
+  | Some t, _ ->
+      (t, themes)
+  | None, (_, first_theme) :: rest ->
+      (first_theme, rest)
+  | None, [] ->
+      (Theme.dark, [])
 
 let to_html t ?options ?theme ?themes ~lang source =
   let default_theme, extras = resolve_themes ?theme ?themes () in
@@ -186,18 +203,27 @@ let to_debug_tokens_with t ?decorations =
 
 let to_string t ~format ~theme ~lang source =
   match format with
-  | Html -> to_html t ~theme ~lang source
-  | Ansi -> to_ansi t ~theme ~lang source
-  | Latex -> to_latex t ~theme ~lang source
-  | Svg -> to_svg t ~theme ~lang source
-  | Tokens -> to_debug_tokens t ~theme ~lang source
+  | Html ->
+      to_html t ~theme ~lang source
+  | Ansi ->
+      to_ansi t ~theme ~lang source
+  | Latex ->
+      to_latex t ~theme ~lang source
+  | Svg ->
+      to_svg t ~theme ~lang source
+  | Tokens ->
+      to_debug_tokens t ~theme ~lang source
 
 let to_string_with t ?decorations ~transforms ~format ~theme ~lang source =
   match format with
-  | Html -> to_html_with t ?decorations ~transforms ~theme ~lang source
-  | Ansi -> to_ansi_with t ?decorations ~transforms ~theme ~lang source
-  | Latex -> to_latex_with t ?decorations ~transforms ~theme ~lang source
-  | Svg -> to_svg_with t ?decorations ~transforms ~theme ~lang source
+  | Html ->
+      to_html_with t ?decorations ~transforms ~theme ~lang source
+  | Ansi ->
+      to_ansi_with t ?decorations ~transforms ~theme ~lang source
+  | Latex ->
+      to_latex_with t ?decorations ~transforms ~theme ~lang source
+  | Svg ->
+      to_svg_with t ?decorations ~transforms ~theme ~lang source
   | Tokens ->
       to_debug_tokens_with t ?decorations ~transforms ~theme ~lang source
 

@@ -22,10 +22,15 @@ let line_lengths source =
    Negative characters count from end of line: -1 = line end, -2 = one before end, etc. *)
 let resolve_character lengths pos =
   let len =
-    if pos.line >= 0 && pos.line < Array.length lengths then lengths.(pos.line)
-    else 0
+    if pos.line >= 0 && pos.line < Array.length lengths then
+      lengths.(pos.line)
+    else
+      0
   in
-  if pos.character >= 0 then pos.character else max 0 (len + 1 + pos.character)
+  if pos.character >= 0 then
+    pos.character
+  else
+    max 0 (len + 1 + pos.character)
 
 (* Merge two decoration_properties, with later (b) overriding earlier (a)
    for style; classes are space-concatenated; data is merged (b wins keys). *)
@@ -33,15 +38,21 @@ let merge_properties (a : Token.decoration_properties)
     (b : Token.decoration_properties) : Token.decoration_properties =
   let class_ =
     match (a.class_, b.class_) with
-    | None, None -> None
-    | Some c, None | None, Some c -> Some c
-    | Some a, Some b -> Some (a ^ " " ^ b)
+    | None, None ->
+        None
+    | Some c, None | None, Some c ->
+        Some c
+    | Some a, Some b ->
+        Some (a ^ " " ^ b)
   in
   let style =
     match (a.style, b.style) with
-    | None, None -> None
-    | Some s, None | None, Some s -> Some s
-    | Some a, Some b -> Some (a ^ ";" ^ b)
+    | None, None ->
+        None
+    | Some s, None | None, Some s ->
+        Some s
+    | Some a, Some b ->
+        Some (a ^ ";" ^ b)
   in
   let data =
     let tbl = Hashtbl.create 8 in
@@ -59,8 +70,10 @@ let set_decoration (tok : Token.styled_token) (props : properties) :
   let dp = props_to_decoration props in
   let decoration =
     match tok.decoration with
-    | None -> Some dp
-    | Some existing -> Some (merge_properties existing dp)
+    | None ->
+        Some dp
+    | Some existing ->
+        Some (merge_properties existing dp)
   in
   { tok with decoration }
 
@@ -76,11 +89,14 @@ let apply_to_line ~line_idx ~lengths decorations tokens =
       (fun (d : t) ->
         let start_line = d.start.line in
         let end_line = d.end_.line in
-        if line_idx < start_line || line_idx > end_line then None
+        if line_idx < start_line || line_idx > end_line then
+          None
         else
           let start_char =
-            if line_idx > start_line then 0
-            else resolve_character lengths d.start
+            if line_idx > start_line then
+              0
+            else
+              resolve_character lengths d.start
           in
           let end_char =
             if line_idx < end_line then
@@ -88,20 +104,24 @@ let apply_to_line ~line_idx ~lengths decorations tokens =
               if line_idx < Array.length lengths then
                 lengths.(line_idx)
                 + 1 (* +1 to include trailing newline token *)
-              else 1000000
-            else resolve_character lengths d.end_
+              else
+                1000000
+            else
+              resolve_character lengths d.end_
           in
           Some (start_char, end_char, d.properties)
       )
       decorations
   in
-  if relevant = [] then tokens
+  if relevant = [] then
+    tokens
   else
     (* Walk tokens, tracking character offset within the line.
        For each token, check all relevant decorations and split if needed. *)
     let rec process offset tokens =
       match tokens with
-      | [] -> []
+      | [] ->
+          []
       | (tok : Token.styled_token) :: rest ->
           let tok_len = String.length tok.text in
           let tok_start = offset in
@@ -132,18 +152,21 @@ let apply_to_line ~line_idx ~lengths decorations tokens =
               | [] ->
                   if prev_cut < String.length text then
                     [ String.sub text prev_cut (String.length text - prev_cut) ]
-                  else []
+                  else
+                    []
               | p :: rest ->
                   if p > prev_cut then
                     String.sub text prev_cut (p - prev_cut)
                     :: split_text text p rest
-                  else split_text text prev_cut rest
+                  else
+                    split_text text prev_cut rest
             in
             let fragments = split_text tok.text 0 points in
             (* Build tokens for each fragment *)
             let rec build_fragments frag_offset frags =
               match frags with
-              | [] -> []
+              | [] ->
+                  []
               | frag :: rest_frags ->
                   let frag_len = String.length frag in
                   let frag_start = frag_offset in
@@ -167,7 +190,8 @@ let apply_to_line ~line_idx ~lengths decorations tokens =
     process 0 tokens
 
 let apply ~source decorations tokens =
-  if decorations = [] then tokens
+  if decorations = [] then
+    tokens
   else
     let lengths = line_lengths source in
     List.mapi

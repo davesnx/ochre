@@ -37,7 +37,12 @@ let setup () =
 
 let print_escaped s =
   String.iter
-    (fun c -> if c = '\x1b' then print_string "\\e" else print_char c)
+    (fun c ->
+      if c = '\x1b' then
+        print_string "\\e"
+      else
+        print_char c
+    )
     s;
   print_newline ()
 

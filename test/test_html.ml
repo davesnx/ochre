@@ -27,9 +27,12 @@ let preview_themes =
 let read_http_request ic =
   let rec consume_headers () =
     match input_line ic with
-    | "" | "\r" -> ()
-    | _ -> consume_headers ()
-    | exception End_of_file -> ()
+    | "" | "\r" ->
+        ()
+    | _ ->
+        consume_headers ()
+    | exception End_of_file ->
+        ()
   in
   (match input_line ic with _ -> () | exception End_of_file -> ());
   consume_headers ()
@@ -61,11 +64,14 @@ let serve_html ~port ~html =
 
 let port_from_env () =
   match Sys.getenv_opt "PORT" with
-  | None -> 5000
+  | None ->
+      5000
   | Some value -> (
       match int_of_string_opt (String.trim value) with
-      | Some p when p > 0 && p < 65536 -> p
-      | _ -> 5000
+      | Some p when p > 0 && p < 65536 ->
+          p
+      | _ ->
+          5000
     )
 
 let render_page ~highlighter ~source =

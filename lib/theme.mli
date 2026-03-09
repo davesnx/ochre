@@ -82,8 +82,10 @@ val make : string -> theme option
 
     {[
       match Theme.make "nord" with
-      | Some theme -> theme
-      | None -> failwith "unknown theme"
+      | Some theme ->
+          theme
+      | None ->
+          failwith "unknown theme"
     ]} *)
 
 val available_names : string list

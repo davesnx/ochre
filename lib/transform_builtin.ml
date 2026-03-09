@@ -6,7 +6,8 @@ let line_highlight ?(background = "#ffffff22") lines =
             { tok with background = Some background }
           )
           line
-      else line
+      else
+        line
   )
 
 let word_highlight ?(foreground = "#ffff00") ?(font_style = [ Token.Bold ])
@@ -16,7 +17,8 @@ let word_highlight ?(foreground = "#ffff00") ?(font_style = [ Token.Bold ])
         (fun (tok : Token.styled_token) ->
           if List.mem tok.text words then
             { tok with foreground = Some foreground; font_style }
-          else tok
+          else
+            tok
         )
         line
   )
@@ -50,7 +52,8 @@ let diff_markers =
                  }
                 :: rest
                 )
-          | line -> line
+          | line ->
+              line
         )
         doc
   )
@@ -66,8 +69,10 @@ let scope_marker ?(background = "#ffff0033") scope_prefix =
                 && String.sub s 0 (String.length scope_prefix) = scope_prefix
               )
               tok.scopes
-          then { tok with background = Some background }
-          else tok
+          then
+            { tok with background = Some background }
+          else
+            tok
         )
         line
   )
@@ -83,7 +88,8 @@ let scope_marker ?(background = "#ffff0033") scope_prefix =
 let string_find_opt ~pattern s =
   let plen = String.length pattern in
   let slen = String.length s in
-  if plen > slen then None
+  if plen > slen then
+    None
   else
     let found = ref None in
     let i = ref 0 in
@@ -100,14 +106,19 @@ let rtrim s =
   while !i >= 0 && (s.[!i] = ' ' || s.[!i] = '\t') do
     decr i
   done;
-  if !i < len - 1 then String.sub s 0 (!i + 1) else s
+  if !i < len - 1 then
+    String.sub s 0 (!i + 1)
+  else
+    s
 
 (** Helper: check if a string consists only of whitespace. *)
 let is_whitespace_only s =
   let len = String.length s in
   let rec check i =
-    if i >= len then true
-    else match s.[i] with ' ' | '\t' -> check (i + 1) | _ -> false
+    if i >= len then
+      true
+    else
+      match s.[i] with ' ' | '\t' -> check (i + 1) | _ -> false
   in
   check 0
 
@@ -115,11 +126,14 @@ let is_whitespace_only s =
     [Some token_index] or [None]. *)
 let find_notation_in_line ~pattern line =
   let rec scan i = function
-    | [] -> None
+    | [] ->
+        None
     | (tok : Token.styled_token) :: rest -> (
         match string_find_opt ~pattern tok.text with
-        | Some _ -> Some i
-        | None -> scan (i + 1) rest
+        | Some _ ->
+            Some i
+        | None ->
+            scan (i + 1) rest
       )
   in
   scan 0 line
@@ -135,7 +149,8 @@ let find_notation_in_line ~pattern line =
     (spaces). *)
 let remove_notation ~pattern line =
   match find_notation_in_line ~pattern line with
-  | None -> None
+  | None ->
+      None
   | Some tok_idx ->
       let tokens = Array.of_list line in
       let len = Array.length tokens in
@@ -150,8 +165,9 @@ let remove_notation ~pattern line =
       done;
       let result = ref [] in
       for i = 0 to len - 1 do
-        if i >= !skip_before && i <= tok_idx then ()
-          (* skip the notation token and preceding whitespace *)
+        if i >= !skip_before && i <= tok_idx then
+          ()
+        (* skip the notation token and preceding whitespace *)
         else
           let tok = tokens.(i) in
           (* Skip pure-whitespace tokens that immediately follow the removed
@@ -160,21 +176,30 @@ let remove_notation ~pattern line =
             i = tok_idx + 1
             && is_whitespace_only tok.Token.text
             && String.length tok.text > 0
-          then ()
-          else result := tok :: !result
+          then
+            ()
+          else
+            result := tok :: !result
       done;
       let cleaned = List.rev !result in
       (* Trim trailing whitespace from the last non-newline token *)
       let rec trim_last = function
-        | [] -> []
+        | [] ->
+            []
         | [ tok ] ->
             let t = rtrim tok.Token.text in
-            if String.length t > 0 then [ { tok with Token.text = t } ] else []
+            if String.length t > 0 then
+              [ { tok with Token.text = t } ]
+            else
+              []
         | [ tok; nl ] when nl.Token.text = "\n" ->
             let t = rtrim tok.Token.text in
-            if String.length t > 0 then [ { tok with Token.text = t }; nl ]
-            else [ nl ]
-        | tok :: rest -> tok :: trim_last rest
+            if String.length t > 0 then
+              [ { tok with Token.text = t }; nl ]
+            else
+              [ nl ]
+        | tok :: rest ->
+            tok :: trim_last rest
       in
       Some (trim_last cleaned)
 
@@ -190,7 +215,8 @@ let notation_highlight ?(background = "#ffffff22") () =
                   { tok with background = Some background }
                 )
                 cleaned
-          | None -> line
+          | None ->
+              line
         )
         doc
   )
@@ -217,7 +243,8 @@ let notation_diff ?(add_background = "#22883322")
                       { tok with background = Some remove_background }
                     )
                     cleaned
-              | None -> line
+              | None ->
+                  line
             )
         )
         doc
@@ -228,28 +255,34 @@ let notation_diff ?(add_background = "#22883322")
 let extract_word_from_token (tok : Token.styled_token) =
   let pattern = "[!code word:" in
   match string_find_opt ~pattern tok.text with
-  | None -> None
+  | None ->
+      None
   | Some idx ->
       let after_pattern = idx + String.length pattern in
       let text = tok.text in
       let len = String.length text in
       (* Find the closing ] *)
       let rec find_close i =
-        if i >= len then None
+        if i >= len then
+          None
         else if text.[i] = ']' then
           Some (String.sub text after_pattern (i - after_pattern))
-        else find_close (i + 1)
+        else
+          find_close (i + 1)
       in
       find_close after_pattern
 
 (** Helper: scan a line for [!code word:xxx] and extract the word. *)
 let find_word_notation line =
   let rec scan = function
-    | [] -> None
+    | [] ->
+        None
     | tok :: rest -> (
         match extract_word_from_token tok with
-        | Some word -> Some word
-        | None -> scan rest
+        | Some word ->
+            Some word
+        | None ->
+            scan rest
       )
   in
   scan line
@@ -267,8 +300,10 @@ let notation_word_highlight ?(foreground = "#ffff00")
               let full_pattern = base_pattern ^ word ^ "]" in
               let cleaned =
                 match remove_notation ~pattern:full_pattern line with
-                | Some c -> c
-                | None -> line
+                | Some c ->
+                    c
+                | None ->
+                    line
               in
               (* Highlight all occurrences of the word in this line *)
               List.concat_map
@@ -277,55 +312,60 @@ let notation_word_highlight ?(foreground = "#ffff00")
                   let word_len = String.length word in
                   let text = tok.text in
                   let text_len = String.length text in
-                  if word_len = 0 || text_len = 0 then [ tok ]
+                  if word_len = 0 || text_len = 0 then
+                    [ tok ]
                   else
                     let parts = ref [] in
                     let pos = ref 0 in
                     while !pos <= text_len - word_len do
                       if String.sub text !pos word_len = word then begin
                         (* Emit any text before this match *)
-                        if
-                          !pos
-                          >
-                          match !parts with
-                          | [] -> 0
-                          | _ ->
+                          if
+                            !pos
+                            >
+                            match !parts with
+                            | [] ->
+                                0
+                            | _ ->
+                                let rec sum = function
+                                  | [] ->
+                                      0
+                                  | (t : Token.styled_token) :: rest ->
+                                      String.length t.text + sum rest
+                                in
+                                sum (List.rev !parts)
+                          then begin
+                            let start =
                               let rec sum = function
-                                | [] -> 0
+                                | [] ->
+                                    0
                                 | (t : Token.styled_token) :: rest ->
                                     String.length t.text + sum rest
                               in
                               sum (List.rev !parts)
-                        then begin
-                          let start =
-                            let rec sum = function
-                              | [] -> 0
-                              | (t : Token.styled_token) :: rest ->
-                                  String.length t.text + sum rest
                             in
-                            sum (List.rev !parts)
-                          in
-                          let before_text =
-                            String.sub text start (!pos - start)
-                          in
-                          parts := { tok with text = before_text } :: !parts
-                        end;
-                        parts :=
-                          {
-                            tok with
-                            text = word;
-                            foreground = Some foreground;
-                            font_style;
-                          }
-                          :: !parts;
-                        pos := !pos + word_len
-                      end
-                      else incr pos
+                            let before_text =
+                              String.sub text start (!pos - start)
+                            in
+                            parts := { tok with text = before_text } :: !parts
+                          end;
+                          parts :=
+                            {
+                              tok with
+                              text = word;
+                              foreground = Some foreground;
+                              font_style;
+                            }
+                            :: !parts;
+                          pos := !pos + word_len
+                      end else
+                        incr pos
                     done;
                     (* Emit remaining text *)
                     let consumed =
                       let rec sum = function
-                        | [] -> 0
+                        | [] ->
+                            0
                         | (t : Token.styled_token) :: rest ->
                             String.length t.text + sum rest
                       in
@@ -341,7 +381,8 @@ let notation_word_highlight ?(foreground = "#ffff00")
                     List.rev !parts
                 )
                 cleaned
-          | None -> line
+          | None ->
+              line
         )
         doc
   )

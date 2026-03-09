@@ -145,11 +145,16 @@ let make name =
   List.assoc_opt key themes
 
 let parse_font_style = function
-  | "bold" -> Some Bold
-  | "italic" -> Some Italic
-  | "underline" -> Some Underline
-  | "strikethrough" -> Some Strikethrough
-  | _ -> None
+  | "bold" ->
+      Some Bold
+  | "italic" ->
+      Some Italic
+  | "underline" ->
+      Some Underline
+  | "strikethrough" ->
+      Some Strikethrough
+  | _ ->
+      None
 
 let parse_font_styles str =
   String.split_on_char ' ' str |> List.filter_map parse_font_style
@@ -160,19 +165,26 @@ let settings_of_settings_json (s : settings_json) : token_color_settings =
     background = s.background;
     font_style =
       ( match s.font_style_raw with
-      | Some str -> parse_font_styles str
-      | None -> []
+      | Some str ->
+          parse_font_styles str
+      | None ->
+          []
       );
   }
 
 let parse_scope = function
-  | `String s -> [ s ]
-  | `List l -> List.filter_map (function `String s -> Some s | _ -> None) l
-  | _ -> []
+  | `String s ->
+      [ s ]
+  | `List l ->
+      List.filter_map (function `String s -> Some s | _ -> None) l
+  | _ ->
+      []
 
 let json_field key = function
-  | `Assoc fields -> List.assoc_opt key fields
-  | _ -> None
+  | `Assoc fields ->
+      List.assoc_opt key fields
+  | _ ->
+      None
 
 let parse_token_color_rule json =
   let scope =
@@ -180,8 +192,10 @@ let parse_token_color_rule json =
   in
   let settings =
     match json_field "settings" json with
-    | Some s -> settings_json_of_json s |> settings_of_settings_json
-    | None -> { foreground = None; background = None; font_style = [] }
+    | Some s ->
+        settings_json_of_json s |> settings_of_settings_json
+    | None ->
+        { foreground = None; background = None; font_style = [] }
   in
   { scope; settings }
 
@@ -196,8 +210,10 @@ let load_theme json =
   let bg = resolve_color colors_bg tj.bg "#ffffff" in
   let token_colors =
     match json_field "tokenColors" json with
-    | Some (`List l) -> List.map parse_token_color_rule l
-    | _ -> []
+    | Some (`List l) ->
+        List.map parse_token_color_rule l
+    | _ ->
+        []
   in
   (tj.name, fg, bg, token_colors)
 

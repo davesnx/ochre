@@ -1,37 +1,53 @@
 open Token
 
 let font_style_to_css = function
-  | Bold -> "font-weight:bold"
-  | Italic -> "font-style:italic"
-  | Underline -> "text-decoration:underline"
-  | Strikethrough -> "text-decoration:line-through"
+  | Bold ->
+      "font-weight:bold"
+  | Italic ->
+      "font-style:italic"
+  | Underline ->
+      "text-decoration:underline"
+  | Strikethrough ->
+      "text-decoration:line-through"
 
 (** [prefix] is expected to end with [-] (e.g. [--ochre-dark-]). *)
 let font_style_to_css_var prefix = function
-  | Bold -> prefix ^ "font-weight:bold"
-  | Italic -> prefix ^ "font-style:italic"
-  | Underline -> prefix ^ "text-decoration:underline"
-  | Strikethrough -> prefix ^ "text-decoration:line-through"
+  | Bold ->
+      prefix ^ "font-weight:bold"
+  | Italic ->
+      prefix ^ "font-style:italic"
+  | Underline ->
+      prefix ^ "text-decoration:underline"
+  | Strikethrough ->
+      prefix ^ "text-decoration:line-through"
 
 let token_style_to_css ~emit_default token =
   let styles = [] in
   let styles =
     if emit_default then
       match token.foreground with
-      | Some color -> ("color:" ^ color) :: styles
-      | None -> styles
-    else styles
+      | Some color ->
+          ("color:" ^ color) :: styles
+      | None ->
+          styles
+    else
+      styles
   in
   let styles =
     if emit_default then
       match token.background with
-      | Some color -> ("background-color:" ^ color) :: styles
-      | None -> styles
-    else styles
+      | Some color ->
+          ("background-color:" ^ color) :: styles
+      | None ->
+          styles
+    else
+      styles
   in
   let styles =
-    if emit_default then List.map font_style_to_css token.font_style @ styles
-    else styles
+    if emit_default then
+      List.map font_style_to_css token.font_style @ styles
+    else
+      styles
   in
   String.concat ";" styles
 
@@ -45,18 +61,23 @@ let token_style_to_css_vars prefix token =
   let fg_name =
     if String.length prefix > 0 && prefix.[String.length prefix - 1] = '-' then
       String.sub prefix 0 (String.length prefix - 1)
-    else prefix
+    else
+      prefix
   in
   let vars = [] in
   let vars =
     match token.foreground with
-    | Some color -> (fg_name ^ ":" ^ color) :: vars
-    | None -> vars
+    | Some color ->
+        (fg_name ^ ":" ^ color) :: vars
+    | None ->
+        vars
   in
   let vars =
     match token.background with
-    | Some color -> (prefix ^ "bg:" ^ color) :: vars
-    | None -> vars
+    | Some color ->
+        (prefix ^ "bg:" ^ color) :: vars
+    | None ->
+        vars
   in
   let vars = List.map (font_style_to_css_var prefix) token.font_style @ vars in
   vars
@@ -81,7 +102,8 @@ let create_registry prefix = { map = []; prefix }
 
 let class_for_style registry style =
   match List.assoc_opt style registry.map with
-  | Some cls -> cls
+  | Some cls ->
+      cls
   | None ->
       let cls = registry.prefix ^ style_hash style in
       registry.map <- (style, cls) :: registry.map;
@@ -94,18 +116,22 @@ let render_span_attrs ~options ~registry style decoration scopes =
   let attrs =
     if options.scopes_as_data_attrs && scopes <> [] then
       Printf.sprintf "data-scope=\"%s\"" (String.concat " " scopes) :: attrs
-    else attrs
+    else
+      attrs
   in
   (* decoration properties *)
   let attrs, extra_style =
     match decoration with
-    | None -> (attrs, None)
+    | None ->
+        (attrs, None)
     | Some (dec : decoration_properties) ->
         let a = attrs in
         let a =
           match dec.class_ with
-          | Some c -> Printf.sprintf "class=\"%s\"" c :: a
-          | None -> a
+          | Some c ->
+              Printf.sprintf "class=\"%s\"" c :: a
+          | None ->
+              a
         in
         let a =
           List.fold_left
@@ -116,34 +142,42 @@ let render_span_attrs ~options ~registry style decoration scopes =
   in
   let combined_style =
     match (style, extra_style) with
-    | "", None -> ""
-    | s, None | "", Some s -> s
-    | s, Some ds -> s ^ ";" ^ ds
+    | "", None ->
+        ""
+    | s, None | "", Some s ->
+        s
+    | s, Some ds ->
+        s ^ ";" ^ ds
   in
   match options.style_mode with
   | Inline_styles ->
-      if combined_style = "" && attrs = [] then None
+      if combined_style = "" && attrs = [] then
+        None
       else
         let parts =
           if combined_style <> "" then
             Printf.sprintf "style=\"%s\"" combined_style :: attrs
-          else attrs
+          else
+            attrs
         in
         Some (String.concat " " parts)
   | Css_classes { class_prefix = _ } -> (
       match registry with
       | None ->
           (* fallback to inline if no registry *)
-          if combined_style = "" && attrs = [] then None
+          if combined_style = "" && attrs = [] then
+            None
           else
             let parts =
               if combined_style <> "" then
                 Printf.sprintf "style=\"%s\"" combined_style :: attrs
-              else attrs
+              else
+                attrs
             in
             Some (String.concat " " parts)
       | Some reg ->
-          if combined_style = "" && attrs = [] then None
+          if combined_style = "" && attrs = [] then
+            None
           else
             let cls_attr =
               if combined_style <> "" then
@@ -152,11 +186,14 @@ let render_span_attrs ~options ~registry style decoration scopes =
                 match decoration with
                 | Some { class_ = Some existing; _ } ->
                     Printf.sprintf "class=\"%s %s\"" existing cls
-                | _ -> Printf.sprintf "class=\"%s\"" cls
+                | _ ->
+                    Printf.sprintf "class=\"%s\"" cls
               else
                 match decoration with
-                | Some { class_ = Some c; _ } -> Printf.sprintf "class=\"%s\"" c
-                | _ -> ""
+                | Some { class_ = Some c; _ } ->
+                    Printf.sprintf "class=\"%s\"" c
+                | _ ->
+                    ""
             in
             (* filter out the old class attr from attrs, add new one *)
             let other_attrs =
@@ -167,17 +204,25 @@ let render_span_attrs ~options ~registry style decoration scopes =
                 attrs
             in
             let parts =
-              if cls_attr <> "" then cls_attr :: other_attrs else other_attrs
+              if cls_attr <> "" then
+                cls_attr :: other_attrs
+              else
+                other_attrs
             in
-            if parts = [] then None else Some (String.concat " " parts)
+            if parts = [] then
+              None
+            else
+              Some (String.concat " " parts)
     )
 
 let render_token ~options ~registry ~extras primary =
   let prefix = options.Html_options.css_variable_prefix in
   let emit_default =
     match options.Html_options.default_color with
-    | Html_options.Default_color -> true
-    | Html_options.No_default_color -> false
+    | Html_options.Default_color ->
+        true
+    | Html_options.No_default_color ->
+        false
   in
   let primary_style = token_style_to_css ~emit_default primary in
   let extra_vars =
@@ -186,15 +231,22 @@ let render_token ~options ~registry ~extras primary =
       extras
   in
   let all_parts =
-    (if primary_style <> "" then [ primary_style ] else []) @ extra_vars
+    ( if primary_style <> "" then
+        [ primary_style ]
+      else
+        []
+    )
+    @ extra_vars
   in
   let style = String.concat ";" all_parts in
   let text = escape_text primary.text in
   match
     render_span_attrs ~options ~registry style primary.decoration primary.scopes
   with
-  | None -> text
-  | Some attrs -> Printf.sprintf "<span %s>%s</span>" attrs text
+  | None ->
+      text
+  | Some attrs ->
+      Printf.sprintf "<span %s>%s</span>" attrs text
 
 let render_line ~options ~registry ~extras_line primary_line =
   let render_one i tok =
@@ -216,7 +268,8 @@ let render ?(options = Html_options.default) theme ?(themes = []) code =
     match options.style_mode with
     | Html_options.Css_classes { class_prefix } ->
         Some (create_registry class_prefix)
-    | Html_options.Inline_styles -> None
+    | Html_options.Inline_styles ->
+        None
   in
   let lines =
     List.mapi
@@ -230,7 +283,8 @@ let render ?(options = Html_options.default) theme ?(themes = []) code =
         if options.line_numbers then
           Printf.sprintf "<span class=\"line\" data-line=\"%d\">%s</span>"
             (i + 1) content
-        else Printf.sprintf "<span class=\"line\">%s</span>" content
+        else
+          Printf.sprintf "<span class=\"line\">%s</span>" content
       )
       code
   in
@@ -238,11 +292,16 @@ let render ?(options = Html_options.default) theme ?(themes = []) code =
   (* Build <pre> classes *)
   let pre_classes =
     [ "ochre" ]
-    @ (if has_extras then [ "ochre-themes" ] else [])
+    @ ( if has_extras then
+          [ "ochre-themes" ]
+        else
+          []
+      )
     @ ( if has_extras then
           theme.Theme.name
           :: List.map (fun (_label, theme, _tokens) -> theme.Theme.name) themes
-        else []
+        else
+          []
       )
     @ match options.pre_class with Some c -> [ c ] | None -> []
   in
@@ -254,13 +313,16 @@ let render ?(options = Html_options.default) theme ?(themes = []) code =
   (* Build <pre> style *)
   let emit_default =
     match options.default_color with
-    | Html_options.Default_color -> true
-    | Html_options.No_default_color -> false
+    | Html_options.Default_color ->
+        true
+    | Html_options.No_default_color ->
+        false
   in
   let pre_style_parts =
     ( if emit_default then
         [ "background-color:" ^ theme.Theme.bg; "color:" ^ theme.Theme.fg ]
-      else []
+      else
+        []
     )
     @
     if has_extras then
@@ -272,17 +334,21 @@ let render ?(options = Html_options.default) theme ?(themes = []) code =
           ]
         )
         themes
-    else []
+    else
+      []
   in
   let pre_style =
     if pre_style_parts <> [] then
       Printf.sprintf " style=\"%s\"" (String.concat ";" pre_style_parts)
-    else ""
+    else
+      ""
   in
   let code_attrs =
     match code_class_attr with
-    | Some c -> Printf.sprintf " class=\"%s\"" c
-    | None -> ""
+    | Some c ->
+        Printf.sprintf " class=\"%s\"" c
+    | None ->
+        ""
   in
   Printf.sprintf "<pre class=\"%s\"%s tabindex=\"0\"><code%s>%s</code></pre>"
     pre_class_attr pre_style code_attrs code_content

@@ -2,7 +2,8 @@ let hex_to_rgb hex =
   let hex =
     if String.starts_with ~prefix:"#" hex then
       String.sub hex 1 (String.length hex - 1)
-    else hex
+    else
+      hex
   in
   let len = String.length hex in
   if len = 6 then
@@ -21,7 +22,8 @@ let hex_to_rgb hex =
       int_of_string ("0x" ^ String.make 1 hex.[2] ^ String.make 1 hex.[2])
     in
     (r, g, b)
-  else (0, 0, 0)
+  else
+    (0, 0, 0)
 
 let reset = "\x1b[0m"
 let bold = "\x1b[1m"
@@ -39,25 +41,36 @@ let background_color_ansi hex =
 
 let font_style_to_ansi v =
   match (v : Token.font_style) with
-  | Bold -> bold
-  | Italic -> italic
-  | Underline -> underline
-  | Strikethrough -> strikethrough
+  | Bold ->
+      bold
+  | Italic ->
+      italic
+  | Underline ->
+      underline
+  | Strikethrough ->
+      strikethrough
 
 let render_token (token : Token.styled_token) =
   let codes = [] in
   let codes =
     match token.foreground with
-    | Some color -> foreground_color_ansi color :: codes
-    | None -> codes
+    | Some color ->
+        foreground_color_ansi color :: codes
+    | None ->
+        codes
   in
   let codes =
     match token.background with
-    | Some color -> background_color_ansi color :: codes
-    | None -> codes
+    | Some color ->
+        background_color_ansi color :: codes
+    | None ->
+        codes
   in
   let codes = List.map font_style_to_ansi token.font_style @ codes in
-  if codes = [] then token.text else String.concat "" codes ^ token.text ^ reset
+  if codes = [] then
+    token.text
+  else
+    String.concat "" codes ^ token.text ^ reset
 
 let render_line (line : Token.line) =
   String.concat "" (List.map render_token line)

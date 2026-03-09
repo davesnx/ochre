@@ -17,19 +17,29 @@ let line_char_count line =
 let font_style_attrs styles =
   let attrs = [] in
   let attrs =
-    if List.mem Bold styles then "font-weight=\"bold\"" :: attrs else attrs
+    if List.mem Bold styles then
+      "font-weight=\"bold\"" :: attrs
+    else
+      attrs
   in
   let attrs =
-    if List.mem Italic styles then "font-style=\"italic\"" :: attrs else attrs
+    if List.mem Italic styles then
+      "font-style=\"italic\"" :: attrs
+    else
+      attrs
   in
   let has_underline = List.mem Underline styles in
   let has_strike = List.mem Strikethrough styles in
   let attrs =
     match (has_underline, has_strike) with
-    | true, true -> "text-decoration=\"underline line-through\"" :: attrs
-    | true, false -> "text-decoration=\"underline\"" :: attrs
-    | false, true -> "text-decoration=\"line-through\"" :: attrs
-    | false, false -> attrs
+    | true, true ->
+        "text-decoration=\"underline line-through\"" :: attrs
+    | true, false ->
+        "text-decoration=\"underline\"" :: attrs
+    | false, true ->
+        "text-decoration=\"line-through\"" :: attrs
+    | false, false ->
+        attrs
   in
   attrs
 
@@ -40,26 +50,35 @@ let render_token (token : styled_token) =
   let attrs = [] in
   let attrs =
     match token.foreground with
-    | Some color -> Printf.sprintf "fill=\"%s\"" color :: attrs
-    | None -> attrs
+    | Some color ->
+        Printf.sprintf "fill=\"%s\"" color :: attrs
+    | None ->
+        attrs
   in
   let attrs = font_style_attrs token.font_style @ attrs in
   let attrs =
     match token.decoration with
-    | None -> attrs
+    | None ->
+        attrs
     | Some dec -> (
         let attrs =
           match dec.class_ with
-          | Some c -> Printf.sprintf "class=\"%s\"" c :: attrs
-          | None -> attrs
+          | Some c ->
+              Printf.sprintf "class=\"%s\"" c :: attrs
+          | None ->
+              attrs
         in
         match dec.style with
-        | Some s -> Printf.sprintf "style=\"%s\"" s :: attrs
-        | None -> attrs
+        | Some s ->
+            Printf.sprintf "style=\"%s\"" s :: attrs
+        | None ->
+            attrs
       )
   in
-  if attrs = [] then text
-  else Printf.sprintf "<tspan %s>%s</tspan>" (String.concat " " attrs) text
+  if attrs = [] then
+    text
+  else
+    Printf.sprintf "<tspan %s>%s</tspan>" (String.concat " " attrs) text
 
 let render_line ~y line =
   let tokens = String.concat "" (List.map render_token line) in

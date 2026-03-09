@@ -27,9 +27,12 @@ let preview_themes =
 let read_http_request ic =
   let rec consume_headers () =
     match input_line ic with
-    | "" | "\r" -> ()
-    | _ -> consume_headers ()
-    | exception End_of_file -> ()
+    | "" | "\r" ->
+        ()
+    | _ ->
+        consume_headers ()
+    | exception End_of_file ->
+        ()
   in
   (match input_line ic with _ -> () | exception End_of_file -> ());
   consume_headers ()
@@ -61,11 +64,14 @@ let serve_html ~port ~html =
 
 let port_from_env () =
   match Sys.getenv_opt "PORT" with
-  | None -> 5000
+  | None ->
+      5000
   | Some value -> (
       match int_of_string_opt (String.trim value) with
-      | Some p when p > 0 && p < 65536 -> p
-      | _ -> 5000
+      | Some p when p > 0 && p < 65536 ->
+          p
+      | _ ->
+          5000
     )
 
 let with_full_width_svg svg =
@@ -75,18 +81,21 @@ let with_full_width_svg svg =
   then
     "<svg style=\"width:100%\" "
     ^ String.sub svg prefix_len (String.length svg - prefix_len)
-  else svg
+  else
+    svg
 
 let render_svg ~highlighter ~source name =
   match Ochre.Theme.make name with
-  | Some theme -> Ochre.to_svg highlighter ~theme ~lang:"ocaml" source
+  | Some theme ->
+      Ochre.to_svg highlighter ~theme ~lang:"ocaml" source
   | None ->
       Printf.eprintf "Missing built-in theme: %s\n" name;
       exit 1
 
 let svg_body svg =
   match String.index_opt svg '>' with
-  | None -> svg
+  | None ->
+      svg
   | Some open_end ->
       let close_tag = "</svg>" in
       let close_tag_len = String.length close_tag in
@@ -94,8 +103,10 @@ let svg_body svg =
       if
         len >= close_tag_len
         && String.sub svg (len - close_tag_len) close_tag_len = close_tag
-      then String.sub svg (open_end + 1) (len - open_end - close_tag_len - 1)
-      else String.sub svg (open_end + 1) (len - open_end - 1)
+      then
+        String.sub svg (open_end + 1) (len - open_end - close_tag_len - 1)
+      else
+        String.sub svg (open_end + 1) (len - open_end - 1)
 
 let render_theme_gallery_svg ~highlighter ~source =
   let card_width = 280 in

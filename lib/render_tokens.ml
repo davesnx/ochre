@@ -1,13 +1,16 @@
 let render_token (t : Token.styled_token) =
   let base = Printf.sprintf "{%s}[%s]" t.text (String.concat "," t.scopes) in
   match t.decoration with
-  | None -> base
+  | None ->
+      base
   | Some dec ->
       let parts = [] in
       let parts =
         match dec.class_ with
-        | Some c -> ("class=" ^ c) :: parts
-        | None -> parts
+        | Some c ->
+            ("class=" ^ c) :: parts
+        | None ->
+            parts
       in
       let parts =
         match dec.style with Some s -> ("style=" ^ s) :: parts | None -> parts

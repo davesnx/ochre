@@ -4,19 +4,32 @@ let escape_latex str =
   let buf = Buffer.create (String.length str * 2) in
   String.iter
     (function
-      | ' ' -> Buffer.add_string buf "\\ "
-      | '\n' -> ()
-      | '\\' -> Buffer.add_string buf "\\textbackslash{}"
-      | '{' -> Buffer.add_string buf "\\{"
-      | '}' -> Buffer.add_string buf "\\}"
-      | '%' -> Buffer.add_string buf "\\%"
-      | '$' -> Buffer.add_string buf "\\$"
-      | '#' -> Buffer.add_string buf "\\#"
-      | '&' -> Buffer.add_string buf "\\&"
-      | '_' -> Buffer.add_string buf "\\_"
-      | '~' -> Buffer.add_string buf "\\textasciitilde{}"
-      | '^' -> Buffer.add_string buf "\\textasciicircum{}"
-      | c -> Buffer.add_char buf c
+      | ' ' ->
+          Buffer.add_string buf "\\ "
+      | '\n' ->
+          ()
+      | '\\' ->
+          Buffer.add_string buf "\\textbackslash{}"
+      | '{' ->
+          Buffer.add_string buf "\\{"
+      | '}' ->
+          Buffer.add_string buf "\\}"
+      | '%' ->
+          Buffer.add_string buf "\\%"
+      | '$' ->
+          Buffer.add_string buf "\\$"
+      | '#' ->
+          Buffer.add_string buf "\\#"
+      | '&' ->
+          Buffer.add_string buf "\\&"
+      | '_' ->
+          Buffer.add_string buf "\\_"
+      | '~' ->
+          Buffer.add_string buf "\\textasciitilde{}"
+      | '^' ->
+          Buffer.add_string buf "\\textasciicircum{}"
+      | c ->
+          Buffer.add_char buf c
       )
     str;
   Buffer.contents buf
@@ -24,16 +37,21 @@ let escape_latex str =
 let strip_hash hex =
   if String.starts_with ~prefix:"#" hex then
     String.sub hex 1 (String.length hex - 1)
-  else hex
+  else
+    hex
 
 let wrap_font_styles styles inner =
   List.fold_left
     (fun acc style ->
       match style with
-      | Bold -> Printf.sprintf "\\textbf{%s}" acc
-      | Italic -> Printf.sprintf "\\textit{%s}" acc
-      | Underline -> Printf.sprintf "\\underline{%s}" acc
-      | Strikethrough -> Printf.sprintf "\\sout{%s}" acc
+      | Bold ->
+          Printf.sprintf "\\textbf{%s}" acc
+      | Italic ->
+          Printf.sprintf "\\textit{%s}" acc
+      | Underline ->
+          Printf.sprintf "\\underline{%s}" acc
+      | Strikethrough ->
+          Printf.sprintf "\\sout{%s}" acc
     )
     inner styles
 
@@ -43,7 +61,8 @@ let render_token (token : styled_token) =
   match token.foreground with
   | Some color ->
       Printf.sprintf "\\textcolor[HTML]{%s}{%s}" (strip_hash color) styled
-  | None -> styled
+  | None ->
+      styled
 
 let render_line line = String.concat "" (List.map render_token line)
 

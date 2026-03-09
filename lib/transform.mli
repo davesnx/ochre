@@ -51,7 +51,8 @@ val make :
               (fun (tok : Token.styled_token) ->
                 if tok.text = "let" || tok.text = "in" then
                   { tok with font_style = Token.Bold :: tok.font_style }
-                else tok
+                else
+                  tok
               )
               line
         )

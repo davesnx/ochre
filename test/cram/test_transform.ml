@@ -36,10 +36,14 @@ let setup () =
   (hl, theme)
 
 let style_to_string = function
-  | Ochre.Token.Bold -> "bold"
-  | Italic -> "italic"
-  | Underline -> "underline"
-  | Strikethrough -> "strikethrough"
+  | Ochre.Token.Bold ->
+      "bold"
+  | Italic ->
+      "italic"
+  | Underline ->
+      "underline"
+  | Strikethrough ->
+      "strikethrough"
 
 let print_token (tok : Ochre.Token.styled_token) =
   let text = String.trim tok.text in
@@ -47,8 +51,10 @@ let print_token (tok : Ochre.Token.styled_token) =
     Printf.printf "text: %S\n" text;
     Printf.printf "  fg: %s\n" (Option.value ~default:"none" tok.foreground);
     ( match tok.background with
-    | Some c -> Printf.printf "  bg: %s\n" c
-    | None -> ()
+    | Some c ->
+        Printf.printf "  bg: %s\n" c
+    | None ->
+        ()
     );
     if tok.font_style <> [] then
       Printf.printf "  styles: [%s]\n"

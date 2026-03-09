@@ -37,10 +37,14 @@ let setup () =
   (hl, theme)
 
 let style_to_string = function
-  | Ochre.Token.Bold -> "bold"
-  | Italic -> "italic"
-  | Underline -> "underline"
-  | Strikethrough -> "strikethrough"
+  | Ochre.Token.Bold ->
+      "bold"
+  | Italic ->
+      "italic"
+  | Underline ->
+      "underline"
+  | Strikethrough ->
+      "strikethrough"
 
 let print_token (tok : Ochre.Token.styled_token) =
   let text = String.trim tok.text in
@@ -48,8 +52,10 @@ let print_token (tok : Ochre.Token.styled_token) =
     Printf.printf "text: %S\n" text;
     Printf.printf "  fg: %s\n" (Option.value ~default:"none" tok.foreground);
     ( match tok.background with
-    | Some c -> Printf.printf "  bg: %s\n" c
-    | None -> ()
+    | Some c ->
+        Printf.printf "  bg: %s\n" c
+    | None ->
+        ()
     );
     if tok.font_style <> [] then
       Printf.printf "  styles: [%s]\n"
@@ -61,12 +67,18 @@ let () =
   let hl, theme = setup () in
   let source =
     match Sys.argv.(1) with
-    | "keyword" -> "let"
-    | "number" -> "42"
-    | "comment" -> "# hello"
-    | "string-specificity" -> {|"hello"|}
-    | "mixed" -> "let x = 42"
-    | "default-text" -> "hello"
+    | "keyword" ->
+        "let"
+    | "number" ->
+        "42"
+    | "comment" ->
+        "# hello"
+    | "string-specificity" ->
+        {|"hello"|}
+    | "mixed" ->
+        "let x = 42"
+    | "default-text" ->
+        "hello"
     | s ->
         Printf.eprintf "unknown: %s\n" s;
         exit 1

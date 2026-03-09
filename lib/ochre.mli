@@ -161,8 +161,10 @@ module Theme : sig
 
       {[
         match Ochre.Theme.make "nord" with
-        | Some theme -> theme
-        | None -> failwith "unknown theme"
+        | Some theme ->
+            theme
+        | None ->
+            failwith "unknown theme"
       ]} *)
 
   val available_names : string list
@@ -618,7 +620,8 @@ module Transform : sig
                 (fun (tok : Ochre.Token.styled_token) ->
                   if tok.text = "let" || tok.text = "in" then
                     { tok with font_style = Bold :: tok.font_style }
-                  else tok
+                  else
+                    tok
                 )
                 line
           )

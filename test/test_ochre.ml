@@ -63,7 +63,8 @@ let test_scope_matching () =
   | (first :: _) :: _ ->
       Alcotest.(check (option string))
         "keyword gets red" (Some "#ff0000") first.foreground
-  | _ -> Alcotest.fail "expected at least one token"
+  | _ ->
+      Alcotest.fail "expected at least one token"
 
 let test_capture_arrays_in_grammar () =
   let grammar_with_capture_array =
@@ -168,7 +169,8 @@ let test_transform_ordering () =
   | [ [ tok ] ] ->
       Alcotest.(check (option string))
         "last transform wins" (Some "#222222") tok.background
-  | _ -> Alcotest.fail "expected 1 line with 1 token"
+  | _ ->
+      Alcotest.fail "expected 1 line with 1 token"
 
 let test_transform_determinism () =
   let doc : Ochre.Token.highlighted_code =
@@ -270,7 +272,8 @@ let test_transform_line_highlight () =
       Alcotest.(check (option string))
         "line 0 highlighted" (Some "#ffffff22") tok0.background;
       Alcotest.(check (option string)) "line 1 unchanged" None tok1.background
-  | _ -> Alcotest.fail "expected 2 lines with 1 token each"
+  | _ ->
+      Alcotest.fail "expected 2 lines with 1 token each"
 
 let test_transform_before_render_then_line () =
   let doc : Ochre.Token.highlighted_code =
@@ -331,7 +334,8 @@ let test_decoration_empty_passthrough () =
   | [ [ tok ] ] ->
       Alcotest.(check string) "text unchanged" "hello" tok.text;
       Alcotest.(check bool) "no decoration" true (tok.decoration = None)
-  | _ -> Alcotest.fail "expected 1 line with 1 token"
+  | _ ->
+      Alcotest.fail "expected 1 line with 1 token"
 
 let test_decoration_whole_token () =
   (* Decorate "hello" (chars 0-5) which is exactly one token *)
@@ -347,9 +351,11 @@ let test_decoration_whole_token () =
       match tok.decoration with
       | Some dec ->
           Alcotest.(check (option string)) "class set" (Some "hl") dec.class_
-      | None -> Alcotest.fail "expected decoration"
+      | None ->
+          Alcotest.fail "expected decoration"
     )
-  | _ -> Alcotest.fail "expected 1 line with 1 token"
+  | _ ->
+      Alcotest.fail "expected 1 line with 1 token"
 
 let test_decoration_token_splitting () =
   (* Source: "console.log" as a single token. Decorate chars 0-7 ("console") *)
@@ -367,7 +373,8 @@ let test_decoration_token_splitting () =
       | Some dec ->
           Alcotest.(check (option string))
             "decorated" (Some "target") dec.class_
-      | None -> Alcotest.fail "first fragment should be decorated"
+      | None ->
+          Alcotest.fail "first fragment should be decorated"
       );
       Alcotest.(check bool) "second not decorated" true (t2.decoration = None)
   | [ toks ] ->
@@ -382,7 +389,8 @@ let test_decoration_token_splitting () =
               )
            )
         )
-  | _ -> Alcotest.fail "expected 1 line"
+  | _ ->
+      Alcotest.fail "expected 1 line"
 
 let test_decoration_mid_token_split () =
   (* Source: "abcdef" as one token. Decorate chars 2-4 ("cd") *)
@@ -402,13 +410,15 @@ let test_decoration_mid_token_split () =
       | Some dec ->
           Alcotest.(check (option string))
             "middle decorated" (Some "mid") dec.class_
-      | None -> Alcotest.fail "middle should be decorated"
+      | None ->
+          Alcotest.fail "middle should be decorated"
       );
       Alcotest.(check bool) "after not decorated" true (t3.decoration = None)
   | [ toks ] ->
       Alcotest.fail
         (Printf.sprintf "expected 3 tokens, got %d" (List.length toks))
-  | _ -> Alcotest.fail "expected 1 line"
+  | _ ->
+      Alcotest.fail "expected 1 line"
 
 let test_decoration_multi_token () =
   (* Source: "let x" = two tokens "let" + " x". Decorate chars 0-5 (all) *)
@@ -426,9 +436,11 @@ let test_decoration_multi_token () =
       | Some d1, Some d2 ->
           Alcotest.(check (option string)) "t1 class" (Some "all") d1.class_;
           Alcotest.(check (option string)) "t2 class" (Some "all") d2.class_
-      | _ -> Alcotest.fail "both tokens should be decorated"
+      | _ ->
+          Alcotest.fail "both tokens should be decorated"
     )
-  | _ -> Alcotest.fail "expected 1 line with 2 tokens"
+  | _ ->
+      Alcotest.fail "expected 1 line with 2 tokens"
 
 let test_decoration_negative_character () =
   (* Source: "hello\nworld". Decorate line 0, chars 0 to -1 (whole line content,
@@ -451,7 +463,8 @@ let test_decoration_negative_character () =
       | Some dec ->
           Alcotest.(check (option string))
             "hello decorated" (Some "line0") dec.class_
-      | None -> Alcotest.fail "hello should be decorated"
+      | None ->
+          Alcotest.fail "hello should be decorated"
       );
       Alcotest.(check bool)
         "newline not decorated" true
@@ -462,7 +475,8 @@ let test_decoration_negative_character () =
             "line1 not decorated" true (tok.decoration = None)
         )
         line1
-  | _ -> Alcotest.fail "expected 2 lines"
+  | _ ->
+      Alcotest.fail "expected 2 lines"
 
 let test_decoration_overlapping () =
   (* Source: "abcd". Two decorations overlap on "bc" *)
@@ -490,22 +504,26 @@ let test_decoration_overlapping () =
       ( match t1.decoration with
       | Some dec ->
           Alcotest.(check (option string)) "a class" (Some "first") dec.class_
-      | None -> Alcotest.fail "a should be decorated"
+      | None ->
+          Alcotest.fail "a should be decorated"
       );
       (* "bc" should have both classes merged *)
       ( match t2.decoration with
       | Some dec ->
           Alcotest.(check (option string))
             "bc class" (Some "first second") dec.class_
-      | None -> Alcotest.fail "bc should be decorated"
+      | None ->
+          Alcotest.fail "bc should be decorated"
       );
       (* "d" should have class "second" only *)
       match t3.decoration with
       | Some dec ->
           Alcotest.(check (option string)) "d class" (Some "second") dec.class_
-      | None -> Alcotest.fail "d should be decorated"
+      | None ->
+          Alcotest.fail "d should be decorated"
     )
-  | _ -> Alcotest.fail "expected 1 line"
+  | _ ->
+      Alcotest.fail "expected 1 line"
 
 let test_decoration_multiline () =
   (* Source: "ab\ncd". Decoration spans from line 0 char 1 to line 1 char 1 *)
@@ -531,7 +549,8 @@ let test_decoration_multiline () =
       | Some dec ->
           Alcotest.(check (option string))
             "b decorated" (Some "span") dec.class_
-      | None -> Alcotest.fail "b should be decorated"
+      | None ->
+          Alcotest.fail "b should be decorated"
       );
       (* Line 1: "c" (decorated), "d" (not decorated), "\n" (not decorated) *)
       let l1_texts =
@@ -544,10 +563,12 @@ let test_decoration_multiline () =
       | Some dec ->
           Alcotest.(check (option string))
             "c decorated" (Some "span") dec.class_
-      | None -> Alcotest.fail "c should be decorated"
+      | None ->
+          Alcotest.fail "c should be decorated"
       );
       Alcotest.(check bool) "d not decorated" true (d_tok.decoration = None)
-  | _ -> Alcotest.fail "expected 2 lines"
+  | _ ->
+      Alcotest.fail "expected 2 lines"
 
 let test_decoration_with_highlighter () =
   let hl = highlight () in
@@ -579,9 +600,11 @@ let test_decoration_with_highlighter () =
       | Some dec ->
           Alcotest.(check (option string))
             "first token decorated" (Some "hl") dec.class_
-      | None -> Alcotest.fail "first token should be decorated"
+      | None ->
+          Alcotest.fail "first token should be decorated"
     )
-  | _ -> Alcotest.fail "expected at least one line with tokens"
+  | _ ->
+      Alcotest.fail "expected at least one line with tokens"
 
 let make_comment text =
   {
@@ -636,7 +659,8 @@ let test_notation_highlight_basic () =
             "line1 not highlighted" None tok.background
         )
         line1
-  | _ -> Alcotest.fail "expected 2 lines"
+  | _ ->
+      Alcotest.fail "expected 2 lines"
 
 let test_notation_highlight_no_match () =
   let doc = [ [ make_tok "let x = 42"; make_tok "\n" ] ] in
@@ -647,7 +671,8 @@ let test_notation_highlight_no_match () =
       Alcotest.(check string) "text unchanged" "let x = 42" tok.text;
       Alcotest.(check string) "newline kept" "\n" nl.text;
       Alcotest.(check (option string)) "no background" None tok.background
-  | _ -> Alcotest.fail "expected 1 line with 2 tokens"
+  | _ ->
+      Alcotest.fail "expected 1 line with 2 tokens"
 
 let test_notation_diff_add () =
   (* Line with [!code ++] should get green background *)
@@ -680,7 +705,8 @@ let test_notation_diff_add () =
         "notation removed"
         (not (List.exists (fun t -> String.length t > 0 && t.[0] = '#') texts))
         true
-  | _ -> Alcotest.fail "expected 1 line"
+  | _ ->
+      Alcotest.fail "expected 1 line"
 
 let test_notation_diff_remove () =
   (* Line with [!code --] should get red background *)
@@ -706,7 +732,8 @@ let test_notation_diff_remove () =
               (Some "#88222222") tok.background
         )
         line
-  | _ -> Alcotest.fail "expected 1 line"
+  | _ ->
+      Alcotest.fail "expected 1 line"
 
 let test_notation_diff_no_match () =
   let doc = [ [ make_tok "let z = 0"; make_tok "\n" ] ] in
@@ -715,7 +742,8 @@ let test_notation_diff_no_match () =
   match result with
   | [ [ tok; _ ] ] ->
       Alcotest.(check (option string)) "no background" None tok.background
-  | _ -> Alcotest.fail "expected 1 line"
+  | _ ->
+      Alcotest.fail "expected 1 line"
 
 let test_notation_word_highlight_basic () =
   (* "let x = 42 # [!code word:x]" - "x" in " x = " should be highlighted *)
@@ -758,7 +786,8 @@ let test_notation_word_highlight_basic () =
           line
       in
       Alcotest.(check bool) "comment removed" false has_comment
-  | _ -> Alcotest.fail "expected 1 line"
+  | _ ->
+      Alcotest.fail "expected 1 line"
 
 let test_notation_word_highlight_no_match () =
   let doc = [ [ make_tok "let x = 42"; make_tok "\n" ] ] in
@@ -768,7 +797,8 @@ let test_notation_word_highlight_no_match () =
   | [ [ tok; _ ] ] ->
       Alcotest.(check string) "unchanged" "let x = 42" tok.text;
       Alcotest.(check (option string)) "no fg change" None tok.foreground
-  | _ -> Alcotest.fail "expected 1 line"
+  | _ ->
+      Alcotest.fail "expected 1 line"
 
 let test_notation_highlight_with_highlighter () =
   let hl = highlight () in
@@ -829,7 +859,8 @@ let test_notation_highlight_with_highlighter () =
               None tok.background
         )
         line1
-  | _ -> Alcotest.fail "expected 2 lines"
+  | _ ->
+      Alcotest.fail "expected 2 lines"
 
 let () =
   let open Alcotest in
