@@ -91,7 +91,8 @@ let apply_to_line ~line_idx ~lengths decorations tokens =
               else 1000000
             else resolve_character lengths d.end_
           in
-          Some (start_char, end_char, d.properties))
+          Some (start_char, end_char, d.properties)
+      )
       decorations
   in
   if relevant = [] then tokens
@@ -120,7 +121,8 @@ let apply_to_line ~line_idx ~lengths decorations tokens =
                 if s > tok_start && s < tok_end then
                   split_points := (s - tok_start) :: !split_points;
                 if e > tok_start && e < tok_end then
-                  split_points := (e - tok_start) :: !split_points)
+                  split_points := (e - tok_start) :: !split_points
+              )
               overlapping;
             (* Deduplicate and sort *)
             let points = List.sort_uniq compare !split_points in

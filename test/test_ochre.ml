@@ -124,8 +124,10 @@ let test_transform_empty_passthrough () =
         (fun (t1 : Ochre.Token.styled_token) (t2 : Ochre.Token.styled_token) ->
           Alcotest.(check string) "same text" t1.text t2.text;
           Alcotest.(check (option string)) "same fg" t1.foreground t2.foreground;
-          Alcotest.(check (option string)) "same bg" t1.background t2.background)
-        line1 line2)
+          Alcotest.(check (option string)) "same bg" t1.background t2.background
+        )
+        line1 line2
+    )
     tokens tokens_with
 
 let test_transform_ordering () =
@@ -147,15 +149,19 @@ let test_transform_ordering () =
     Ochre.Transform.make "first" ~after_line:(fun ~line_index:_ line ->
         List.map
           (fun (tok : Ochre.Token.styled_token) ->
-            { tok with background = Some "#111111" })
-          line)
+            { tok with background = Some "#111111" }
+          )
+          line
+    )
   in
   let t2 =
     Ochre.Transform.make "second" ~after_line:(fun ~line_index:_ line ->
         List.map
           (fun (tok : Ochre.Token.styled_token) ->
-            { tok with background = Some "#222222" })
-          line)
+            { tok with background = Some "#222222" }
+          )
+          line
+    )
   in
   let result = Ochre.Transform.run [ t1; t2 ] doc in
   match result with
@@ -209,8 +215,10 @@ let test_transform_determinism () =
                 tok with
                 foreground =
                   Some (Option.value ~default:"none" tok.foreground ^ "-tagged");
-              })
-            line);
+              }
+            )
+            line
+      );
     ]
   in
   let run_once () = Ochre.Transform.run transforms doc in
@@ -224,8 +232,10 @@ let test_transform_determinism () =
           Alcotest.(check (option string))
             "deterministic fg" t1.foreground t2.foreground;
           Alcotest.(check (option string))
-            "deterministic bg" t1.background t2.background)
-        line1 line2)
+            "deterministic bg" t1.background t2.background
+        )
+        line1 line2
+    )
     r1 r2
 
 let test_transform_line_highlight () =
@@ -282,16 +292,20 @@ let test_transform_before_render_then_line () =
     Ochre.Transform.make "logger"
       ~before_render:(fun doc ->
         log := "before_render" :: !log;
-        doc)
+        doc
+      )
       ~before_line:(fun ~line_index:_ line ->
         log := "before_line" :: !log;
-        line)
+        line
+      )
       ~after_line:(fun ~line_index:_ line ->
         log := "after_line" :: !log;
-        line)
+        line
+      )
       ~after_render:(fun doc ->
         log := "after_render" :: !log;
-        doc)
+        doc
+      )
   in
   let _ = Ochre.Transform.run [ t ] doc in
   let order = List.rev !log in
@@ -333,7 +347,8 @@ let test_decoration_whole_token () =
       match tok.decoration with
       | Some dec ->
           Alcotest.(check (option string)) "class set" (Some "hl") dec.class_
-      | None -> Alcotest.fail "expected decoration")
+      | None -> Alcotest.fail "expected decoration"
+    )
   | _ -> Alcotest.fail "expected 1 line with 1 token"
 
 let test_decoration_token_splitting () =
@@ -348,11 +363,12 @@ let test_decoration_token_splitting () =
   | [ [ t1; t2 ] ] ->
       Alcotest.(check string) "first fragment" "console" t1.text;
       Alcotest.(check string) "second fragment" ".log" t2.text;
-      (match t1.decoration with
+      ( match t1.decoration with
       | Some dec ->
           Alcotest.(check (option string))
             "decorated" (Some "target") dec.class_
-      | None -> Alcotest.fail "first fragment should be decorated");
+      | None -> Alcotest.fail "first fragment should be decorated"
+      );
       Alcotest.(check bool) "second not decorated" true (t2.decoration = None)
   | [ toks ] ->
       Alcotest.fail
@@ -360,8 +376,12 @@ let test_decoration_token_splitting () =
            (String.concat ", "
               (List.map
                  (fun (t : Ochre.Token.styled_token) ->
-                   Printf.sprintf "%S" t.text)
-                 toks)))
+                   Printf.sprintf "%S" t.text
+                 )
+                 toks
+              )
+           )
+        )
   | _ -> Alcotest.fail "expected 1 line"
 
 let test_decoration_mid_token_split () =
@@ -378,11 +398,12 @@ let test_decoration_mid_token_split () =
       Alcotest.(check string) "middle" "cd" t2.text;
       Alcotest.(check string) "after" "ef" t3.text;
       Alcotest.(check bool) "before not decorated" true (t1.decoration = None);
-      (match t2.decoration with
+      ( match t2.decoration with
       | Some dec ->
           Alcotest.(check (option string))
             "middle decorated" (Some "mid") dec.class_
-      | None -> Alcotest.fail "middle should be decorated");
+      | None -> Alcotest.fail "middle should be decorated"
+      );
       Alcotest.(check bool) "after not decorated" true (t3.decoration = None)
   | [ toks ] ->
       Alcotest.fail
@@ -405,7 +426,8 @@ let test_decoration_multi_token () =
       | Some d1, Some d2 ->
           Alcotest.(check (option string)) "t1 class" (Some "all") d1.class_;
           Alcotest.(check (option string)) "t2 class" (Some "all") d2.class_
-      | _ -> Alcotest.fail "both tokens should be decorated")
+      | _ -> Alcotest.fail "both tokens should be decorated"
+    )
   | _ -> Alcotest.fail "expected 1 line with 2 tokens"
 
 let test_decoration_negative_character () =
@@ -425,18 +447,20 @@ let test_decoration_negative_character () =
       (* "hello" should be decorated, "\n" should not *)
       let hello = List.nth line0 0 in
       let newline = List.nth line0 1 in
-      (match hello.decoration with
+      ( match hello.decoration with
       | Some dec ->
           Alcotest.(check (option string))
             "hello decorated" (Some "line0") dec.class_
-      | None -> Alcotest.fail "hello should be decorated");
+      | None -> Alcotest.fail "hello should be decorated"
+      );
       Alcotest.(check bool)
         "newline not decorated" true
         (newline.decoration = None);
       List.iter
         (fun (tok : Ochre.Token.styled_token) ->
           Alcotest.(check bool)
-            "line1 not decorated" true (tok.decoration = None))
+            "line1 not decorated" true (tok.decoration = None)
+        )
         line1
   | _ -> Alcotest.fail "expected 2 lines"
 
@@ -463,21 +487,24 @@ let test_decoration_overlapping () =
       Alcotest.(check string) "frag2" "bc" t2.text;
       Alcotest.(check string) "frag3" "d" t3.text;
       (* "a" should have class "first" only *)
-      (match t1.decoration with
+      ( match t1.decoration with
       | Some dec ->
           Alcotest.(check (option string)) "a class" (Some "first") dec.class_
-      | None -> Alcotest.fail "a should be decorated");
+      | None -> Alcotest.fail "a should be decorated"
+      );
       (* "bc" should have both classes merged *)
-      (match t2.decoration with
+      ( match t2.decoration with
       | Some dec ->
           Alcotest.(check (option string))
             "bc class" (Some "first second") dec.class_
-      | None -> Alcotest.fail "bc should be decorated");
+      | None -> Alcotest.fail "bc should be decorated"
+      );
       (* "d" should have class "second" only *)
       match t3.decoration with
       | Some dec ->
           Alcotest.(check (option string)) "d class" (Some "second") dec.class_
-      | None -> Alcotest.fail "d should be decorated")
+      | None -> Alcotest.fail "d should be decorated"
+    )
   | _ -> Alcotest.fail "expected 1 line"
 
 let test_decoration_multiline () =
@@ -500,11 +527,12 @@ let test_decoration_multiline () =
       let a = List.nth line0 0 in
       let b = List.nth line0 1 in
       Alcotest.(check bool) "a not decorated" true (a.decoration = None);
-      (match b.decoration with
+      ( match b.decoration with
       | Some dec ->
           Alcotest.(check (option string))
             "b decorated" (Some "span") dec.class_
-      | None -> Alcotest.fail "b should be decorated");
+      | None -> Alcotest.fail "b should be decorated"
+      );
       (* Line 1: "c" (decorated), "d" (not decorated), "\n" (not decorated) *)
       let l1_texts =
         List.map (fun (t : Ochre.Token.styled_token) -> t.text) line1
@@ -512,11 +540,12 @@ let test_decoration_multiline () =
       Alcotest.(check (list string)) "line1 texts" [ "c"; "d"; "\n" ] l1_texts;
       let c = List.nth line1 0 in
       let d_tok = List.nth line1 1 in
-      (match c.decoration with
+      ( match c.decoration with
       | Some dec ->
           Alcotest.(check (option string))
             "c decorated" (Some "span") dec.class_
-      | None -> Alcotest.fail "c should be decorated");
+      | None -> Alcotest.fail "c should be decorated"
+      );
       Alcotest.(check bool) "d not decorated" true (d_tok.decoration = None)
   | _ -> Alcotest.fail "expected 2 lines"
 
@@ -550,7 +579,8 @@ let test_decoration_with_highlighter () =
       | Some dec ->
           Alcotest.(check (option string))
             "first token decorated" (Some "hl") dec.class_
-      | None -> Alcotest.fail "first token should be decorated")
+      | None -> Alcotest.fail "first token should be decorated"
+    )
   | _ -> Alcotest.fail "expected at least one line with tokens"
 
 let make_comment text =
@@ -588,7 +618,8 @@ let test_notation_highlight_basic () =
           if String.trim tok.text <> "" && tok.text <> "\n" then
             Alcotest.(check (option string))
               (Printf.sprintf "line0 token %S highlighted" tok.text)
-              (Some "#ffffff22") tok.background)
+              (Some "#ffffff22") tok.background
+        )
         line0;
       (* Verify the comment token is removed *)
       let texts =
@@ -602,7 +633,8 @@ let test_notation_highlight_basic () =
       List.iter
         (fun (tok : Ochre.Token.styled_token) ->
           Alcotest.(check (option string))
-            "line1 not highlighted" None tok.background)
+            "line1 not highlighted" None tok.background
+        )
         line1
   | _ -> Alcotest.fail "expected 2 lines"
 
@@ -638,7 +670,8 @@ let test_notation_diff_add () =
           if String.trim tok.text <> "" && tok.text <> "\n" then
             Alcotest.(check (option string))
               (Printf.sprintf "token %S has add bg" tok.text)
-              (Some "#22883322") tok.background)
+              (Some "#22883322") tok.background
+        )
         line;
       let texts =
         List.map (fun (t : Ochre.Token.styled_token) -> t.text) line
@@ -670,7 +703,8 @@ let test_notation_diff_remove () =
           if String.trim tok.text <> "" && tok.text <> "\n" then
             Alcotest.(check (option string))
               (Printf.sprintf "token %S has remove bg" tok.text)
-              (Some "#88222222") tok.background)
+              (Some "#88222222") tok.background
+        )
         line
   | _ -> Alcotest.fail "expected 1 line"
 
@@ -712,13 +746,15 @@ let test_notation_word_highlight_basic () =
             "x foreground" (Some "#ffff00") tok.foreground;
           Alcotest.(check bool)
             "x bold" true
-            (List.mem Ochre.Token.Bold tok.font_style))
+            (List.mem Ochre.Token.Bold tok.font_style)
+        )
         x_tokens;
       (* Verify the comment is removed *)
       let has_comment =
         List.exists
           (fun (t : Ochre.Token.styled_token) ->
-            String.length t.text > 0 && t.text.[0] = '#')
+            String.length t.text > 0 && t.text.[0] = '#'
+          )
           line
       in
       Alcotest.(check bool) "comment removed" false has_comment
@@ -757,14 +793,16 @@ let test_notation_highlight_with_highlighter () =
       let visible0 =
         List.filter
           (fun (t : Ochre.Token.styled_token) ->
-            String.trim t.text <> "" && t.text <> "\n")
+            String.trim t.text <> "" && t.text <> "\n"
+          )
           line0
       in
       List.iter
         (fun (tok : Ochre.Token.styled_token) ->
           Alcotest.(check (option string))
             (Printf.sprintf "%S bg" tok.text)
-            (Some "#ffffff22") tok.background)
+            (Some "#ffffff22") tok.background
+        )
         visible0;
       (* Verify no comment token in output *)
       let all_texts =
@@ -776,8 +814,11 @@ let test_notation_highlight_with_highlighter () =
            (List.exists
               (fun t ->
                 String.length t > 0
-                && String.sub t 0 (min 1 (String.length t)) = "#")
-              all_texts))
+                && String.sub t 0 (min 1 (String.length t)) = "#"
+              )
+              all_texts
+           )
+        )
         true;
       (* Line 1: not highlighted *)
       List.iter
@@ -785,7 +826,8 @@ let test_notation_highlight_with_highlighter () =
           if String.trim tok.text <> "" && tok.text <> "\n" then
             Alcotest.(check (option string))
               (Printf.sprintf "%S no bg" tok.text)
-              None tok.background)
+              None tok.background
+        )
         line1
   | _ -> Alcotest.fail "expected 2 lines"
 
@@ -795,12 +837,14 @@ let () =
     [
       ("theme", [ test_case "Load theme from string" `Quick test_theme_loading ]);
       ( "scope",
-        [ test_case "Scope matching via tokens" `Quick test_scope_matching ] );
+        [ test_case "Scope matching via tokens" `Quick test_scope_matching ]
+      );
       ( "grammar",
         [
           test_case "Accept capture arrays" `Quick
             test_capture_arrays_in_grammar;
-        ] );
+        ]
+      );
       ( "transform",
         [
           test_case "Empty transforms passthrough" `Quick
@@ -812,7 +856,8 @@ let () =
             test_transform_line_highlight;
           test_case "Hook execution order" `Quick
             test_transform_before_render_then_line;
-        ] );
+        ]
+      );
       ( "notation-transform",
         [
           test_case "Notation highlight basic" `Quick
@@ -828,7 +873,8 @@ let () =
             test_notation_word_highlight_no_match;
           test_case "Notation highlight with highlighter" `Quick
             test_notation_highlight_with_highlighter;
-        ] );
+        ]
+      );
       ( "decoration",
         [
           test_case "Empty decorations passthrough" `Quick
@@ -844,5 +890,6 @@ let () =
           test_case "Multiline decoration" `Quick test_decoration_multiline;
           test_case "Decoration with highlighter" `Quick
             test_decoration_with_highlighter;
-        ] );
+        ]
+      );
     ]

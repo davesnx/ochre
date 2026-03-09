@@ -162,13 +162,15 @@ let render_span_attrs ~options ~registry style decoration scopes =
             let other_attrs =
               List.filter
                 (fun a ->
-                  not (String.length a >= 6 && String.sub a 0 6 = "class="))
+                  not (String.length a >= 6 && String.sub a 0 6 = "class=")
+                )
                 attrs
             in
             let parts =
               if cls_attr <> "" then cls_attr :: other_attrs else other_attrs
             in
-            if parts = [] then None else Some (String.concat " " parts))
+            if parts = [] then None else Some (String.concat " " parts)
+    )
 
 let render_token ~options ~registry ~extras primary =
   let prefix = options.Html_options.css_variable_prefix in
@@ -228,7 +230,8 @@ let render ?(options = Html_options.default) theme ?(themes = []) code =
         if options.line_numbers then
           Printf.sprintf "<span class=\"line\" data-line=\"%d\">%s</span>"
             (i + 1) content
-        else Printf.sprintf "<span class=\"line\">%s</span>" content)
+        else Printf.sprintf "<span class=\"line\">%s</span>" content
+      )
       code
   in
   let code_content = String.concat "\n" lines in
@@ -236,10 +239,11 @@ let render ?(options = Html_options.default) theme ?(themes = []) code =
   let pre_classes =
     [ "ochre" ]
     @ (if has_extras then [ "ochre-themes" ] else [])
-    @ (if has_extras then
-         theme.Theme.name
-         :: List.map (fun (_label, theme, _tokens) -> theme.Theme.name) themes
-       else [])
+    @ ( if has_extras then
+          theme.Theme.name
+          :: List.map (fun (_label, theme, _tokens) -> theme.Theme.name) themes
+        else []
+      )
     @ match options.pre_class with Some c -> [ c ] | None -> []
   in
   let pre_class_attr = String.concat " " pre_classes in
@@ -254,9 +258,10 @@ let render ?(options = Html_options.default) theme ?(themes = []) code =
     | Html_options.No_default_color -> false
   in
   let pre_style_parts =
-    (if emit_default then
-       [ "background-color:" ^ theme.Theme.bg; "color:" ^ theme.Theme.fg ]
-     else [])
+    ( if emit_default then
+        [ "background-color:" ^ theme.Theme.bg; "color:" ^ theme.Theme.fg ]
+      else []
+    )
     @
     if has_extras then
       List.concat_map
@@ -264,7 +269,8 @@ let render ?(options = Html_options.default) theme ?(themes = []) code =
           [
             prefix ^ label ^ "-bg:" ^ theme.Theme.bg;
             prefix ^ label ^ ":" ^ theme.Theme.fg;
-          ])
+          ]
+        )
         themes
     else []
   in
@@ -309,7 +315,8 @@ let collect_classes registry =
   let buf = Buffer.create 256 in
   List.iter
     (fun (style, cls) ->
-      Buffer.add_string buf (Printf.sprintf ".%s { %s }\n" cls style))
+      Buffer.add_string buf (Printf.sprintf ".%s { %s }\n" cls style)
+    )
     (List.rev registry.map);
   Buffer.contents buf
 
@@ -323,13 +330,16 @@ let render_theme_css ~class_prefix (theme : Theme.theme) code =
       List.iter
         (fun (tok : styled_token) ->
           let style = token_style_to_css ~emit_default:true tok in
-          if style <> "" then ignore (class_for_style reg style))
-        line)
+          if style <> "" then ignore (class_for_style reg style)
+        )
+        line
+    )
     code;
   (* Add the pre/code base styles *)
   let buf = Buffer.create 512 in
   Buffer.add_string buf
     (Printf.sprintf ".ochre { background-color:%s; color:%s }\n" theme.bg
-       theme.fg);
+       theme.fg
+    );
   Buffer.add_string buf (collect_classes reg);
   Buffer.contents buf

@@ -3,9 +3,11 @@ let line_highlight ?(background = "#ffffff22") lines =
       if List.mem line_index lines then
         List.map
           (fun (tok : Token.styled_token) ->
-            { tok with background = Some background })
+            { tok with background = Some background }
+          )
           line
-      else line)
+      else line
+  )
 
 let word_highlight ?(foreground = "#ffff00") ?(font_style = [ Token.Bold ])
     words =
@@ -14,8 +16,10 @@ let word_highlight ?(foreground = "#ffff00") ?(font_style = [ Token.Bold ])
         (fun (tok : Token.styled_token) ->
           if List.mem tok.text words then
             { tok with foreground = Some foreground; font_style }
-          else tok)
-        line)
+          else tok
+        )
+        line
+  )
 
 let diff_markers =
   Transform.make "diff-markers" ~before_render:(fun doc ->
@@ -26,24 +30,30 @@ let diff_markers =
             when String.length text > 0 && text.[0] = '+' ->
               List.map
                 (fun (tok : Token.styled_token) ->
-                  { tok with background = Some "#22883322" })
+                  { tok with background = Some "#22883322" }
+                )
                 ({
                    first with
                    text = String.sub text 1 (String.length text - 1);
                  }
-                :: rest)
+                :: rest
+                )
           | ({ Token.text; _ } as first) :: rest
             when String.length text > 0 && text.[0] = '-' ->
               List.map
                 (fun (tok : Token.styled_token) ->
-                  { tok with background = Some "#88222222" })
+                  { tok with background = Some "#88222222" }
+                )
                 ({
                    first with
                    text = String.sub text 1 (String.length text - 1);
                  }
-                :: rest)
-          | line -> line)
-        doc)
+                :: rest
+                )
+          | line -> line
+        )
+        doc
+  )
 
 let scope_marker ?(background = "#ffff0033") scope_prefix =
   Transform.make "scope-marker" ~after_line:(fun ~line_index:_ line ->
@@ -53,11 +63,14 @@ let scope_marker ?(background = "#ffff0033") scope_prefix =
             List.exists
               (fun s ->
                 String.length s >= String.length scope_prefix
-                && String.sub s 0 (String.length scope_prefix) = scope_prefix)
+                && String.sub s 0 (String.length scope_prefix) = scope_prefix
+              )
               tok.scopes
           then { tok with background = Some background }
-          else tok)
-        line)
+          else tok
+        )
+        line
+  )
 
 (* --- Notation-based transforms ---
 
@@ -106,7 +119,8 @@ let find_notation_in_line ~pattern line =
     | (tok : Token.styled_token) :: rest -> (
         match string_find_opt ~pattern tok.text with
         | Some _ -> Some i
-        | None -> scan (i + 1) rest)
+        | None -> scan (i + 1) rest
+      )
   in
   scan 0 line
 
@@ -173,10 +187,13 @@ let notation_highlight ?(background = "#ffffff22") () =
           | Some cleaned ->
               List.map
                 (fun (tok : Token.styled_token) ->
-                  { tok with background = Some background })
+                  { tok with background = Some background }
+                )
                 cleaned
-          | None -> line)
-        doc)
+          | None -> line
+        )
+        doc
+  )
 
 let notation_diff ?(add_background = "#22883322")
     ?(remove_background = "#88222222") () =
@@ -189,17 +206,22 @@ let notation_diff ?(add_background = "#22883322")
           | Some cleaned ->
               List.map
                 (fun (tok : Token.styled_token) ->
-                  { tok with background = Some add_background })
+                  { tok with background = Some add_background }
+                )
                 cleaned
           | None -> (
               match remove_notation ~pattern:remove_pattern line with
               | Some cleaned ->
                   List.map
                     (fun (tok : Token.styled_token) ->
-                      { tok with background = Some remove_background })
+                      { tok with background = Some remove_background }
+                    )
                     cleaned
-              | None -> line))
-        doc)
+              | None -> line
+            )
+        )
+        doc
+  )
 
 (** Helper: extract the word from a [!code word:xxx] pattern in a token. Returns
     [Some word] if found. *)
@@ -227,7 +249,8 @@ let find_word_notation line =
     | tok :: rest -> (
         match extract_word_from_token tok with
         | Some word -> Some word
-        | None -> scan rest)
+        | None -> scan rest
+      )
   in
   scan line
 
@@ -315,7 +338,10 @@ let notation_word_highlight ?(foreground = "#ffff00")
                           text = String.sub text consumed (text_len - consumed);
                         }
                         :: !parts;
-                    List.rev !parts)
+                    List.rev !parts
+                )
                 cleaned
-          | None -> line)
-        doc)
+          | None -> line
+        )
+        doc
+  )

@@ -55,7 +55,8 @@ let render_token (token : styled_token) =
         in
         match dec.style with
         | Some s -> Printf.sprintf "style=\"%s\"" s :: attrs
-        | None -> attrs)
+        | None -> attrs
+      )
   in
   if attrs = [] then text
   else Printf.sprintf "<tspan %s>%s</tspan>" (String.concat " " attrs) text
@@ -80,7 +81,8 @@ let render theme (code : highlighted_code) =
     List.mapi
       (fun i line ->
         let y = padding +. (float_of_int i *. row_height) +. font_size in
-        render_line ~y line)
+        render_line ~y line
+      )
       code
   in
   let body = String.concat "\n" lines in

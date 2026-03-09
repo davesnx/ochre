@@ -17,8 +17,10 @@ let rec normalize_grammar_json = function
         (List.map
            (fun (key, value) ->
              if is_capture_field key then (key, normalize_capture_map value)
-             else (key, normalize_grammar_json value))
-           fields)
+             else (key, normalize_grammar_json value)
+           )
+           fields
+        )
   | `List items -> `List (List.map normalize_grammar_json items)
   | value -> value
 
@@ -28,8 +30,10 @@ and normalize_capture_map = function
       `Assoc
         (List.mapi
            (fun idx item ->
-             (string_of_int (idx + 1), normalize_grammar_json item))
-           items)
+             (string_of_int (idx + 1), normalize_grammar_json item)
+           )
+           items
+        )
   | value -> normalize_grammar_json value
 
 and is_capture_field key =
@@ -50,7 +54,8 @@ let create ~grammars () =
       (fun path ->
         let grammar = load_grammar_from_file path in
         TmLanguage.add_grammar tm_collection grammar;
-        (lang_id_of_path path, grammar))
+        (lang_id_of_path path, grammar)
+      )
       grammars
   in
   { tm_collection; grammars = loaded }
@@ -62,7 +67,8 @@ let create_from_json ~grammars () =
       (fun (lang_id, json_string) ->
         let grammar = load_grammar_from_string json_string in
         TmLanguage.add_grammar tm_collection grammar;
-        (lang_id, grammar))
+        (lang_id, grammar)
+      )
       grammars
   in
   { tm_collection; grammars = loaded }

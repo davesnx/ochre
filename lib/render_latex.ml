@@ -16,7 +16,8 @@ let escape_latex str =
       | '_' -> Buffer.add_string buf "\\_"
       | '~' -> Buffer.add_string buf "\\textasciitilde{}"
       | '^' -> Buffer.add_string buf "\\textasciicircum{}"
-      | c -> Buffer.add_char buf c)
+      | c -> Buffer.add_char buf c
+      )
     str;
   Buffer.contents buf
 
@@ -32,7 +33,8 @@ let wrap_font_styles styles inner =
       | Bold -> Printf.sprintf "\\textbf{%s}" acc
       | Italic -> Printf.sprintf "\\textit{%s}" acc
       | Underline -> Printf.sprintf "\\underline{%s}" acc
-      | Strikethrough -> Printf.sprintf "\\sout{%s}" acc)
+      | Strikethrough -> Printf.sprintf "\\sout{%s}" acc
+    )
     inner styles
 
 let render_token (token : styled_token) =

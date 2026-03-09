@@ -33,7 +33,8 @@ let theme_mode_of_string = function
 let detect_theme_mode () =
   let from_env key =
     Option.bind (getenv_opt key) (fun value ->
-        theme_mode_of_string (String.lowercase_ascii (String.trim value)))
+        theme_mode_of_string (String.lowercase_ascii (String.trim value))
+    )
   in
   let from_colorfgbg () =
     let parse_bg value =
@@ -45,14 +46,16 @@ let detect_theme_mode () =
     Option.bind (getenv_opt "COLORFGBG") (fun value ->
         Option.map
           (fun bg -> if bg = 7 || bg = 15 || bg >= 250 then Light else Dark)
-          (parse_bg value))
+          (parse_bg value)
+    )
   in
   match from_env "OCHRE_THEME_MODE" with
   | Some mode -> mode
   | None -> (
       match from_env "TERM_THEME" with
       | Some mode -> mode
-      | None -> Option.value (from_colorfgbg ()) ~default:Dark)
+      | None -> Option.value (from_colorfgbg ()) ~default:Dark
+    )
 
 let default_theme =
   let fallback =
@@ -98,7 +101,9 @@ let resolve_theme ~theme_path ~theme_dark ~theme_light =
       | None -> (
           match secondary with
           | Some name_or_path -> resolve_theme_name_or_path name_or_path
-          | None -> default_theme))
+          | None -> default_theme
+        )
+    )
 
 (** When --format html and both --theme-light and --theme-dark are given
     (without --theme), use multi-theme rendering with CSS custom properties. *)
@@ -149,7 +154,9 @@ let highlight lang theme_path theme_dark theme_light grammars format use_stdin
                      "No bundled grammar for '%s'. Available: %s. Use \
                       --grammar to provide one."
                      lang
-                     (String.concat ", " Tm_grammars.available)))
+                     (String.concat ", " Tm_grammars.available)
+                  )
+          )
       in
       let options =
         build_html_options ~css_classes ~line_numbers ~no_default_color
@@ -165,7 +172,9 @@ let highlight lang theme_path theme_dark theme_light grammars format use_stdin
               render_html_multi highlighter ~theme ~themes ~lang ~options source
           | None ->
               let theme = resolve_theme ~theme_path ~theme_dark ~theme_light in
-              render highlighter ~theme ~lang ~format ~options source))
+              render highlighter ~theme ~lang ~format ~options source
+        )
+    )
 
 let lang =
   let doc = "Language identifier (e.g., ocaml, javascript, python)" in
@@ -180,7 +189,8 @@ let theme_path =
   Arg.(
     value
     & opt (some string) None
-    & info [ "theme"; "t" ] ~docv:"NAME_OR_PATH" ~doc)
+    & info [ "theme"; "t" ] ~docv:"NAME_OR_PATH" ~doc
+  )
 
 let theme_dark =
   let doc =
@@ -189,8 +199,7 @@ let theme_dark =
      with CSS custom properties (--ochre-dark-*) for automatic dark mode \
      switching"
   in
-  Arg.(
-    value & opt (some string) None & info [ "theme-dark" ] ~docv:"THEME" ~doc)
+  Arg.(value & opt (some string) None & info [ "theme-dark" ] ~docv:"THEME" ~doc)
 
 let theme_light =
   let doc =
@@ -199,7 +208,8 @@ let theme_light =
      with the light theme as default and dark theme as CSS custom properties"
   in
   Arg.(
-    value & opt (some string) None & info [ "theme-light" ] ~docv:"THEME" ~doc)
+    value & opt (some string) None & info [ "theme-light" ] ~docv:"THEME" ~doc
+  )
 
 let grammars =
   let doc =
@@ -212,7 +222,8 @@ let format =
   Arg.(
     value
     & opt (enum Ochre.output_formats) Ochre.Html
-    & info [ "format"; "f" ] ~docv:"FORMAT" ~doc)
+    & info [ "format"; "f" ] ~docv:"FORMAT" ~doc
+  )
 
 let use_stdin =
   let doc = "Read source code from stdin" in
@@ -250,7 +261,8 @@ let css_var_prefix =
   Arg.(
     value
     & opt (some string) None
-    & info [ "css-var-prefix" ] ~docv:"PREFIX" ~doc)
+    & info [ "css-var-prefix" ] ~docv:"PREFIX" ~doc
+  )
 
 let scopes_data =
   let doc =
@@ -267,6 +279,8 @@ let cmd =
       ret
         (const highlight $ lang $ theme_path $ theme_dark $ theme_light
        $ grammars $ format $ use_stdin $ input_file $ css_classes $ line_numbers
-       $ no_default_color $ css_var_prefix $ scopes_data))
+       $ no_default_color $ css_var_prefix $ scopes_data
+        )
+    )
 
 let () = exit (Cmd.eval cmd)

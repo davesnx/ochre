@@ -48,7 +48,8 @@ let tokenize_with_grammar tm_collection grammar source =
               let scopes = TmLanguage.scopes tok in
               (text, scopes) :: extract_tokens ending rest
         in
-        extract_tokens 0 tokens)
+        extract_tokens 0 tokens
+      )
       lines
   in
   tokenized_lines
@@ -78,8 +79,10 @@ let apply_theme theme tokens_per_line =
             font_style;
             scopes;
             decoration = None;
-          })
-        line_tokens)
+          }
+        )
+        line_tokens
+    )
     tokens_per_line
 
 let to_tokens t ~theme ~lang source =
@@ -155,7 +158,8 @@ let to_html_with t ?(decorations = []) ~transforms ?options ?theme ?themes ~lang
             let code = apply_theme theme raw_tokens in
             let code = Decoration.apply ~source decorations code in
             let code = Transform.run transforms code in
-            (label, theme, code))
+            (label, theme, code)
+          )
           extras
       in
       Render_html.render ?options default_theme ~themes:themed_extras

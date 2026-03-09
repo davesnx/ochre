@@ -238,9 +238,9 @@ val to_tokens :
       List.iter
         (fun line ->
           List.iter
-            (fun (tok : Ochre.Token.styled_token) ->
-              Printf.printf "%s" tok.text)
-            line)
+            (fun (tok : Ochre.Token.styled_token) -> Printf.printf "%s" tok.text)
+            line
+        )
         tokens
     ]} *)
 
@@ -618,8 +618,10 @@ module Transform : sig
                 (fun (tok : Ochre.Token.styled_token) ->
                   if tok.text = "let" || tok.text = "in" then
                     { tok with font_style = Bold :: tok.font_style }
-                  else tok)
-                line)
+                  else tok
+                )
+                line
+          )
       ]} *)
 
   val run : t list -> document -> document

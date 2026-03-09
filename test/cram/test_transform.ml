@@ -46,9 +46,10 @@ let print_token (tok : Ochre.Token.styled_token) =
   if text <> "" then begin
     Printf.printf "text: %S\n" text;
     Printf.printf "  fg: %s\n" (Option.value ~default:"none" tok.foreground);
-    (match tok.background with
+    ( match tok.background with
     | Some c -> Printf.printf "  bg: %s\n" c
-    | None -> ());
+    | None -> ()
+    );
     if tok.font_style <> [] then
       Printf.printf "  styles: [%s]\n"
         (String.concat ", " (List.map style_to_string tok.font_style));

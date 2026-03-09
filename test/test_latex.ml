@@ -67,6 +67,7 @@ let () =
       | Some theme ->
           Printf.printf "\\subsection*{%s}\n" name;
           print_endline (Ochre.to_latex highlighter ~theme ~lang:"ocaml" source)
-      | None -> Printf.printf "\\textbf{Missing built-in theme: %s}\\par\n" name)
+      | None -> Printf.printf "\\textbf{Missing built-in theme: %s}\\par\n" name
+    )
     preview_themes;
   print_string trailer

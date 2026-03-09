@@ -65,7 +65,8 @@ let port_from_env () =
   | Some value -> (
       match int_of_string_opt (String.trim value) with
       | Some p when p > 0 && p < 65536 -> p
-      | _ -> 5000)
+      | _ -> 5000
+    )
 
 let render_page ~highlighter ~source =
   let render_theme name =
@@ -101,7 +102,8 @@ let render_page ~highlighter ~source =
        "<div style=\"padding:24px;display:grid;gap:24px;\">";
      ]
     @ rendered_sections
-    @ [ "</div>"; "</body></html>" ])
+    @ [ "</div>"; "</body></html>" ]
+    )
 
 let () =
   let highlighter =

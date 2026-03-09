@@ -8,9 +8,10 @@ let print_rule (rule : Ochre.Theme.token_color_rule) =
   Printf.printf "  scopes: [%s]\n" (String.concat ", " rule.scope);
   Printf.printf "  fg: %s\n"
     (Option.value ~default:"none" rule.settings.foreground);
-  (match rule.settings.background with
+  ( match rule.settings.background with
   | Some c -> Printf.printf "  bg: %s\n" c
-  | None -> ());
+  | None -> ()
+  );
   let styles = List.map style_to_string rule.settings.font_style in
   if styles <> [] then
     Printf.printf "  styles: [%s]\n" (String.concat ", " styles)

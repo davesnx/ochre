@@ -159,9 +159,10 @@ let settings_of_settings_json (s : settings_json) : token_color_settings =
     foreground = s.foreground;
     background = s.background;
     font_style =
-      (match s.font_style_raw with
+      ( match s.font_style_raw with
       | Some str -> parse_font_styles str
-      | None -> []);
+      | None -> []
+      );
   }
 
 let parse_scope = function

@@ -65,7 +65,8 @@ let port_from_env () =
   | Some value -> (
       match int_of_string_opt (String.trim value) with
       | Some p when p > 0 && p < 65536 -> p
-      | _ -> 5000)
+      | _ -> 5000
+    )
 
 let with_full_width_svg svg =
   let prefix = "<svg " in
@@ -120,7 +121,8 @@ let render_theme_gallery_svg ~highlighter ~source =
               (y + 20) card_width;
             body;
             "</svg>";
-          ])
+          ]
+      )
       preview_themes
   in
   String.concat "\n"
@@ -132,7 +134,8 @@ let render_theme_gallery_svg ~highlighter ~source =
          "<rect x=\"0\" y=\"0\" width=\"%d\" height=\"%d\" fill=\"#f5f5f5\"/>"
          page_width page_height;
      ]
-    @ theme_blocks @ [ "</svg>" ])
+    @ theme_blocks @ [ "</svg>" ]
+    )
 
 let () =
   let highlighter =
@@ -176,7 +179,8 @@ let () =
            "<div style=\"padding:24px;display:grid;gap:24px;\">";
          ]
         @ rendered_sections
-        @ [ "</div>"; "</body></html>" ])
+        @ [ "</div>"; "</body></html>" ]
+        )
     in
     let port = port_from_env () in
     try serve_html ~port ~html:page

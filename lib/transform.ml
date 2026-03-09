@@ -16,13 +16,15 @@ let make ?before_line ?after_line ?before_render ?after_render name =
 let apply_before_line transforms ~line_index line =
   List.fold_left
     (fun acc t ->
-      match t.before_line with Some f -> f ~line_index acc | None -> acc)
+      match t.before_line with Some f -> f ~line_index acc | None -> acc
+    )
     line transforms
 
 let apply_after_line transforms ~line_index line =
   List.fold_left
     (fun acc t ->
-      match t.after_line with Some f -> f ~line_index acc | None -> acc)
+      match t.after_line with Some f -> f ~line_index acc | None -> acc
+    )
     line transforms
 
 let apply_before_render transforms doc =
@@ -41,7 +43,8 @@ let run transforms doc =
     List.mapi
       (fun line_index line ->
         let line = apply_before_line transforms ~line_index line in
-        apply_after_line transforms ~line_index line)
+        apply_after_line transforms ~line_index line
+      )
       doc
   in
   apply_after_render transforms doc

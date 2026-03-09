@@ -42,7 +42,8 @@ let find_best_match scopes (rules : Theme.token_color_rule list) =
           |> List.fold_left max 0
         in
         if best_match_in_rule > 0 then Some (best_match_in_rule, rule.settings)
-        else None)
+        else None
+      )
       rules
   in
   match matches with
