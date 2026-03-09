@@ -24,8 +24,8 @@
   (ocaml
    (>= 5.4.0))
   dune
-  (textmate-language
-   (>= 0.3.0))
+   (textmate-language
+    (>= 0.5.0))
   (yojson
    (>= 2.0.0))
   (melange-json-native

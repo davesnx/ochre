@@ -31,3 +31,12 @@
   (with-stdout-to
    %{target}
    (run %{dep:test_svg.exe} --github-preview))))
+
+(rule
+ (target html-preview.html)
+ (mode promote)
+ (deps test_html.exe)
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{dep:test_html.exe} --preview))))

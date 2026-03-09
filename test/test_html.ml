@@ -67,15 +67,7 @@ let port_from_env () =
       | Some p when p > 0 && p < 65536 -> p
       | _ -> 5000)
 
-let () =
-  let highlighter =
-    Ochre.create_from_json ~grammars:[ ("ocaml", grammar_json) ] ()
-  in
-  let source =
-    "let answer = 42\n\
-     (* open this in a browser *)\n\
-     let greet = \"hello from ochre\""
-  in
+let render_page ~highlighter ~source =
   let render_theme name =
     match Ochre.Theme.make name with
     | Some theme ->
@@ -99,25 +91,36 @@ let () =
         ]
   in
   let rendered_sections = List.concat (List.map render_theme preview_themes) in
-  let page =
-    String.concat "\n"
-      ([
-         "<!doctype html>";
-         "<html lang=\"en\">";
-         "<head><meta charset=\"utf-8\"><title>ochre HTML \
-          preview</title></head>";
-         "<body \
-          style=\"margin:0;background:#f5f5f5;font-family:ui-monospace,monospace\">";
-         "<div style=\"padding:24px;display:grid;gap:24px;\">";
-       ]
-      @ rendered_sections
-      @ [ "</div>"; "</body></html>" ])
+  String.concat "\n"
+    ([
+       "<!doctype html>";
+       "<html lang=\"en\">";
+       "<head><meta charset=\"utf-8\"><title>ochre HTML preview</title></head>";
+       "<body \
+        style=\"margin:0;background:#f5f5f5;font-family:ui-monospace,monospace\">";
+       "<div style=\"padding:24px;display:grid;gap:24px;\">";
+     ]
+    @ rendered_sections
+    @ [ "</div>"; "</body></html>" ])
+
+let () =
+  let highlighter =
+    Ochre.create_from_json ~grammars:[ ("ocaml", grammar_json) ] ()
   in
-  let port = port_from_env () in
-  try serve_html ~port ~html:page
-  with Unix.Unix_error (Unix.EADDRINUSE, "bind", _) ->
-    Printf.eprintf
-      "Port %d is already in use. Stop the existing process or run with \
-       PORT=<n> (e.g. PORT=5001 make test-browser).\n"
-      port;
-    exit 2
+  let source =
+    "let answer = 42\n\
+     (* open this in a browser *)\n\
+     let greet = \"hello from ochre\""
+  in
+  if Array.length Sys.argv > 1 && Sys.argv.(1) = "--preview" then
+    print_endline (render_page ~highlighter ~source)
+  else
+    let page = render_page ~highlighter ~source in
+    let port = port_from_env () in
+    try serve_html ~port ~html:page
+    with Unix.Unix_error (Unix.EADDRINUSE, "bind", _) ->
+      Printf.eprintf
+        "Port %d is already in use. Stop the existing process or run with \
+         PORT=<n> (e.g. PORT=5001 make test-browser).\n"
+        port;
+      exit 2

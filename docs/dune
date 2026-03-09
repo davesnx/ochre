@@ -2,7 +2,16 @@
  (alias doc-markdown)
  (mode
   (promote (until-clean)))
- (files %{workspace_root}/_doc/_markdown/ochre/Ochre*.md))
+ (files %{workspace_root}/_doc/_markdown/ochre/Ochre-*.md))
+
+(rule
+ (alias doc-markdown)
+ (mode
+  (promote (until-clean)))
+ (deps %{workspace_root}/_doc/_markdown/ochre/Ochre.md)
+ (targets README.md)
+ (action
+  (copy %{deps} %{targets})))
 
 (rule
  (alias doc-markdown)
@@ -11,4 +20,4 @@
  (deps %{workspace_root}/_doc/_markdown/ochre-cli/cli.md)
  (targets cli.md)
  (action
-  (copy %{workspace_root}/_doc/_markdown/ochre-cli/cli.md %{targets})))
+  (copy %{deps} %{targets})))

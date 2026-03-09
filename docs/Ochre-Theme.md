@@ -1,129 +1,75 @@
 
 # Module `Ochre.Theme`
 
-```
+```ocaml
 type color = string
 ```
+color
+
 Hex color string (e.g. `"#569cd6"`).
 
-```
+```ocaml
 type font_style = Token.font_style = 
+  | Bold
+  | Italic
+  | Underline
+  | Strikethrough
 ```
-```
-| Bold
-```
-```
-| Italic
-```
-```
-| Underline
-```
-```
-| Strikethrough
-```
-```
+font\_style
 
-```
 Font style variants.
 
-```
+```ocaml
 type token_color_settings = {
-```
-`foreground : color option;`
-`background : color option;`
-`font_style : font_style list;`
-```
+  foreground : color option;
+  background : color option;
+  font_style : font_style list;
 }
 ```
+token\_color\_settings
+
 Color and style settings resolved from a theme rule.
 
-```
+```ocaml
 type token_color_rule = {
-```
-`scope : string list;`
-`settings : token_color_settings;`
-```
+  scope : string list;
+  settings : token_color_settings;
 }
 ```
-A rule mapping TextMate scopes to visual settings.
+token\_color\_rule
 
-Each rule contains a list of scope selectors and the styling to apply when a token matches one of those selectors.
+A rule mapping TextMate scopes to visual settings. Each rule contains a list of scope selectors and the styling to apply when a token matches one of those selectors.
 
-```
+```ocaml
 type theme = {
-```
-`name : string;`
-`fg : color;`
-`bg : color;`
-`token_colors : token_color_rule list;`
-```
+  name : string;
+  fg : color;
+  bg : color;
+  token_colors : token_color_rule list;
 }
 ```
-A loaded theme with resolved default colors and token coloring rules.
+theme
 
-```
+A loaded theme with default foreground/background colors and a list of token coloring rules.
+
+```ocaml
 val load : string -> theme
 ```
+load
+
 Load a theme from a VS Code theme JSON file.
 
-Falls back to the filename as the theme name when none is specified in the JSON.
+Falls back to the filename as the theme name when none is specified in the JSON. Raises an exception if the file contains invalid JSON.
 
-Raises an exception if the file contains invalid JSON.
-
+```ocaml
+  let theme = Ochre.Theme.load "/path/to/theme.json"
 ```
-val available_names : string list
-```
-Names of built-in themes that can be loaded without a file path.
-
-```
-val dark : theme
-```
-```
-val light : theme
-```
-```
-val tokyonight : theme
-```
-```
-val everforest : theme
-```
-```
-val ayu : theme
-```
-```
-val catppuccin : theme
-```
-```
-val catppuccin_macchiato : theme
-```
-```
-val gruvbox : theme
-```
-```
-val kanagawa : theme
-```
-```
-val nord : theme
-```
-```
-val matrix : theme
-```
-```
-val one_dark : theme
-```
-Built-in themes exposed as values.
-
-```
-val make : string -> theme option
-```
-Load a built-in theme by name.
-
-Supports names like `dark`, `light`, and `tokyonight`. Returns `None` when the name is not a built-in theme.
-
-```
+```ocaml
 val load_from_string : string -> theme
 ```
-Parse a theme from a JSON string.
+load\_from\_string
+
+Parse a theme from a raw JSON string.
 
 ```ocaml
   let theme =
@@ -139,4 +85,62 @@ Parse a theme from a JSON string.
         "settings": { "foreground": "#6a9955", "fontStyle": "italic" } }
     ]
   }|}
+```
+```ocaml
+val make : string -> theme option
+```
+make
+
+Look up a built-in theme by name. Returns `None` when the name is not recognised.
+
+```ocaml
+  match Ochre.Theme.make "nord" with
+  | Some theme -> theme
+  | None -> failwith "unknown theme"
+```
+```ocaml
+val available_names : string list
+```
+available\_names
+
+Names of all built-in themes.
+
+
+### Built-in themes
+
+```ocaml
+val dark : theme
+```
+```ocaml
+val light : theme
+```
+```ocaml
+val tokyonight : theme
+```
+```ocaml
+val everforest : theme
+```
+```ocaml
+val ayu : theme
+```
+```ocaml
+val catppuccin : theme
+```
+```ocaml
+val catppuccin_macchiato : theme
+```
+```ocaml
+val gruvbox : theme
+```
+```ocaml
+val kanagawa : theme
+```
+```ocaml
+val nord : theme
+```
+```ocaml
+val matrix : theme
+```
+```ocaml
+val one_dark : theme
 ```

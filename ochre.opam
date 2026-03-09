@@ -12,7 +12,7 @@ bug-reports: "https://github.com/yourusername/ochre/issues"
 depends: [
   "ocaml" {>= "5.4.0"}
   "dune" {>= "3.17"}
-  "textmate-language" {>= "0.3.0"}
+  "textmate-language" {>= "0.5.0"}
   "yojson" {>= "2.0.0"}
   "melange-json-native" {>= "2.0.0"}
   "odoc" {>= "3.1.0"}

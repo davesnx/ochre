@@ -6,7 +6,9 @@
     tokens at decoration boundaries when necessary. *)
 
 type position = { line : int; character : int }
-(** 0-indexed position in source code.
+(** {2 position}
+
+    0-indexed position in source code.
 
     Negative [character] values count from the end of the line: [-1] means the
     line end (after the last character), [-2] means one character before the
@@ -17,7 +19,9 @@ type properties = {
   style : string option;
   data : (string * string) list;
 }
-(** Properties to attach to a decorated range.
+(** {2 properties}
+
+    Properties to attach to a decorated range.
 
     - [class_] maps to an HTML [class] attribute (or equivalent in other
       formats).
@@ -25,11 +29,15 @@ type properties = {
     - [data] maps to [data-*] attributes in HTML; ignored in other formats. *)
 
 type t = { start : position; end_ : position; properties : properties }
-(** A decoration targeting a range from [start] (inclusive) to [end_]
+(** {2 t}
+
+    A decoration targeting a range from [start] (inclusive) to [end_]
     (exclusive). *)
 
 val pos : int -> int -> position
-(** [pos line character] creates a position. Shorthand for [{line; character}].
+(** {2 pos}
+
+    [pos line character] creates a position. Shorthand for [{line; character}].
 *)
 
 val make :
@@ -40,7 +48,9 @@ val make :
   end_:position ->
   unit ->
   t
-(** [make ?class_ ?style ?data ~start ~end_ ()] creates a decoration.
+(** {2 make}
+
+    Create a decoration with the given properties and range.
 
     {[
       let d =
@@ -50,9 +60,10 @@ val make :
 
 val apply :
   source:string -> t list -> Token.highlighted_code -> Token.highlighted_code
-(** [apply ~source decorations tokens] maps decoration ranges onto tokens.
+(** {2 apply}
 
-    For each decoration, the source range is resolved to token boundaries.
+    [apply ~source decorations tokens] maps decoration ranges onto tokens.
+
     Tokens that partially overlap a decoration are split so the decoration wraps
     exactly the targeted characters. When multiple decorations overlap, their
     properties are merged: classes are space-concatenated, styles are
@@ -61,4 +72,14 @@ val apply :
 
     Negative character positions are resolved relative to line lengths.
 
-    An empty decoration list returns the tokens unchanged. *)
+    An empty decoration list returns the tokens unchanged.
+
+    {[
+      let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
+      let decorated =
+        Decoration.apply ~source:code
+          [ Decoration.make ~class_:"hl"
+              ~start:(Decoration.pos 0 0)
+              ~end_:(Decoration.pos 0 3) () ]
+          tokens
+    ]} *)

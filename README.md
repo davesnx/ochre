@@ -15,30 +15,42 @@ opam install ochre -y
 
 ```ocaml
 let theme = Ochre.Theme.nord in
-let hl = Ochre.create ~grammars:["path/to/ocaml.tmLanguage.json"] () in
-let html = Ochre.to_html hl ~theme ~lang:"ocaml" source_code
+let highlighter = Ochre.create ~grammars:["path/to/ocaml.tmLanguage.json"] () in
+let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" source_code
 ```
 
 ## Load any TextMate grammar with tm-grammars
 
-[tm-grammars](https://github.com/davesnx/tm-grammars) provides a curated collection of TextMate grammars packaged for OCaml. It integrates cleanly with ochre, so you can use any grammar definitions without managing JSON grammar files manually.
+[tm-grammars](https://github.com/davesnx/tm-grammars) provides a curated collection of TextMate grammars packaged for OCaml. It integrates cleanly with `ochre`, so you can use any grammar definitions without managing JSON grammar files manually.
 
 Install the bundled grammar package:
 
 ```
 opam install tm-grammars -y
 ```
-Then load a grammar from OCaml and create a highlighter. `tm-grammars` handles grammar distribution, while `ochre` focuses on tokenization and rendering, making the two libraries a strong combination:
+Then load a grammar from OCaml and create a highlighter:
 
 ```ocaml
 let theme = Ochre.Theme.nord in
-let hl = Ochre.create_from_json ~grammars:[ ("ocaml", Tm_grammars.ocaml) ] () in
-let html = Ochre.to_html hl ~theme ~lang:"ocaml" "let x = 42"
+let highlighter = Ochre.create_from_json ~grammars:[ ("ocaml", Tm_grammars.ocaml) ] () in
+let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" "let x = 42"
 ```
+
+## Backends
+
+Ochre can render highlighted code to several output formats:
+
+- **HTML** — Self-contained `<pre><code>` blocks with inline styles or CSS classes. Supports multi-theme via CSS custom properties, line numbers, and configurable class prefixes. See [rendered example](test/html-preview.html).
+- **ANSI** — 24-bit color escape sequences for terminal display.
+- **LaTeX** — `\textcolor` commands inside an `ochrehighlight` environment. Requires the `xcolor` and `soul` packages. See [rendered example](test/latex-preview.tex).
+- **SVG** — Standalone `<svg>` elements with monospace `<text>` and per-token `<tspan>` styling. See [rendered example](test/svg-preview.svg).
+- **Tokens** — Raw structured tokens for custom rendering or debugging.
+All backends share the same interface: create a highlighter, pick a theme, and call the corresponding `to_*` function.
+
 
 ## Documentation
 
-- [Library API](docs/Ochre.md) — `Ochre` module reference
+- [Library API](docs/README.md) — `Ochre` module reference
 - [CLI reference](docs/cli.md) — command-line usage
 
 ## Browser preview test
