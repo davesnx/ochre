@@ -102,7 +102,6 @@ let () =
            ~lang:"test" "let x = 42")
   | "theme-prefers-dark-css" -> print_endline Ochre.html_theme_prefers_dark_css
   | "theme-css" -> print_endline (Ochre.html_theme_css "dim")
-  (* --- New Html_options tests --- *)
   | "line-numbers" ->
       let options = Ochre.Html_options.make ~line_numbers:true () in
       print_endline

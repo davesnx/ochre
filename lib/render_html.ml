@@ -1,7 +1,5 @@
 open Token
 
-(* --- Style helpers -------------------------------------------------------- *)
-
 let font_style_to_css = function
   | Bold -> "font-weight:bold"
   | Italic -> "font-style:italic"
@@ -68,8 +66,6 @@ let escape_text text =
   Escape.html buf text;
   Buffer.contents buf
 
-(* --- Class-based mode: style hashing -------------------------------------- *)
-
 (** Deterministic hash of a style string to produce short class names. *)
 let style_hash s =
   (* Simple DJB2 hash *)
@@ -90,8 +86,6 @@ let class_for_style registry style =
       let cls = registry.prefix ^ style_hash style in
       registry.map <- (style, cls) :: registry.map;
       cls
-
-(* --- Span attribute rendering --------------------------------------------- *)
 
 let render_span_attrs ~options ~registry style decoration scopes =
   let open Html_options in
@@ -176,8 +170,6 @@ let render_span_attrs ~options ~registry style decoration scopes =
             in
             if parts = [] then None else Some (String.concat " " parts))
 
-(* --- Token rendering ------------------------------------------------------ *)
-
 let render_token ~options ~registry ~extras primary =
   let prefix = options.Html_options.css_variable_prefix in
   let emit_default =
@@ -210,8 +202,6 @@ let render_line ~options ~registry ~extras_line primary_line =
     render_token ~options ~registry ~extras tok
   in
   String.concat "" (List.mapi render_one primary_line)
-
-(* --- Main render function ------------------------------------------------- *)
 
 let render ?(options = Html_options.default) theme ?(themes = []) code =
   let has_extras = themes <> [] in
@@ -290,8 +280,6 @@ let render ?(options = Html_options.default) theme ?(themes = []) code =
   in
   Printf.sprintf "<pre class=\"%s\"%s tabindex=\"0\"><code%s>%s</code></pre>"
     pre_class_attr pre_style code_attrs code_content
-
-(* --- CSS helpers ---------------------------------------------------------- *)
 
 let theme_css ?(prefix = "--ochre-") label =
   let p = prefix ^ label ^ "-" in

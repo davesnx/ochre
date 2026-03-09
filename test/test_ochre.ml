@@ -553,8 +553,6 @@ let test_decoration_with_highlighter () =
       | None -> Alcotest.fail "first token should be decorated")
   | _ -> Alcotest.fail "expected at least one line with tokens"
 
-(* --- Notation transform tests --- *)
-
 let make_comment text =
   {
     Ochre.Token.text;
