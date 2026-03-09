@@ -298,16 +298,15 @@ val to_html :
     ]}
 
     When [~theme] is omitted but [~themes] is provided, the first entry becomes
-    the default.
+    the default. When neither [~theme] nor [~themes] is provided, {!Theme.dark}
+    is used as the default.
 
-    Pair with {!html_dark_mode_css} or {!html_css_for_theme} to activate
-    alternate themes via CSS.
+    Pair with {!html_theme_prefers_dark_css} or {!html_theme_css} to activate
+    alternate themes via CSS. *)
 
-    @raise Invalid_argument if neither [~theme] nor [~themes] is provided. *)
-
-val html_dark_mode_css : string
-(** CSS snippet that activates the ["dark"] theme variant via
-    [@media (prefers-color-scheme: dark)].
+val html_theme_prefers_dark_css : string
+(** {!html_theme_css} for ["dark"] wrapped in an
+    [@media (prefers-color-scheme: dark)] query.
 
     {[
       @media (prefers-color-scheme: dark) {
@@ -324,9 +323,9 @@ val html_dark_mode_css : string
 
     Include this in a [<style>] tag or external stylesheet. *)
 
-val html_css_for_theme : ?prefix:string -> string -> string
-(** [html_css_for_theme ?prefix label] returns a CSS rule body that activates
-    the theme stored under [--ochre-<label>-*] variables.
+val html_theme_css : ?prefix:string -> string -> string
+(** [html_theme_css ?prefix label] returns a CSS rule that activates the theme
+    stored under [--ochre-<label>-*] variables.
 
     Pass [~prefix] to match a custom {!Html_options.css_variable_prefix}.
     Default: ["--ochre-"].
@@ -336,7 +335,7 @@ val html_css_for_theme : ?prefix:string -> string -> string
 
     {[
       (* For a class-based toggle: *)
-      Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_css_for_theme "dark")
+      Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
     ]} *)
 
 val to_ansi : t -> theme:Theme.theme -> lang:string -> string -> string

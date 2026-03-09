@@ -66,14 +66,14 @@ Common sources for grammars:
 
 Themes use the VS Code / TextMate JSON format with `colors` and `tokenColors` fields. See [VS Code Theme Gallery](https://vscodethemes.com/) for available themes.
 
-For the CLI, `--theme` is optional. Ochre uses a built-in theme and auto-picks dark/light from your terminal (using `OCHRE_THEME_MODE`, `TERM_THEME`, or `COLORFGBG`).
+For the CLI, `--theme` is optional. ochre uses a built-in theme and auto-picks dark/light from your terminal (using `OCHRE_THEME_MODE`, `TERM_THEME`, or `COLORFGBG`).
 
 You can also pass a built-in name directly, for example `--theme dark`, instead of a file path.
 
 Built-in themes:
 
-- `dark` — Default dark Ochre theme
-- `light` — Default light Ochre theme
+- `dark` — Default dark ochre theme
+- `light` — Default light ochre theme
 - `tokyonight` — Based on the Tokyonight theme
 - `everforest` — Based on the Everforest theme
 - `ayu` — Based on the Ayu dark theme

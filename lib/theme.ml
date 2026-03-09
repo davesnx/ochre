@@ -122,7 +122,7 @@ let one_dark =
     ~string:"#98c379" ~number:"#d19a66" ~keyword:"#c678dd" ~fn:"#61afef"
     ~typ:"#e5c07b"
 
-let named_themes =
+let themes =
   [
     ("dark", dark);
     ("light", light);
@@ -138,24 +138,11 @@ let named_themes =
     ("one-dark", one_dark);
   ]
 
-let theme_aliases =
-  [
-    ("catppuccin_macchiato", "catppuccin-macchiato");
-    ("onedark", "one-dark");
-    ("one_dark", "one-dark");
-  ]
-
-let normalize_name s = String.lowercase_ascii (String.trim s)
-
-let canonical_name name =
-  let normalized = normalize_name name in
-  Option.value (List.assoc_opt normalized theme_aliases) ~default:normalized
-
-let available_names = List.map fst named_themes
+let available_names = List.map fst themes
 
 let make name =
-  let key = canonical_name name in
-  List.assoc_opt key named_themes
+  let key = String.lowercase_ascii (String.trim name) in
+  List.assoc_opt key themes
 
 let parse_font_style = function
   | "bold" -> Some Bold
@@ -221,10 +208,7 @@ let load path =
 
 let load_from_string str =
   let name_opt, fg, bg, token_colors =
-    Yojson.Basic.from_string str |> load_theme
+    str |> Yojson.Basic.from_string |> load_theme
   in
   let name = Option.value name_opt ~default:"unnamed" in
   { name; fg; bg; token_colors }
-
-let load_any name_or_path =
-  match make name_or_path with Some theme -> theme | None -> load name_or_path

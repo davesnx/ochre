@@ -49,14 +49,14 @@ val render :
     - [pre_class] / [code_class]: extra classes on wrapper elements
     - [scopes_as_data_attrs]: add [data-scope="..."] on token spans *)
 
-val css_for_theme : ?prefix:string -> string -> string
-(** [css_for_theme ?prefix label] returns a CSS rule body that activates the
-    theme stored under CSS custom properties with the given prefix and label.
+val theme_css : ?prefix:string -> string -> string
+(** [theme_css ?prefix label] returns a CSS rule that activates the theme stored
+    under CSS custom properties with the given prefix and label.
 
     Default prefix: ["--ochre-"].
 
     {[
-      css_for_theme "dark"
+      theme_css "dark"
     ]}
 
     produces:
@@ -73,9 +73,9 @@ val css_for_theme : ?prefix:string -> string -> string
     Wrap this in your own selector (e.g. a media query, a [.dark] class rule, or
     a [data-theme="dark"]) to control when the theme activates. *)
 
-val dark_mode_css : ?prefix:string -> unit -> string
-(** A ready-to-use CSS snippet that activates the ["dark"] theme variant via
-    [@media (prefers-color-scheme: dark)].
+val theme_prefers_dark_css : ?prefix:string -> unit -> string
+(** [theme_prefers_dark_css ?prefix ()] returns {!theme_css} for ["dark"]
+    wrapped in an [@media (prefers-color-scheme: dark)] query.
 
     Pass [~prefix] to match a custom {!Html_options.css_variable_prefix}. *)
 

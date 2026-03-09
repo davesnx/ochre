@@ -166,15 +166,14 @@ Pass `~options` to control rendering behaviour:
   in
   Ochre.to_html hl ~options:opts ~theme ~lang:"ocaml" code
 ```
-When `~theme` is omitted but `~themes` is provided, the first entry becomes the default.
+When `~theme` is omitted but `~themes` is provided, the first entry becomes the default. When neither `~theme` nor `~themes` is provided, [`Theme.dark`](./Ochre-Theme.md#val-dark) is used as the default.
 
-Pair with [`html_dark_mode_css`](./#val-html_dark_mode_css) or [`html_css_for_theme`](./#val-html_css_for_theme) to activate alternate themes via CSS.
+Pair with [`html_theme_prefers_dark_css`](./#val-html_theme_prefers_dark_css) or [`html_theme_css`](./#val-html_theme_css) to activate alternate themes via CSS.
 
-raises `Invalid_argument` if neither ~theme nor ~themes is provided.
 ```
-val html_dark_mode_css : string
+val html_theme_prefers_dark_css : string
 ```
-CSS snippet that activates the `"dark"` theme variant via `@media (prefers-color-scheme: dark)`.
+[`html_theme_css`](./#val-html_theme_css) for `"dark"` wrapped in an `@media (prefers-color-scheme: dark)` query.
 
 ```ocaml
   @media (prefers-color-scheme: dark) {
@@ -191,9 +190,9 @@ CSS snippet that activates the `"dark"` theme variant via `@media (prefers-color
 Include this in a `<style>` tag or external stylesheet.
 
 ```
-val html_css_for_theme : ?prefix:string -> string -> string
+val html_theme_css : ?prefix:string -> string -> string
 ```
-`html_css_for_theme ?prefix label` returns a CSS rule body that activates the theme stored under `--ochre-<label>-*` variables.
+`html_theme_css ?prefix label` returns a CSS rule that activates the theme stored under `--ochre-<label>-*` variables.
 
 Pass `~prefix` to match a custom [`Html_options.t.css_variable_prefix`](./Ochre-Html_options.md#type-t.css_variable_prefix). Default: `"--ochre-"`.
 
@@ -201,7 +200,7 @@ Wrap this in your own selector (a media query, a `.dark` class, a `data-theme` a
 
 ```ocaml
   (* For a class-based toggle: *)
-  Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_css_for_theme "dark")
+  Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
 ```
 ```
 val to_ansi : t -> theme:Theme.theme -> lang:string -> string -> string

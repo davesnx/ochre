@@ -293,7 +293,7 @@ let render ?(options = Html_options.default) theme ?(themes = []) code =
 
 (* --- CSS helpers ---------------------------------------------------------- *)
 
-let css_for_theme ?(prefix = "--ochre-") label =
+let theme_css ?(prefix = "--ochre-") label =
   let p = prefix ^ label ^ "-" in
   Printf.sprintf
     {|.ochre,
@@ -306,20 +306,14 @@ let css_for_theme ?(prefix = "--ochre-") label =
 }|}
     (prefix ^ label) p p p p
 
-let dark_mode_css ?(prefix = "--ochre-") () =
-  let p = prefix ^ "dark-" in
-  Printf.sprintf
-    {|@media (prefers-color-scheme: dark) {
-  .ochre,
-  .ochre span {
-    color: var(%s) !important;
-    background-color: var(%sbg) !important;
-    font-style: var(%sfont-style) !important;
-    font-weight: var(%sfont-weight) !important;
-    text-decoration: var(%stext-decoration) !important;
-  }
-}|}
-    (prefix ^ "dark") p p p p
+let theme_prefers_dark_css ?(prefix = "--ochre-") () =
+  let body = theme_css ~prefix "dark" in
+  let indented =
+    String.split_on_char '\n' body
+    |> List.map (fun line -> "  " ^ line)
+    |> String.concat "\n"
+  in
+  Printf.sprintf "@media (prefers-color-scheme: dark) {\n%s\n}" indented
 
 (** Generate a CSS stylesheet from a class registry (for Css_classes mode).
     Returns a string of CSS rules mapping each class to its style properties. *)

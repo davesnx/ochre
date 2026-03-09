@@ -19,7 +19,7 @@
  (name ochre)
  (synopsis "Syntax highlighter using TextMate grammars and themes")
  (description
-  "Ochre is a syntax highlighter inspired by Shiki, using TextMate grammars and themes to produce accurate, beautiful syntax highlighting. It supports HTML output with inline styles, ANSI terminal colors, and raw token output.")
+  "ochre is a syntax highlighter inspired by Shiki, using TextMate grammars and themes to produce accurate, beautiful syntax highlighting. It supports HTML output with inline styles, ANSI terminal colors, and raw token output.")
  (depends
   (ocaml
    (>= 5.4.0))

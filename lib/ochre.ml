@@ -105,13 +105,13 @@ let render_to_string_with t ?(decorations = []) ~transforms ~theme ~lang render
 (** Resolve the default theme and extra themes from the optional arguments.
     - [~theme] alone: single-theme render.
     - [~theme ~themes]: theme is default, themes are extras.
-    - [~themes] alone: first entry becomes the default, rest are extras. *)
+    - [~themes] alone: first entry becomes the default, rest are extras.
+    - Neither: falls back to [Theme.dark]. *)
 let resolve_themes ?theme ?(themes = []) () =
   match (theme, themes) with
   | Some t, _ -> (t, themes)
   | None, (_, first_theme) :: rest -> (first_theme, rest)
-  | None, [] ->
-      invalid_arg "Ochre.to_html: either ~theme or ~themes is required"
+  | None, [] -> (Theme.dark, [])
 
 let to_html t ?options ?theme ?themes ~lang source =
   let default_theme, extras = resolve_themes ?theme ?themes () in
@@ -161,8 +161,8 @@ let to_html_with t ?(decorations = []) ~transforms ?options ?theme ?themes ~lang
       Render_html.render ?options default_theme ~themes:themed_extras
         default_code
 
-let html_dark_mode_css = Render_html.dark_mode_css ()
-let html_css_for_theme = Render_html.css_for_theme
+let html_theme_prefers_dark_css = Render_html.theme_prefers_dark_css ()
+let html_theme_css = Render_html.theme_css
 let to_ansi t = render_to_string t Render_ansi.render
 let to_latex t = render_to_string t Render_latex.render
 let to_svg t = render_to_string t Render_svg.render

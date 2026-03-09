@@ -48,7 +48,7 @@ let preamble =
       "  \\endgroup\\smallskip";
       "}";
       "\\begin{document}";
-      "\\section*{Ochre LaTeX Theme Preview}";
+      "\\section*{ochre LaTeX Theme Preview}";
     ]
 
 let trailer = "\\end{document}\n"

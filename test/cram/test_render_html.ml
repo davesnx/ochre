@@ -100,8 +100,8 @@ let () =
         (Ochre.to_html hl ~theme:light_theme
            ~themes:[ ("dark", theme); ("dim", dim_theme) ]
            ~lang:"test" "let x = 42")
-  | "dark-mode-css" -> print_endline Ochre.html_dark_mode_css
-  | "css-for-theme" -> print_endline (Ochre.html_css_for_theme "dim")
+  | "theme-prefers-dark-css" -> print_endline Ochre.html_theme_prefers_dark_css
+  | "theme-css" -> print_endline (Ochre.html_theme_css "dim")
   (* --- New Html_options tests --- *)
   | "line-numbers" ->
       let options = Ochre.Html_options.make ~line_numbers:true () in

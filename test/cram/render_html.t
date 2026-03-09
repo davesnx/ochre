@@ -47,8 +47,8 @@ Multi-theme HTML with two extra themes (dark + dim)
   <pre class="ochre ochre-themes test-light test-theme test-dim" style="background-color:#ffffff;color:#24292e;--ochre-dark-bg:#1e1e1e;--ochre-dark:#d4d4d4;--ochre-dim-bg:#111111;--ochre-dim:#999999" tabindex="0"><code><span class="line"><span style="font-weight:bold;color:#d73a49;--ochre-dark-font-weight:bold;--ochre-dark:#ff0000;--ochre-dim-font-weight:bold;--ochre-dim:#aa5555">let</span><span style="color:#24292e;--ochre-dark:#d4d4d4;--ochre-dim:#999999"> x = </span><span style="color:#005cc5;--ochre-dark:#0000ff;--ochre-dim:#5555aa">42</span><span style="color:#24292e;--ochre-dark:#d4d4d4;--ochre-dim:#999999">
   </span></span></code></pre>
 
-Dark mode CSS helper
-  $ ./test_render_html.exe dark-mode-css
+Prefers-dark CSS helper
+  $ ./test_render_html.exe theme-prefers-dark-css
   @media (prefers-color-scheme: dark) {
     .ochre,
     .ochre span {
@@ -61,7 +61,7 @@ Dark mode CSS helper
   }
 
 CSS for a custom theme label
-  $ ./test_render_html.exe css-for-theme
+  $ ./test_render_html.exe theme-css
   .ochre,
   .ochre span {
     color: var(--ochre-dim) !important;

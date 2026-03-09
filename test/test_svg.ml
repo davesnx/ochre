@@ -41,7 +41,7 @@ let serve_html ~port ~html =
   bind sock (ADDR_INET (inet_addr_any, port));
   listen sock 16;
   Printf.printf
-    "Serving Ochre preview at http://0.0.0.0:%d (Ctrl+C to stop)\n%!" port;
+    "Serving ochre preview at http://0.0.0.0:%d (Ctrl+C to stop)\n%!" port;
   while true do
     let client, _ = accept sock in
     let ic = in_channel_of_descr client in
