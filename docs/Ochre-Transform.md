@@ -56,8 +56,11 @@ make
           (fun (tok : Ochre.Token.styled_token) ->
             if tok.text = "let" || tok.text = "in" then
               { tok with font_style = Bold :: tok.font_style }
-            else tok)
-          line)
+            else
+              tok
+          )
+          line
+    )
 ```
 ```ocaml
 val run : t list -> document -> document

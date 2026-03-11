@@ -85,9 +85,9 @@ Raises `Failure` if the grammar for `lang` cannot be found.
   List.iter
     (fun line ->
       List.iter
-        (fun (tok : Ochre.Token.styled_token) ->
-          Printf.printf "%s" tok.text)
-        line)
+        (fun (tok : Ochre.Token.styled_token) -> Printf.printf "%s" tok.text)
+        line
+    )
     tokens
 ```
 

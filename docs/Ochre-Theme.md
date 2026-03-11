@@ -95,8 +95,10 @@ Look up a built-in theme by name. Returns `None` when the name is not recognised
 
 ```ocaml
   match Ochre.Theme.make "nord" with
-  | Some theme -> theme
-  | None -> failwith "unknown theme"
+  | Some theme ->
+      theme
+  | None ->
+      failwith "unknown theme"
 ```
 ```ocaml
 val available_names : string list
