@@ -45,7 +45,8 @@
   (ocaml
    (>= 5.4.0))
   dune
-  ochre
-   tm-grammars
-  (cmdliner
-   (>= 1.1.0))))
+   ochre
+   (tm-grammars
+    (>= 1.0.1))
+   (cmdliner
+    (>= 1.1.0))))

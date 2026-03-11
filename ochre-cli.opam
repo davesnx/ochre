@@ -13,7 +13,7 @@ depends: [
   "ocaml" {>= "5.4.0"}
   "dune" {>= "3.17"}
   "ochre"
-  "tm-grammars"
+  "tm-grammars" {>= "1.0.1"}
   "cmdliner" {>= "1.1.0"}
   "odoc" {with-doc}
 ]
