@@ -325,7 +325,7 @@ val to_html :
   t ->
   ?options:Html_options.t ->
   ?theme:Theme.theme ->
-  ?themes:(string * Theme.theme) list ->
+  ?extra_themes:(string * Theme.theme) list ->
   lang:string ->
   string ->
   string
@@ -343,13 +343,13 @@ val to_html :
 
     {3 Multiple themes}
 
-    Pass [~themes] with labelled extra themes. Each label becomes a CSS custom
-    property prefix ([--ochre-<label>]). The default theme's colors are emitted
-    as direct CSS properties; extra themes' colors become CSS variables:
+    Pass [~extra_themes] with labelled extra themes. Each label becomes a CSS
+    custom property prefix ([--ochre-<label>]). The default theme's colors are
+    emitted as direct CSS properties; extra themes' colors become CSS variables:
 
     {[
       Ochre.to_html hl ~theme:Ochre.Theme.light
-        ~themes:[ ("dark", Ochre.Theme.nord) ]
+        ~extra_themes:[ ("dark", Ochre.Theme.nord) ]
         ~lang:"ocaml" "let x = 42"
     ]}
 
@@ -365,9 +365,9 @@ val to_html :
       Ochre.to_html hl ~options:opts ~theme ~lang:"ocaml" code
     ]}
 
-    When [~theme] is omitted but [~themes] is provided, the first entry becomes
-    the default. When neither [~theme] nor [~themes] is provided, {!Theme.dark}
-    is used as the default.
+    When [~theme] is omitted but [~extra_themes] is provided, the first entry
+    becomes the default. When neither [~theme] nor [~extra_themes] is provided,
+    {!Theme.dark} is used as the default.
 
     Pair with {!val-html_theme_prefers_dark_css} or {!val-html_theme_css} to
     activate alternate themes via CSS. *)
@@ -779,14 +779,14 @@ val to_html_with :
   transforms:Transform.t list ->
   ?options:Html_options.t ->
   ?theme:Theme.theme ->
-  ?themes:(string * Theme.theme) list ->
+  ?extra_themes:(string * Theme.theme) list ->
   lang:string ->
   string ->
   string
 (** {2 to_html_with}
 
     Like {!val-to_html} but applies decorations and transforms before rendering.
-    Accepts the same [~theme] / [~themes] / [~options] parameters as
+    Accepts the same [~theme] / [~extra_themes] / [~options] parameters as
     {!val-to_html}. *)
 
 val to_ansi_with :

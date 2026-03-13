@@ -17,7 +17,7 @@ type class_registry
 val render :
   ?options:Html_options.t ->
   Theme.theme ->
-  ?themes:(string * Theme.theme * Token.highlighted_code) list ->
+  ?extra_themes:(string * Theme.theme * Token.highlighted_code) list ->
   Token.highlighted_code ->
   string
 (** Render highlighted code to an HTML string.
@@ -35,9 +35,9 @@ val render :
 
     {3 Multi-theme output}
 
-    When [~themes] is provided, each [(label, theme, tokens)] entry adds CSS
-    custom properties ([--ochre-<label>], [--ochre-<label>-bg], etc.) to every
-    token, and the [<pre>] element carries all theme names and variables.
+    When [~extra_themes] is provided, each [(label, theme, tokens)] entry adds
+    CSS custom properties ([--ochre-<label>], [--ochre-<label>-bg], etc.) to
+    every token, and the [<pre>] element carries all theme names and variables.
 
     {3 Options}
 

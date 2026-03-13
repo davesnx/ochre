@@ -37,7 +37,7 @@ Multi-theme HTML with multiple lines
   <span class="line"><span style="font-weight:bold;color:#d73a49;--ochre-dark-font-weight:bold;--ochre-dark:#ff0000">let</span><span style="color:#24292e;--ochre-dark:#d4d4d4"> y = </span><span style="color:#005cc5;--ochre-dark:#0000ff">10</span><span style="color:#24292e;--ochre-dark:#d4d4d4">
   </span></span></code></pre>
 
-When ~theme is omitted, first entry in ~themes becomes the default
+When ~theme is omitted, first entry in ~extra_themes becomes the default
   $ ./test_render_html.exe themes-no-default
   <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4" tabindex="0"><code><span class="line"><span style="font-weight:bold;color:#ff0000">let</span><span style="color:#d4d4d4"> x = </span><span style="color:#0000ff">42</span><span style="color:#d4d4d4">
   </span></span></code></pre>

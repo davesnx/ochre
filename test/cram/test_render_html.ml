@@ -84,23 +84,26 @@ let () =
   | "themes-one-extra" ->
       print_endline
         (Ochre.to_html hl ~theme:light_theme
-           ~themes:[ ("dark", theme) ]
+           ~extra_themes:[ ("dark", theme) ]
            ~lang:"test" "let x = 42"
         )
   | "themes-multi-line" ->
       print_endline
         (Ochre.to_html hl ~theme:light_theme
-           ~themes:[ ("dark", theme) ]
+           ~extra_themes:[ ("dark", theme) ]
            ~lang:"test" "let x = 42\nlet y = 10"
         )
   | "themes-no-default" ->
-      (* omit ~theme, first entry in ~themes becomes default *)
+      (* omit ~theme, first entry in ~extra_themes becomes default *)
       print_endline
-        (Ochre.to_html hl ~themes:[ ("dark", theme) ] ~lang:"test" "let x = 42")
+        (Ochre.to_html hl
+           ~extra_themes:[ ("dark", theme) ]
+           ~lang:"test" "let x = 42"
+        )
   | "themes-two-extras" ->
       print_endline
         (Ochre.to_html hl ~theme:light_theme
-           ~themes:[ ("dark", theme); ("dim", dim_theme) ]
+           ~extra_themes:[ ("dark", theme); ("dim", dim_theme) ]
            ~lang:"test" "let x = 42"
         )
   | "theme-prefers-dark-css" ->
@@ -124,7 +127,7 @@ let () =
       in
       print_endline
         (Ochre.to_html hl ~options ~theme:light_theme
-           ~themes:[ ("dark", theme) ]
+           ~extra_themes:[ ("dark", theme) ]
            ~lang:"test" "let x = 42"
         )
   | "css-classes" ->
@@ -140,7 +143,7 @@ let () =
       in
       print_endline
         (Ochre.to_html hl ~options ~theme:light_theme
-           ~themes:[ ("dark", theme) ]
+           ~extra_themes:[ ("dark", theme) ]
            ~lang:"test" "let x = 42"
         )
   | "scopes-data" ->

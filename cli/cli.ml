@@ -98,8 +98,9 @@ let render highlighter ~theme ~lang ~format ~options source =
       print_endline (Ochre.to_string highlighter ~format ~theme ~lang source);
       `Ok ()
 
-let render_html_multi highlighter ~theme ~themes ~lang ~options source =
-  print_endline (Ochre.to_html highlighter ~options ~theme ~themes ~lang source);
+let render_html_multi highlighter ~theme ~extra_themes ~lang ~options source =
+  print_endline
+    (Ochre.to_html highlighter ~options ~theme ~extra_themes ~lang source);
   `Ok ()
 
 let resolve_theme ~theme_path ~theme_dark ~theme_light =
@@ -199,8 +200,9 @@ let highlight lang theme_path theme_dark theme_light grammars format use_stdin
           match
             resolve_multi_themes ~theme_path ~theme_dark ~theme_light ~format
           with
-          | Some (theme, themes) ->
-              render_html_multi highlighter ~theme ~themes ~lang ~options source
+          | Some (theme, extra_themes) ->
+              render_html_multi highlighter ~theme ~extra_themes ~lang ~options
+                source
           | None ->
               let theme = resolve_theme ~theme_path ~theme_dark ~theme_light in
               render highlighter ~theme ~lang ~format ~options source

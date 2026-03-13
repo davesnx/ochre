@@ -257,11 +257,11 @@ let render_line ~options ~registry ~extras_line primary_line =
   in
   String.concat "" (List.mapi render_one primary_line)
 
-let render ?(options = Html_options.default) theme ?(themes = []) code =
-  let has_extras = themes <> [] in
+let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
+  let has_extras = extra_themes <> [] in
   let prefix = options.css_variable_prefix in
   let extras_codes =
-    List.map (fun (label, _theme, tokens) -> (label, tokens)) themes
+    List.map (fun (label, _theme, tokens) -> (label, tokens)) extra_themes
   in
   (* Create class registry if using CSS classes mode *)
   let registry =
@@ -299,7 +299,9 @@ let render ?(options = Html_options.default) theme ?(themes = []) code =
       )
     @ ( if has_extras then
           theme.Theme.name
-          :: List.map (fun (_label, theme, _tokens) -> theme.Theme.name) themes
+          :: List.map
+               (fun (_label, theme, _tokens) -> theme.Theme.name)
+               extra_themes
         else
           []
       )
@@ -333,7 +335,7 @@ let render ?(options = Html_options.default) theme ?(themes = []) code =
             prefix ^ label ^ ":" ^ theme.Theme.fg;
           ]
         )
-        themes
+        extra_themes
     else
       []
   in

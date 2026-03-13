@@ -121,20 +121,20 @@ let render_to_string_with t ?(decorations = []) ~transforms ~theme ~lang render
 
 (** Resolve the default theme and extra themes from the optional arguments.
     - [~theme] alone: single-theme render.
-    - [~theme ~themes]: theme is default, themes are extras.
-    - [~themes] alone: first entry becomes the default, rest are extras.
+    - [~theme ~extra_themes]: theme is default, themes are extras.
+    - [~extra_themes] alone: first entry becomes the default, rest are extras.
     - Neither: falls back to [Theme.dark]. *)
-let resolve_themes ?theme ?(themes = []) () =
-  match (theme, themes) with
+let resolve_themes ?theme ?(extra_themes = []) () =
+  match (theme, extra_themes) with
   | Some t, _ ->
-      (t, themes)
+      (t, extra_themes)
   | None, (_, first_theme) :: rest ->
       (first_theme, rest)
   | None, [] ->
       (Theme.dark, [])
 
-let to_html t ?options ?theme ?themes ~lang source =
-  let default_theme, extras = resolve_themes ?theme ?themes () in
+let to_html t ?options ?theme ?extra_themes ~lang source =
+  let default_theme, extras = resolve_themes ?theme ?extra_themes () in
   match extras with
   | [] ->
       let tokens = to_tokens t ~theme:default_theme ~lang source in
@@ -149,12 +149,12 @@ let to_html t ?options ?theme ?themes ~lang source =
           (fun (label, theme) -> (label, theme, apply_theme theme raw_tokens))
           extras
       in
-      Render_html.render ?options default_theme ~themes:themed_extras
+      Render_html.render ?options default_theme ~extra_themes:themed_extras
         default_code
 
-let to_html_with t ?(decorations = []) ~transforms ?options ?theme ?themes ~lang
-    source =
-  let default_theme, extras = resolve_themes ?theme ?themes () in
+let to_html_with t ?(decorations = []) ~transforms ?options ?theme ?extra_themes
+    ~lang source =
+  let default_theme, extras = resolve_themes ?theme ?extra_themes () in
   match extras with
   | [] ->
       let tokens =
@@ -179,7 +179,7 @@ let to_html_with t ?(decorations = []) ~transforms ?options ?theme ?themes ~lang
           )
           extras
       in
-      Render_html.render ?options default_theme ~themes:themed_extras
+      Render_html.render ?options default_theme ~extra_themes:themed_extras
         default_code
 
 let html_theme_prefers_dark_css = Render_html.theme_prefers_dark_css ()

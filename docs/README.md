@@ -111,7 +111,7 @@ val to_html :
   t ->
   ?options:Html_options.t ->
   ?theme:Theme.theme ->
-  ?themes:(string * Theme.theme) list ->
+  ?extra_themes:(string * Theme.theme) list ->
   lang:string ->
   string ->
   string
@@ -129,11 +129,11 @@ Pass `~theme` for a self-contained block with inline styles:
 ```
 Multiple themes
 
-Pass `~themes` with labelled extra themes. Each label becomes a CSS custom property prefix (`--ochre-<label>`). The default theme's colors are emitted as direct CSS properties; extra themes' colors become CSS variables:
+Pass `~extra_themes` with labelled extra themes. Each label becomes a CSS custom property prefix (`--ochre-<label>`). The default theme's colors are emitted as direct CSS properties; extra themes' colors become CSS variables:
 
 ```ocaml
   Ochre.to_html hl ~theme:Ochre.Theme.light
-    ~themes:[ ("dark", Ochre.Theme.nord) ]
+    ~extra_themes:[ ("dark", Ochre.Theme.nord) ]
     ~lang:"ocaml" "let x = 42"
 ```
 Options
@@ -147,7 +147,7 @@ Pass `~options` to control rendering behaviour:
   in
   Ochre.to_html hl ~options:opts ~theme ~lang:"ocaml" code
 ```
-When `~theme` is omitted but `~themes` is provided, the first entry becomes the default. When neither `~theme` nor `~themes` is provided, [`Theme.dark`](./Ochre-Theme.md#val-dark) is used as the default.
+When `~theme` is omitted but `~extra_themes` is provided, the first entry becomes the default. When neither `~theme` nor `~extra_themes` is provided, [`Theme.dark`](./Ochre-Theme.md#val-dark) is used as the default.
 
 Pair with [`html_theme_prefers_dark_css`](./#val-html_theme_prefers_dark_css) or [`html_theme_css`](./#val-html_theme_css) to activate alternate themes via CSS.
 
@@ -347,14 +347,14 @@ val to_html_with :
   transforms:Transform.t list ->
   ?options:Html_options.t ->
   ?theme:Theme.theme ->
-  ?themes:(string * Theme.theme) list ->
+  ?extra_themes:(string * Theme.theme) list ->
   lang:string ->
   string ->
   string
 ```
 to\_html\_with
 
-Like [`to_html`](./#val-to_html) but applies decorations and transforms before rendering. Accepts the same `~theme` / `~themes` / `~options` parameters as [`to_html`](./#val-to_html).
+Like [`to_html`](./#val-to_html) but applies decorations and transforms before rendering. Accepts the same `~theme` / `~extra_themes` / `~options` parameters as [`to_html`](./#val-to_html).
 
 ```ocaml
 val to_ansi_with : 

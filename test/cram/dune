@@ -12,6 +12,7 @@
 
 (cram
  (deps
+  %{bin:ochre}
   test_theme.exe
   test_highlight.exe
   test_render_html.exe
