@@ -14,3 +14,8 @@ Multiple lines with ANSI codes
   \e[0m
   \e[1m\e[38;2;255;0;0mlet\e[0m\e[38;2;212;212;212m y = \e[0m\e[38;2;0;0;255m10\e[0m\e[38;2;212;212;212m
   \e[0m
+
+Compound scope entries prefer string over function scopes
+  $ ./test_render_ansi.exe compound-scope
+  \e[38;2;0;255;0mx\e[0m\e[38;2;212;212;212m
+  \e[0m

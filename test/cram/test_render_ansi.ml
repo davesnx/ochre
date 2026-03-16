@@ -21,6 +21,7 @@ let theme_json =
     { "scope": "comment", "settings": { "foreground": "#888888", "fontStyle": "italic" } },
     { "scope": "keyword", "settings": { "foreground": "#ff0000", "fontStyle": "bold" } },
     { "scope": "string", "settings": { "foreground": "#00ff00" } },
+    { "scope": "entity.name.function", "settings": { "foreground": "#ffff00" } },
     { "scope": "constant.numeric", "settings": { "foreground": "#0000ff" } }
   ]
 }|}
@@ -56,6 +57,35 @@ let () =
   | "multi-line" ->
       print_escaped
         (Ochre.to_ansi hl ~theme ~lang:"test" "let x = 42\nlet y = 10")
+  | "compound-scope" ->
+      let grammar =
+        {|{
+        "scopeName": "source.compound",
+        "name": "compound",
+        "patterns": [
+          {
+            "match": "x",
+            "name": "meta.shell string.quoted.double entity.name.function.call"
+          }
+        ]
+      }|}
+      in
+      let hl = Ochre.create_from_json ~grammars:[ ("compound", grammar) ] () in
+      let theme =
+        Ochre.Theme.load_from_string
+          {|{
+          "name": "test-theme",
+          "colors": {
+            "editor.foreground": "#d4d4d4",
+            "editor.background": "#1e1e1e"
+          },
+          "tokenColors": [
+            { "scope": "string", "settings": { "foreground": "#00ff00" } },
+            { "scope": "entity.name.function", "settings": { "foreground": "#ffff00" } }
+          ]
+        }|}
+      in
+      print_escaped (Ochre.to_ansi hl ~theme ~lang:"compound" "x")
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1
