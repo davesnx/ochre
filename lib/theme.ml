@@ -140,10 +140,6 @@ let themes =
 
 let available_names = List.map fst themes
 
-let make name =
-  let key = String.lowercase_ascii (String.trim name) in
-  List.assoc_opt key themes
-
 let parse_font_style = function
   | "bold" ->
       Some Bold
