@@ -76,7 +76,7 @@ let port_from_env () =
 
 let render_page ~highlighter ~source =
   let render_theme name =
-    match Ochre.Theme.make name with
+    match Ochre.Theme.find name with
     | Some theme ->
         let highlighted =
           Ochre.to_html highlighter ~theme ~lang:"ocaml" source

@@ -138,6 +138,8 @@ let themes =
     ("one-dark", one_dark);
   ]
 
+let find name = List.assoc_opt name themes
+
 let available_names = List.map fst themes
 
 let parse_font_style = function

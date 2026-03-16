@@ -70,18 +70,20 @@ let detect_theme_mode () =
           Option.value (from_colorfgbg ()) ~default:Dark
     )
 
+let builtin_theme name = Ochre.Theme.find name
+
 let default_theme =
   let fallback =
     match detect_theme_mode () with Dark -> "dark" | Light -> "light"
   in
-  match Ochre.Theme.make fallback with
+  match builtin_theme fallback with
   | Some theme ->
       theme
   | None ->
       failwith ("Missing built-in theme: " ^ fallback)
 
 let resolve_theme_name_or_path name_or_path =
-  match Ochre.Theme.make name_or_path with
+  match builtin_theme name_or_path with
   | Some theme ->
       theme
   | None ->

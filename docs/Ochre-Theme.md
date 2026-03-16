@@ -87,18 +87,27 @@ Parse a theme from a raw JSON string.
   }|}
 ```
 ```ocaml
-val make : string -> theme option
+val make : 
+  name:string ->
+  fg:color ->
+  bg:color ->
+  comment:color ->
+  string:color ->
+  number:color ->
+  keyword:color ->
+  fn:color ->
+  typ:color ->
+  theme
 ```
 make
 
-Look up a built-in theme by name. Returns `None` when the name is not recognised.
+Make a new theme.
 
 ```ocaml
-  match Ochre.Theme.make "nord" with
-  | Some theme ->
-      theme
-  | None ->
-      failwith "unknown theme"
+  let theme =
+    Ochre.Theme.make ~name:"my-theme" ~fg:"#d4d4d4" ~bg:"#1e1e1e"
+      ~comment:"#6a9955" ~string:"#ce9178" ~number:"#b5cea8"
+      ~keyword:"#569cd6" ~fn:"#dcdcaa" ~typ:"#4ec9b0"
 ```
 ```ocaml
 val available_names : string list
@@ -106,6 +115,13 @@ val available_names : string list
 available\_names
 
 Names of all built-in themes.
+
+```ocaml
+val find : string -> theme option
+```
+find
+
+Look up a built-in theme by name. Returns `None` when the name is not recognised.
 
 
 ### Built-in themes

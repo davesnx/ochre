@@ -106,7 +106,7 @@ let test_alt_keys () =
   |> print_theme
 
 let test_builtin_name name =
-  match Ochre.Theme.make name with
+  match Ochre.Theme.find name with
   | Some theme ->
       print_theme theme
   | None ->
@@ -114,7 +114,7 @@ let test_builtin_name name =
       exit 1
 
 let test_builtin_alias name =
-  match Ochre.Theme.make name with
+  match Ochre.Theme.find name with
   | Some theme ->
       print_theme theme
   | None ->

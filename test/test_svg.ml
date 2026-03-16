@@ -85,7 +85,7 @@ let with_full_width_svg svg =
     svg
 
 let render_svg ~highlighter ~source name =
-  match Ochre.Theme.make name with
+  match Ochre.Theme.find name with
   | Some theme ->
       Ochre.to_svg highlighter ~theme ~lang:"ocaml" source
   | None ->

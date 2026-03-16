@@ -63,7 +63,7 @@ let () =
   print_endline preamble;
   List.iter
     (fun name ->
-      match Ochre.Theme.make name with
+      match Ochre.Theme.find name with
       | Some theme ->
           Printf.printf "\\subsection*{%s}\n" name;
           print_endline (Ochre.to_latex highlighter ~theme ~lang:"ocaml" source)

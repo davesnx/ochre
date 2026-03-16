@@ -153,24 +153,38 @@ module Theme : sig
         }|}
       ]} *)
 
-  val make : string -> theme option
+  val make :
+    name:string ->
+    fg:color ->
+    bg:color ->
+    comment:color ->
+    string:color ->
+    number:color ->
+    keyword:color ->
+    fn:color ->
+    typ:color ->
+    theme
   (** {2 make}
 
-      Look up a built-in theme by name. Returns [None] when the name is not
-      recognised.
+      Make a new theme.
 
       {[
-        match Ochre.Theme.make "nord" with
-        | Some theme ->
-            theme
-        | None ->
-            failwith "unknown theme"
+        let theme =
+          Ochre.Theme.make ~name:"my-theme" ~fg:"#d4d4d4" ~bg:"#1e1e1e"
+            ~comment:"#6a9955" ~string:"#ce9178" ~number:"#b5cea8"
+            ~keyword:"#569cd6" ~fn:"#dcdcaa" ~typ:"#4ec9b0"
       ]} *)
 
   val available_names : string list
   (** {2 available_names}
 
       Names of all built-in themes. *)
+
+  val find : string -> theme option
+  (** {2 find}
+
+      Look up a built-in theme by name. Returns [None] when the name is not
+      recognised. *)
 
   (** {2 Built-in themes} *)
 

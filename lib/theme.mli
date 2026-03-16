@@ -74,24 +74,38 @@ val load_from_string : string -> theme
       }|}
     ]} *)
 
-val make : string -> theme option
+val make :
+  name:color ->
+  fg:color ->
+  bg:color ->
+  comment:color ->
+  string:color ->
+  number:color ->
+  keyword:color ->
+  fn:color ->
+  typ:color ->
+  theme
 (** {2 make}
 
-    Look up a built-in theme by name. Returns [None] when the name is not
-    recognised.
+    Make a new theme.
 
     {[
-      match Theme.make "nord" with
-      | Some theme ->
-          theme
-      | None ->
-          failwith "unknown theme"
+      let theme =
+        Theme.make ~name:"my-theme" ~fg:"#d4d4d4" ~bg:"#1e1e1e"
+          ~comment:"#6a9955" ~string:"#ce9178" ~number:"#b5cea8"
+          ~keyword:"#569cd6" ~fn:"#dcdcaa" ~typ:"#4ec9b0"
     ]} *)
 
 val available_names : string list
 (** {2 available_names}
 
     Names of all built-in themes. *)
+
+val find : string -> theme option
+(** {2 find}
+
+    Look up a built-in theme by name. Returns [None] when the name is not
+    recognised. *)
 
 val themes : (string * theme) list
 (** {2 themes}
