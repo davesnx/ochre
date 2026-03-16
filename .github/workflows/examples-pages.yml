@@ -1,0 +1,123 @@
+name: Examples Pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - test/html-preview.html
+      - test/latex-preview.tex
+      - test/svg-preview.svg
+      - .github/workflows/examples-pages.yml
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: examples-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Install LaTeX packages
+        run: sudo apt-get update && sudo apt-get install -y texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended
+
+      - name: Build LaTeX PDF
+        run: |
+          mkdir -p _site/examples
+          cp test/latex-preview.tex _site/examples/latex-preview.tex
+          pdflatex -interaction=nonstopmode -halt-on-error -output-directory _site/examples _site/examples/latex-preview.tex
+
+      - name: Copy HTML and SVG previews
+        run: cp test/html-preview.html test/svg-preview.svg _site/examples/
+
+      - name: Create examples index page
+        run: |
+          cat > _site/index.html <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>ochre examples</title>
+            <style>
+              :root {
+                color-scheme: light;
+                font-family: "Iosevka", "JetBrains Mono", "SF Mono", Menlo, monospace;
+              }
+              body {
+                margin: 0;
+                min-height: 100vh;
+                display: grid;
+                place-items: center;
+                background: radial-gradient(circle at 20% 20%, #fdf6e3 0%, #efe8d8 45%, #e7dfce 100%);
+                color: #2f2a23;
+              }
+              main {
+                background: #fffdfa;
+                border: 1px solid #d8cdb9;
+                border-radius: 14px;
+                padding: 24px;
+                width: min(680px, calc(100vw - 40px));
+                box-shadow: 0 18px 40px rgba(62, 46, 26, 0.12);
+              }
+              h1 {
+                margin: 0 0 8px;
+                font-size: 1.4rem;
+              }
+              p {
+                margin: 0 0 16px;
+                line-height: 1.5;
+              }
+              ul {
+                margin: 0;
+                padding-left: 18px;
+                display: grid;
+                gap: 8px;
+              }
+              a {
+                color: #0a5d67;
+              }
+            </style>
+          </head>
+          <body>
+            <main>
+              <h1>ochre rendered examples</h1>
+              <p>GitHub Pages host for preview files that GitHub does not render inline from repository links.</p>
+              <ul>
+                <li><a href="examples/html-preview.html">HTML preview</a></li>
+                <li><a href="examples/latex-preview.pdf">LaTeX PDF preview</a> (<a href="examples/latex-preview.tex">source</a>)</li>
+                <li><a href="examples/svg-preview.svg">SVG preview</a></li>
+              </ul>
+            </main>
+          </body>
+          </html>
+          EOF
+          touch _site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
