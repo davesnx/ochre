@@ -46,6 +46,24 @@ let test_theme_loading () =
   Alcotest.(check string) "theme bg" "#ffffff" theme.bg;
   Alcotest.(check int) "token_colors length" 1 (List.length theme.token_colors)
 
+let test_theme_make_raw () =
+  let theme =
+    Ochre.Theme.make ~name:"raw-theme"
+      ~colors:
+        [ ("editor.foreground", "#111111"); ("editor.background", "#fafafa") ]
+      ~token_colors:
+        [
+          Ochre.Theme.rule ~scope:[ "keyword" ] ~foreground:"#ff0000" ();
+          Ochre.Theme.rule ~scope:[ "comment" ] ~foreground:"#00aa00"
+            ~font_style:[ Ochre.Theme.Italic ] ();
+        ]
+      ()
+  in
+  Alcotest.(check string) "theme name" "raw-theme" theme.name;
+  Alcotest.(check string) "theme fg" "#111111" theme.fg;
+  Alcotest.(check string) "theme bg" "#fafafa" theme.bg;
+  Alcotest.(check int) "token_colors length" 2 (List.length theme.token_colors)
+
 let test_scope_matching () =
   let hl = highlight () in
   let theme =
@@ -63,6 +81,30 @@ let test_scope_matching () =
   | (first :: _) :: _ ->
       Alcotest.(check (option string))
         "keyword gets red" (Some "#ff0000") first.foreground
+  | _ ->
+      Alcotest.fail "expected at least one token"
+
+let test_scope_property_merge () =
+  let hl = highlight () in
+  let theme =
+    Ochre.Theme.load_from_string
+      {|{
+      "name": "merge-test",
+      "colors": { "editor.foreground": "#d4d4d4", "editor.background": "#1e1e1e" },
+      "tokenColors": [
+        { "scope": "keyword", "settings": { "foreground": "#ff0000" } },
+        { "scope": "keyword.control", "settings": { "fontStyle": "bold" } }
+      ]
+    }|}
+  in
+  let tokens = Ochre.to_tokens hl ~theme ~lang:"test" "let x = 42" in
+  match tokens with
+  | (first :: _) :: _ ->
+      Alcotest.(check (option string))
+        "foreground merged from broader rule" (Some "#ff0000") first.foreground;
+      Alcotest.(check bool)
+        "font style merged from narrower rule" true
+        (List.mem Ochre.Token.Bold first.font_style)
   | _ ->
       Alcotest.fail "expected at least one token"
 
@@ -866,9 +908,18 @@ let () =
   let open Alcotest in
   run "Ochre"
     [
-      ("theme", [ test_case "Load theme from string" `Quick test_theme_loading ]);
+      ( "theme",
+        [
+          test_case "Load theme from string" `Quick test_theme_loading;
+          test_case "Make raw theme" `Quick test_theme_make_raw;
+        ]
+      );
       ( "scope",
-        [ test_case "Scope matching via tokens" `Quick test_scope_matching ]
+        [
+          test_case "Scope matching via tokens" `Quick test_scope_matching;
+          test_case "Scope properties merge by rule" `Quick
+            test_scope_property_merge;
+        ]
       );
       ( "grammar",
         [

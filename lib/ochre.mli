@@ -93,13 +93,14 @@ module Theme : sig
   type token_color_settings = Theme.token_color_settings = {
     foreground : color option;
     background : color option;
-    font_style : font_style list;
+    font_style : font_style list option;
   }
   (** {2 token_color_settings}
 
       Color and style settings resolved from a theme rule. *)
 
   type token_color_rule = Theme.token_color_rule = {
+    name : string option;
     scope : string list;
     settings : token_color_settings;
   }
@@ -111,6 +112,7 @@ module Theme : sig
 
   type theme = Theme.theme = {
     name : string;
+    colors : (string * color) list;
     fg : color;
     bg : color;
     token_colors : token_color_rule list;
@@ -155,25 +157,41 @@ module Theme : sig
 
   val make :
     name:string ->
-    fg:color ->
-    bg:color ->
-    comment:color ->
-    string:color ->
-    number:color ->
-    keyword:color ->
-    fn:color ->
-    typ:color ->
+    ?colors:(string * color) list ->
+    token_colors:token_color_rule list ->
+    unit ->
     theme
   (** {2 make}
 
-      Make a new theme.
+      Make a new TextMate-style theme from ordered token rules.
 
       {[
         let theme =
-          Ochre.Theme.make ~name:"my-theme" ~fg:"#d4d4d4" ~bg:"#1e1e1e"
-            ~comment:"#6a9955" ~string:"#ce9178" ~number:"#b5cea8"
-            ~keyword:"#569cd6" ~fn:"#dcdcaa" ~typ:"#4ec9b0"
+          Ochre.Theme.make ~name:"my-theme"
+            ~colors:
+              [
+                ("editor.foreground", "#d4d4d4");
+                ("editor.background", "#1e1e1e");
+              ]
+            ~token_colors:
+              [
+                Ochre.Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955" ();
+                Ochre.Theme.rule ~scope:[ "keyword" ] ~foreground:"#569cd6" ();
+              ]
+            ()
       ]} *)
+
+  val rule :
+    ?name:string ->
+    ?scope:string list ->
+    ?foreground:color ->
+    ?background:color ->
+    ?font_style:font_style list ->
+    unit ->
+    token_color_rule
+  (** {2 rule}
+
+      Construct a token color rule. *)
 
   val available_names : string list
   (** {2 available_names}

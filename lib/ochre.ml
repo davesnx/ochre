@@ -84,7 +84,11 @@ let apply_theme theme tokens_per_line =
             match settings with Some s -> s.Theme.background | None -> None
           in
           let font_style =
-            match settings with Some s -> s.Theme.font_style | None -> []
+            match settings with
+            | Some s ->
+                Option.value s.Theme.font_style ~default:[]
+            | None ->
+                []
           in
           {
             Token.text;

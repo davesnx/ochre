@@ -1,126 +1,388 @@
-open Melange_json.Primitives
-
-type settings_json = {
-  foreground : string option; [@json.option]
-  background : string option; [@json.option]
-  font_style_raw : string option; [@json.option] [@json.key "fontStyle"]
-}
-[@@deriving of_json] [@@json.allow_extra_fields]
-
-type colors = {
-  editor_foreground : string option;
-      [@json.option] [@json.key "editor.foreground"]
-  editor_background : string option;
-      [@json.option] [@json.key "editor.background"]
-}
-[@@deriving of_json] [@@json.allow_extra_fields]
-
-type theme_json = {
-  name : string option; [@json.option]
-  fg : string option; [@json.option]
-  bg : string option; [@json.option]
-  colors : colors option; [@json.option]
-}
-[@@deriving of_json] [@@json.allow_extra_fields]
-
 type color = string
 type font_style = Token.font_style = Bold | Italic | Underline | Strikethrough
 
 type token_color_settings = {
   foreground : color option;
   background : color option;
-  font_style : font_style list;
+  font_style : font_style list option;
 }
 
-type token_color_rule = { scope : string list; settings : token_color_settings }
+type token_color_rule = {
+  name : string option;
+  scope : string list;
+  settings : token_color_settings;
+}
 
 type theme = {
   name : string;
+  colors : (string * color) list;
   fg : color;
   bg : color;
   token_colors : token_color_rule list;
 }
 
-let theme_settings ?foreground ?background ?(font_style = []) () =
-  { foreground; background; font_style }
+type loaded_theme_data = {
+  name_opt : string option;
+  colors : (string * color) list;
+  fg_legacy : color option;
+  bg_legacy : color option;
+  token_colors : token_color_rule list;
+}
 
-let theme_rule scope settings = { scope; settings }
+let empty_settings = { foreground = None; background = None; font_style = None }
 
-let make ~name ~fg ~bg ~comment ~string ~number ~keyword ~fn ~typ =
+let rule ?name ?(scope = []) ?foreground ?background ?font_style () =
+  { name; scope; settings = { foreground; background; font_style } }
+
+let json_field key = function
+  | `Assoc fields ->
+      List.assoc_opt key fields
+  | _ ->
+      None
+
+let parse_scope = function
+  | `String s ->
+      [ s ]
+  | `List l ->
+      List.filter_map (function `String s -> Some s | _ -> None) l
+  | _ ->
+      []
+
+let parse_font_style = function
+  | "bold" ->
+      Some Bold
+  | "italic" ->
+      Some Italic
+  | "underline" ->
+      Some Underline
+  | "strikethrough" ->
+      Some Strikethrough
+  | _ ->
+      None
+
+let parse_font_style_raw raw =
+  let trimmed = String.trim raw in
+  if trimmed = "" || trimmed = "none" then
+    Some []
+  else
+    Some
+      (String.split_on_char ' ' trimmed
+      |> List.map String.trim
+      |> List.filter (fun s -> s <> "")
+      |> List.filter_map parse_font_style
+      )
+
+let parse_settings = function
+  | `Assoc _ as json ->
+      let foreground =
+        match json_field "foreground" json with
+        | Some (`String s) ->
+            Some s
+        | _ ->
+            None
+      in
+      let background =
+        match json_field "background" json with
+        | Some (`String s) ->
+            Some s
+        | _ ->
+            None
+      in
+      let font_style =
+        match json_field "fontStyle" json with
+        | Some (`String s) ->
+            parse_font_style_raw s
+        | Some _ ->
+            Some []
+        | None ->
+            None
+      in
+      { foreground; background; font_style }
+  | _ ->
+      empty_settings
+
+let parse_token_color_rule = function
+  | `Assoc _ as json ->
+      let name =
+        match json_field "name" json with
+        | Some (`String s) ->
+            Some s
+        | _ ->
+            None
+      in
+      let scope =
+        match json_field "scope" json with
+        | Some v ->
+            parse_scope v
+        | None ->
+            []
+      in
+      let settings =
+        match json_field "settings" json with
+        | Some s ->
+            parse_settings s
+        | None ->
+            empty_settings
+      in
+      Some { name; scope; settings }
+  | _ ->
+      None
+
+let parse_rules_json = function
+  | `List entries ->
+      List.filter_map parse_token_color_rule entries
+  | _ ->
+      []
+
+let merge_colors base overlay =
+  List.fold_left
+    (fun acc (key, value) ->
+      let without_key = List.filter (fun (k, _) -> k <> key) acc in
+      without_key @ [ (key, value) ]
+    )
+    base overlay
+
+let parse_colors = function
+  | `Assoc fields ->
+      List.filter_map
+        (function key, `String value -> Some (key, value) | _ -> None)
+        fields
+  | _ ->
+      []
+
+let assoc_color key colors =
+  match List.find_opt (fun (k, _) -> k = key) colors with
+  | Some (_, value) ->
+      Some value
+  | None ->
+      None
+
+let resolve_defaults_from_scope_less token_colors =
+  List.fold_left
+    (fun (fg, bg) rule ->
+      if rule.scope = [] then
+        let fg =
+          match rule.settings.foreground with Some c -> Some c | None -> fg
+        in
+        let bg =
+          match rule.settings.background with Some c -> Some c | None -> bg
+        in
+        (fg, bg)
+      else
+        (fg, bg)
+    )
+    (None, None) token_colors
+
+let resolve_color primary fallback default =
+  match primary with Some c -> c | None -> Option.value fallback ~default
+
+let finalize_theme ~name ~colors ~fg_legacy ~bg_legacy ~token_colors =
+  let defaults_fg, defaults_bg =
+    resolve_defaults_from_scope_less token_colors
+  in
+  let fg =
+    resolve_color
+      (assoc_color "editor.foreground" colors)
+      (match fg_legacy with Some c -> Some c | None -> defaults_fg)
+      "#000000"
+  in
+  let bg =
+    resolve_color
+      (assoc_color "editor.background" colors)
+      (match bg_legacy with Some c -> Some c | None -> defaults_bg)
+      "#ffffff"
+  in
+  { name; colors; fg; bg; token_colors }
+
+let parse_theme_fields ?base_dir json =
+  let name_opt =
+    match json_field "name" json with Some (`String s) -> Some s | _ -> None
+  in
+  let colors =
+    match json_field "colors" json with Some v -> parse_colors v | None -> []
+  in
+  let fg_legacy =
+    match json_field "fg" json with
+    | Some (`String s) ->
+        Some s
+    | _ -> (
+        match json_field "foreground" json with
+        | Some (`String s) ->
+            Some s
+        | _ ->
+            None
+      )
+  in
+  let bg_legacy =
+    match json_field "bg" json with
+    | Some (`String s) ->
+        Some s
+    | _ -> (
+        match json_field "background" json with
+        | Some (`String s) ->
+            Some s
+        | _ ->
+            None
+      )
+  in
+  let load_rules_from_ref = function
+    | `String rel_path -> (
+        match base_dir with
+        | Some dir ->
+            let path =
+              if Filename.is_relative rel_path then
+                Filename.concat dir rel_path
+              else
+                rel_path
+            in
+            Yojson.Basic.from_file path |> parse_rules_json
+        | None ->
+            []
+      )
+    | json_rules ->
+        parse_rules_json json_rules
+  in
+  let token_colors =
+    match json_field "tokenColors" json with
+    | Some value ->
+        load_rules_from_ref value
+    | None ->
+        []
+  in
+  let settings_rules =
+    match json_field "settings" json with
+    | Some value ->
+        load_rules_from_ref value
+    | None ->
+        []
+  in
+  let include_path =
+    match json_field "include" json with
+    | Some (`String s) ->
+        Some s
+    | _ ->
+        None
+  in
+  ( {
+      name_opt;
+      colors;
+      fg_legacy;
+      bg_legacy;
+      token_colors = token_colors @ settings_rules;
+    },
+    include_path
+  )
+
+let merge_loaded parent child =
   {
-    name;
-    fg;
-    bg;
-    token_colors =
-      [
-        theme_rule [ "comment" ] (theme_settings ~foreground:comment ());
-        theme_rule [ "string" ] (theme_settings ~foreground:string ());
-        theme_rule [ "constant.numeric" ] (theme_settings ~foreground:number ());
-        theme_rule [ "keyword" ] (theme_settings ~foreground:keyword ());
-        theme_rule [ "entity.name.function" ] (theme_settings ~foreground:fn ());
-        theme_rule [ "entity.name.type" ] (theme_settings ~foreground:typ ());
-      ];
+    name_opt =
+      ( match child.name_opt with
+      | Some _ ->
+          child.name_opt
+      | None ->
+          parent.name_opt
+      );
+    colors = merge_colors parent.colors child.colors;
+    fg_legacy =
+      ( match child.fg_legacy with
+      | Some _ ->
+          child.fg_legacy
+      | None ->
+          parent.fg_legacy
+      );
+    bg_legacy =
+      ( match child.bg_legacy with
+      | Some _ ->
+          child.bg_legacy
+      | None ->
+          parent.bg_legacy
+      );
+    token_colors = parent.token_colors @ child.token_colors;
   }
 
-let dark =
-  make ~name:"dark" ~fg:"#d4d4d4" ~bg:"#1e1e1e" ~comment:"#6a9955"
-    ~string:"#ce9178" ~number:"#b5cea8" ~keyword:"#569cd6" ~fn:"#dcdcaa"
-    ~typ:"#4ec9b0"
+let rec load_theme_data_from_json ?base_dir ~visited json =
+  let local, include_path = parse_theme_fields ?base_dir json in
+  match (include_path, base_dir) with
+  | Some include_path, Some dir ->
+      let resolved =
+        if Filename.is_relative include_path then
+          Filename.concat dir include_path
+        else
+          include_path
+      in
+      if List.mem resolved visited then
+        failwith ("Theme include cycle detected at: " ^ resolved)
+      else
+        let parent =
+          load_theme_data_from_path ~visited:(resolved :: visited) resolved
+        in
+        merge_loaded parent local
+  | _ ->
+      local
 
-let light =
-  make ~name:"light" ~fg:"#1f2328" ~bg:"#ffffff" ~comment:"#6a737d"
-    ~string:"#032f62" ~number:"#005cc5" ~keyword:"#d73a49" ~fn:"#6f42c1"
-    ~typ:"#22863a"
+and load_theme_data_from_path ~visited path =
+  let json = Yojson.Basic.from_file path in
+  let dir = Filename.dirname path in
+  load_theme_data_from_json ~base_dir:dir ~visited json
 
-let tokyonight =
-  make ~name:"tokyonight" ~fg:"#c0caf5" ~bg:"#1a1b26" ~comment:"#565f89"
-    ~string:"#9ece6a" ~number:"#ff9e64" ~keyword:"#7aa2f7" ~fn:"#7dcfff"
-    ~typ:"#2ac3de"
+let make ~name ?(colors = []) ~token_colors () =
+  finalize_theme ~name ~colors ~fg_legacy:None ~bg_legacy:None ~token_colors
+
+let load path =
+  let data = load_theme_data_from_path ~visited:[ path ] path in
+  let name = Option.value data.name_opt ~default:(Filename.basename path) in
+  finalize_theme ~name ~colors:data.colors ~fg_legacy:data.fg_legacy
+    ~bg_legacy:data.bg_legacy ~token_colors:data.token_colors
+
+let load_from_string str =
+  let json = Yojson.Basic.from_string str in
+  let data = load_theme_data_from_json ~visited:[] json in
+  let name = Option.value data.name_opt ~default:"unnamed" in
+  finalize_theme ~name ~colors:data.colors ~fg_legacy:data.fg_legacy
+    ~bg_legacy:data.bg_legacy ~token_colors:data.token_colors
+
+let load_builtin json ~name =
+  let theme = load_from_string json in
+  { theme with name }
+
+let dark = load_builtin Theme_builtin_json.dark_plus ~name:"dark"
+let light = load_builtin Theme_builtin_json.light_plus ~name:"light"
+let tokyonight = load_builtin Theme_builtin_json.tokyo_night ~name:"tokyonight"
 
 let everforest =
-  make ~name:"everforest" ~fg:"#d3c6aa" ~bg:"#2d353b" ~comment:"#859289"
-    ~string:"#a7c080" ~number:"#d699b6" ~keyword:"#e67e80" ~fn:"#83c092"
-    ~typ:"#7fbbb3"
+  load_builtin Theme_builtin_json.everforest_dark ~name:"everforest"
 
-let ayu =
-  make ~name:"ayu" ~fg:"#b3b1ad" ~bg:"#0a0e14" ~comment:"#5c6773"
-    ~string:"#aad94c" ~number:"#ff8f40" ~keyword:"#ffb454" ~fn:"#ffd580"
-    ~typ:"#73d0ff"
+let ayu = load_builtin Theme_builtin_json.ayu_dark ~name:"ayu"
 
 let catppuccin =
-  make ~name:"catppuccin" ~fg:"#cdd6f4" ~bg:"#1e1e2e" ~comment:"#6c7086"
-    ~string:"#a6e3a1" ~number:"#fab387" ~keyword:"#cba6f7" ~fn:"#89b4fa"
-    ~typ:"#94e2d5"
+  load_builtin Theme_builtin_json.catppuccin_mocha ~name:"catppuccin"
 
 let catppuccin_macchiato =
-  make ~name:"catppuccin-macchiato" ~fg:"#cad3f5" ~bg:"#24273a"
-    ~comment:"#6e738d" ~string:"#a6da95" ~number:"#f5a97f" ~keyword:"#c6a0f6"
-    ~fn:"#8aadf4" ~typ:"#8bd5ca"
+  load_builtin Theme_builtin_json.catppuccin_macchiato
+    ~name:"catppuccin-macchiato"
 
 let gruvbox =
-  make ~name:"gruvbox" ~fg:"#ebdbb2" ~bg:"#282828" ~comment:"#928374"
-    ~string:"#b8bb26" ~number:"#d3869b" ~keyword:"#fb4934" ~fn:"#fabd2f"
-    ~typ:"#8ec07c"
-
-let kanagawa =
-  make ~name:"kanagawa" ~fg:"#dcd7ba" ~bg:"#1f1f28" ~comment:"#727169"
-    ~string:"#98bb6c" ~number:"#ffa066" ~keyword:"#957fb8" ~fn:"#7e9cd8"
-    ~typ:"#7aa89f"
-
-let nord =
-  make ~name:"nord" ~fg:"#d8dee9" ~bg:"#2e3440" ~comment:"#616e88"
-    ~string:"#a3be8c" ~number:"#b48ead" ~keyword:"#81a1c1" ~fn:"#88c0d0"
-    ~typ:"#8fbcbb"
+  load_builtin Theme_builtin_json.gruvbox_dark_medium ~name:"gruvbox"
+let kanagawa = load_builtin Theme_builtin_json.kanagawa_wave ~name:"kanagawa"
+let nord = load_builtin Theme_builtin_json.nord ~name:"nord"
 
 let matrix =
-  make ~name:"matrix" ~fg:"#00ff41" ~bg:"#000000" ~comment:"#008f11"
-    ~string:"#00cc33" ~number:"#66ff66" ~keyword:"#39ff14" ~fn:"#00ff99"
-    ~typ:"#00ff66"
+  make ~name:"matrix"
+    ~colors:
+      [ ("editor.foreground", "#00ff41"); ("editor.background", "#000000") ]
+    ~token_colors:
+      [
+        rule ~scope:[ "comment" ] ~foreground:"#008f11" ~font_style:[ Italic ]
+          ();
+        rule ~scope:[ "string" ] ~foreground:"#00cc33" ();
+        rule ~scope:[ "constant.numeric" ] ~foreground:"#66ff66" ();
+        rule ~scope:[ "keyword" ] ~foreground:"#39ff14" ();
+        rule ~scope:[ "entity.name.function" ] ~foreground:"#00ff99" ();
+        rule ~scope:[ "entity.name.type" ] ~foreground:"#00ff66" ();
+      ]
+    ()
 
-let one_dark =
-  make ~name:"one-dark" ~fg:"#abb2bf" ~bg:"#282c34" ~comment:"#5c6370"
-    ~string:"#98c379" ~number:"#d19a66" ~keyword:"#c678dd" ~fn:"#61afef"
-    ~typ:"#e5c07b"
+let one_dark = load_builtin Theme_builtin_json.one_dark_pro ~name:"one-dark"
 
 let themes =
   [
@@ -139,91 +401,4 @@ let themes =
   ]
 
 let find name = List.assoc_opt name themes
-
 let available_names = List.map fst themes
-
-let parse_font_style = function
-  | "bold" ->
-      Some Bold
-  | "italic" ->
-      Some Italic
-  | "underline" ->
-      Some Underline
-  | "strikethrough" ->
-      Some Strikethrough
-  | _ ->
-      None
-
-let parse_font_styles str =
-  String.split_on_char ' ' str |> List.filter_map parse_font_style
-
-let settings_of_settings_json (s : settings_json) : token_color_settings =
-  {
-    foreground = s.foreground;
-    background = s.background;
-    font_style =
-      ( match s.font_style_raw with
-      | Some str ->
-          parse_font_styles str
-      | None ->
-          []
-      );
-  }
-
-let parse_scope = function
-  | `String s ->
-      [ s ]
-  | `List l ->
-      List.filter_map (function `String s -> Some s | _ -> None) l
-  | _ ->
-      []
-
-let json_field key = function
-  | `Assoc fields ->
-      List.assoc_opt key fields
-  | _ ->
-      None
-
-let parse_token_color_rule json =
-  let scope =
-    match json_field "scope" json with Some v -> parse_scope v | None -> []
-  in
-  let settings =
-    match json_field "settings" json with
-    | Some s ->
-        settings_json_of_json s |> settings_of_settings_json
-    | None ->
-        { foreground = None; background = None; font_style = [] }
-  in
-  { scope; settings }
-
-let resolve_color primary fallback default =
-  match primary with Some c -> c | None -> Option.value fallback ~default
-
-let load_theme json =
-  let tj = theme_json_of_json json in
-  let colors_fg = Option.bind tj.colors (fun c -> c.editor_foreground) in
-  let colors_bg = Option.bind tj.colors (fun c -> c.editor_background) in
-  let fg = resolve_color colors_fg tj.fg "#000000" in
-  let bg = resolve_color colors_bg tj.bg "#ffffff" in
-  let token_colors =
-    match json_field "tokenColors" json with
-    | Some (`List l) ->
-        List.map parse_token_color_rule l
-    | _ ->
-        []
-  in
-  (tj.name, fg, bg, token_colors)
-
-let load path =
-  let json = Yojson.Basic.from_file path in
-  let name_opt, fg, bg, token_colors = load_theme json in
-  let name = Option.value name_opt ~default:(Filename.basename path) in
-  { name; fg; bg; token_colors }
-
-let load_from_string str =
-  let name_opt, fg, bg, token_colors =
-    str |> Yojson.Basic.from_string |> load_theme
-  in
-  let name = Option.value name_opt ~default:"unnamed" in
-  { name; fg; bg; token_colors }

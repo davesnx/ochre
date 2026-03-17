@@ -43,7 +43,7 @@ Ochre can render highlighted code to several output formats:
 - **HTML** — Self-contained `<pre><code>` blocks with inline styles or CSS classes. Supports multi-theme via CSS custom properties, line numbers, and configurable class prefixes. See [rendered example](https://davesnx.github.io/ochre/examples/html-preview.html).
 - **ANSI** — 24-bit color escape sequences for terminal display.
 - **LaTeX** — `\textcolor` commands inside an `ochrehighlight` environment. Requires the `xcolor` and `soul` packages. See [rendered PDF](https://davesnx.github.io/ochre/examples/latex-preview.pdf) (source: [.tex file](test/latex-preview.tex)).
-- **SVG** — Standalone `<svg>` elements with monospace `<text>` and per-token `<tspan>` styling. Rendered preview: <img src="https://davesnx.github.io/ochre/examples/svg-preview.svg" alt="SVG rendered example" /> Source: [.svg file](test/svg-preview.svg).
+- **SVG** — Standalone `<svg>` elements with monospace `<text>` and per-token `<tspan>` styling. Open preview: [SVG rendered example](https://davesnx.github.io/ochre/examples/svg-preview.svg). Source: [.svg file](test/svg-preview.svg).
 - **Tokens** — Raw structured tokens for custom rendering or debugging.
 All backends share the same interface: create a highlighter, pick a theme, and call the corresponding `to_*` function.
 

@@ -86,6 +86,36 @@ let () =
         }|}
       in
       print_escaped (Ochre.to_ansi hl ~theme ~lang:"compound" "x")
+  | "invalid-fg-dark-bg" ->
+      let theme =
+        Ochre.Theme.load_from_string
+          {|{
+          "name": "invalid-dark",
+          "colors": {
+            "editor.foreground": "#d4d4d4",
+            "editor.background": "#101010"
+          },
+          "tokenColors": [
+            { "scope": "keyword", "settings": { "foreground": "var(--bad)" } }
+          ]
+        }|}
+      in
+      print_escaped (Ochre.to_ansi hl ~theme ~lang:"test" "let")
+  | "invalid-fg-light-bg" ->
+      let theme =
+        Ochre.Theme.load_from_string
+          {|{
+          "name": "invalid-light",
+          "colors": {
+            "editor.foreground": "#111111",
+            "editor.background": "#f0f0f0"
+          },
+          "tokenColors": [
+            { "scope": "keyword", "settings": { "foreground": "var(--bad)" } }
+          ]
+        }|}
+      in
+      print_escaped (Ochre.to_ansi hl ~theme ~lang:"test" "let")
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1

@@ -17,13 +17,17 @@ type font_style = Token.font_style = Bold | Italic | Underline | Strikethrough
 type token_color_settings = {
   foreground : color option;
   background : color option;
-  font_style : font_style list;
+  font_style : font_style list option;
 }
 (** {2 token_color_settings}
 
     Color and style settings resolved from a theme rule. *)
 
-type token_color_rule = { scope : string list; settings : token_color_settings }
+type token_color_rule = {
+  name : string option;
+  scope : string list;
+  settings : token_color_settings;
+}
 (** {2 token_color_rule}
 
     A rule mapping TextMate scopes to visual settings. Each rule contains a list
@@ -32,6 +36,7 @@ type token_color_rule = { scope : string list; settings : token_color_settings }
 
 type theme = {
   name : string;
+  colors : (string * color) list;
   fg : color;
   bg : color;
   token_colors : token_color_rule list;
@@ -75,25 +80,49 @@ val load_from_string : string -> theme
     ]} *)
 
 val make :
-  name:color ->
-  fg:color ->
-  bg:color ->
-  comment:color ->
-  string:color ->
-  number:color ->
-  keyword:color ->
-  fn:color ->
-  typ:color ->
+  name:string ->
+  ?colors:(string * color) list ->
+  token_colors:token_color_rule list ->
+  unit ->
   theme
 (** {2 make}
 
-    Make a new theme.
+    Make a new TextMate-style theme from ordered token rules.
 
     {[
       let theme =
-        Theme.make ~name:"my-theme" ~fg:"#d4d4d4" ~bg:"#1e1e1e"
-          ~comment:"#6a9955" ~string:"#ce9178" ~number:"#b5cea8"
-          ~keyword:"#569cd6" ~fn:"#dcdcaa" ~typ:"#4ec9b0"
+        Theme.make ~name:"my-theme"
+          ~colors:
+            [
+              ("editor.foreground", "#d4d4d4"); ("editor.background", "#1e1e1e");
+            ]
+          ~token_colors:
+            [
+              Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955" ();
+              Theme.rule ~scope:[ "keyword" ] ~foreground:"#569cd6" ();
+            ]
+          ()
+    ]} *)
+
+val rule :
+  ?name:string ->
+  ?scope:string list ->
+  ?foreground:color ->
+  ?background:color ->
+  ?font_style:font_style list ->
+  unit ->
+  token_color_rule
+(** {2 rule}
+
+    Construct a token color rule.
+
+    Omitting [scope] creates a scope-less rule (often used for default text
+    styling in TextMate themes). Omitting [font_style] means "not specified";
+    passing [[]] clears inherited font styles.
+
+    {[
+      Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955"
+        ~font_style:[ Italic ] ()
     ]} *)
 
 val available_names : string list

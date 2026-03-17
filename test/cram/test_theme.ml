@@ -18,9 +18,12 @@ let print_rule (rule : Ochre.Theme.token_color_rule) =
   | None ->
       ()
   );
-  let styles = List.map style_to_string rule.settings.font_style in
-  if styles <> [] then
-    Printf.printf "  styles: [%s]\n" (String.concat ", " styles)
+  match rule.settings.font_style with
+  | Some font_style ->
+      let styles = List.map style_to_string font_style in
+      Printf.printf "  styles: [%s]\n" (String.concat ", " styles)
+  | None ->
+      ()
 
 let print_theme (theme : Ochre.Theme.theme) =
   Printf.printf "name: %s\n" theme.name;
@@ -28,6 +31,12 @@ let print_theme (theme : Ochre.Theme.theme) =
   Printf.printf "bg: %s\n" theme.bg;
   Printf.printf "rules: %d\n" (List.length theme.token_colors);
   List.iter print_rule theme.token_colors
+
+let print_theme_summary (theme : Ochre.Theme.theme) =
+  Printf.printf "name: %s\n" theme.name;
+  Printf.printf "fg: %s\n" theme.fg;
+  Printf.printf "bg: %s\n" theme.bg;
+  Printf.printf "rules: %d\n" (List.length theme.token_colors)
 
 let test_load () =
   Ochre.Theme.load_from_string
@@ -108,7 +117,7 @@ let test_alt_keys () =
 let test_builtin_name name =
   match Ochre.Theme.find name with
   | Some theme ->
-      print_theme theme
+      print_theme_summary theme
   | None ->
       Printf.eprintf "unknown built-in theme: %s\n" name;
       exit 1
@@ -116,7 +125,7 @@ let test_builtin_name name =
 let test_builtin_alias name =
   match Ochre.Theme.find name with
   | Some theme ->
-      print_theme theme
+      print_theme_summary theme
   | None ->
       Printf.eprintf "unknown built-in theme: %s\n" name;
       exit 1

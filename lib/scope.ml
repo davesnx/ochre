@@ -63,24 +63,67 @@ let match_selector scopes selector =
   match_parts selector_parts 0 0
 
 let find_best_match scopes (rules : Theme.token_color_rule list) =
-  let matches =
-    List.filter_map
-      (fun (rule : Theme.token_color_rule) ->
-        let best_match_in_rule =
+  let better_candidate current ((score, idx) as rank) value =
+    match current with
+    | None ->
+        Some (rank, value)
+    | Some ((best_score, best_idx), _) ->
+        if score > best_score || (score = best_score && idx > best_idx) then
+          Some (rank, value)
+        else
+          current
+  in
+  let has_any = ref false in
+  let fg_best = ref None in
+  let bg_best = ref None in
+  let font_best = ref None in
+  List.iteri
+    (fun idx (rule : Theme.token_color_rule) ->
+      let best_match_in_rule =
+        if rule.scope = [] then
+          Some 0
+        else
           List.concat_map split_selector_group rule.scope
           |> List.filter_map (fun selector -> match_selector scopes selector)
           |> List.fold_left max 0
-        in
-        if best_match_in_rule > 0 then
-          Some (best_match_in_rule, rule.settings)
-        else
-          None
-      )
-      rules
-  in
-  match matches with
-  | [] ->
-      None
-  | _ ->
-      let sorted = List.sort (fun (s1, _) (s2, _) -> compare s2 s1) matches in
-      Some (snd (List.hd sorted))
+          |> fun score ->
+          if score > 0 then
+            Some score
+          else
+            None
+      in
+      match best_match_in_rule with
+      | None ->
+          ()
+      | Some score -> (
+          has_any := true;
+          let rank = (score, idx) in
+          ( match rule.settings.foreground with
+          | Some color ->
+              fg_best := better_candidate !fg_best rank color
+          | None ->
+              ()
+          );
+          ( match rule.settings.background with
+          | Some color ->
+              bg_best := better_candidate !bg_best rank color
+          | None ->
+              ()
+          );
+          match rule.settings.font_style with
+          | Some styles ->
+              font_best := better_candidate !font_best rank styles
+          | None ->
+              ()
+        )
+    )
+    rules;
+  if not !has_any then
+    None
+  else
+    Some
+      {
+        Theme.foreground = Option.map snd !fg_best;
+        background = Option.map snd !bg_best;
+        font_style = Option.map snd !font_best;
+      }
