@@ -79,6 +79,7 @@ pin: ## Pin dependencies
 	opam pin dune https://github.com/ocaml/dune.git#main -y
 	opam pin odoc-parser https://github.com/davesnx/odoc.git#markdown-types -y
 	opam pin odoc https://github.com/davesnx/odoc.git#markdown-types -y
+	opam pin textmate-language https://github.com/alan-j-hu/ocaml-textmate-language.git#dac1b8543136e5b8c0cc81c5fdc6fcb72c5b5c68 -y
 
 .PHONY: init
 init: setup-githooks create-switch pin install ## Create a local dev environment
