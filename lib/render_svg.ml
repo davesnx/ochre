@@ -1,7 +1,7 @@
 open Token
 
 let font_size = 14.0
-let line_height = 1.4
+let line_height = 1.3
 let char_width = 0.6
 let padding = 10.0
 
@@ -83,8 +83,9 @@ let render_token (token : styled_token) =
 let render_line ~y line =
   let tokens = String.concat "" (List.map render_token line) in
   Printf.sprintf
-    "  <text x=\"%.0f\" y=\"%.1f\" xml:space=\"preserve\">%s</text>" padding y
-    tokens
+    "  <text x=\"%.0f\" y=\"%.1f\" font-family=\"%s\" font-size=\"%.0fpx\" \
+     xml:space=\"preserve\">%s</text>"
+    padding y font_family font_size tokens
 
 let render theme (code : highlighted_code) =
   let row_height = font_size *. line_height in

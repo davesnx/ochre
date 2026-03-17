@@ -105,7 +105,9 @@ let render_page ~highlighter ~source =
        "<head><meta charset=\"utf-8\"><title>ochre HTML preview</title></head>";
        "<body \
         style=\"margin:0;background:#f5f5f5;font-family:ui-monospace,monospace\">";
-       "<div style=\"padding:24px;display:grid;gap:24px;\">";
+       "<div \
+        style=\"padding:24px;display:grid;gap:24px;max-width:960px;margin:0 \
+        auto;\">";
      ]
     @ rendered_sections
     @ [ "</div>"; "</body></html>" ]
