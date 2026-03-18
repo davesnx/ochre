@@ -7,13 +7,13 @@ Command-line interface for the ochre syntax highlighter.
 ## Synopsis
 
 ```
-ochre LANG [FILE] [--theme NAME_OR_PATH] [--theme-dark NAME_OR_PATH] [--theme-light NAME_OR_PATH] [--grammar FILE]... [--format FORMAT] [--stdin]
+ochre LANG [FILE] [--theme NAME_OR_PATH] [--theme-dark NAME_OR_PATH] [--theme-light NAME_OR_PATH] [--grammar FILE]... [--format FORMAT]
 ```
 
 ## Arguments
 
 - `LANG` — Language identifier (e.g. `ocaml`, `javascript`, `python`). Required.
-- `FILE` — Input file path. Optional when using `--stdin`.
+- `FILE` — Input file path. Optional when piping/redirection stdin is used.
 
 ## Options
 
@@ -22,7 +22,6 @@ ochre LANG [FILE] [--theme NAME_OR_PATH] [--theme-dark NAME_OR_PATH] [--theme-li
 - `--theme-light NAME_OR_PATH` — Theme used when terminal mode is detected as light (same name-or-path resolution as `--theme`).
 - `--grammar FILE`, `-g FILE` — Path to a `.tmLanguage.json` grammar file. Can be specified multiple times.
 - `--format FORMAT`, `-f FORMAT` — Output format: `html` (default), `ansi`, or `tokens`.
-- `--stdin`, `-s` — Read source code from standard input instead of a file.
 
 ## Examples
 
@@ -35,7 +34,7 @@ ochre ocaml file.ml --grammar ./grammars/ocaml.tmLanguage.json --theme theme.jso
 Highlight from stdin with ANSI terminal colors:
 
 ```
-cat file.js | ochre javascript --stdin --grammar ./grammars/javascript.tmLanguage.json --format ansi
+cat file.js | ochre javascript --grammar ./grammars/javascript.tmLanguage.json --format ansi
 ```
 
 ### Load multiple grammars (e.g. for embedded languages)

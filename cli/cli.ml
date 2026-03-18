@@ -21,6 +21,8 @@ let read_stdin () =
   in
   String.concat "\n" (read_lines [])
 
+let stdin_has_data () = not (Unix.isatty Unix.stdin)
+
 type theme_mode = Dark | Light
 
 let getenv_opt key = try Some (Sys.getenv key) with Not_found -> None
@@ -160,18 +162,21 @@ let build_html_options ~css_classes ~line_numbers ~no_default_color
   Ochre.Html_options.make ~style_mode ~default_color ~line_numbers
     ~css_variable_prefix ~scopes_as_data_attrs:scopes_data ()
 
-let highlight lang theme_path theme_dark theme_light grammars format use_stdin
-    input_file css_classes line_numbers no_default_color css_var_prefix
-    scopes_data =
+let highlight lang theme_path theme_dark theme_light grammars format input_file
+    css_classes line_numbers no_default_color css_var_prefix scopes_data =
   let source =
-    if use_stdin then
-      Some (read_stdin ())
-    else
-      Option.map read_file input_file
+    match input_file with
+    | Some path ->
+        Some (read_file path)
+    | None ->
+        if stdin_has_data () then
+          Some (read_stdin ())
+        else
+          None
   in
   match source with
   | None ->
-      error "Either provide a file path or use --stdin"
+      error "Provide a file path or pipe input via stdin"
   | Some source -> (
       let make_highlighter grammars_arg =
         match grammars_arg with
@@ -260,10 +265,6 @@ let format =
     & info [ "format"; "f" ] ~docv:"FORMAT" ~doc
   )
 
-let use_stdin =
-  let doc = "Read source code from stdin" in
-  Arg.(value & flag & info [ "stdin"; "s" ] ~doc)
-
 let input_file =
   let doc = "Input file path" in
   Arg.(value & pos 1 (some string) None & info [] ~docv:"FILE" ~doc)
@@ -313,7 +314,7 @@ let cmd =
     Term.(
       ret
         (const highlight $ lang $ theme_path $ theme_dark $ theme_light
-       $ grammars $ format $ use_stdin $ input_file $ css_classes $ line_numbers
+       $ grammars $ format $ input_file $ css_classes $ line_numbers
        $ no_default_color $ css_var_prefix $ scopes_data
         )
     )
