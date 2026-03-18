@@ -376,8 +376,9 @@ val to_html :
     {3 Multiple themes}
 
     Pass [~extra_themes] with labelled extra themes. Each label becomes a CSS
-    custom property prefix ([--ochre-<label>]). The default theme's colors are
-    emitted as direct CSS properties; extra themes' colors become CSS variables:
+    custom property prefix ([--ochre-<label>]). The default theme is emitted as
+    base fallback variables ([var(--ochre-bg,<bg>)], [var(--ochre,<fg>)]), while
+    extra themes are emitted as label-scoped variables.
 
     {[
       Ochre.to_html hl ~theme:Ochre.Theme.light
@@ -407,8 +408,8 @@ val to_html :
 val html_theme_css : ?prefix:string -> string -> string
 (** {2 html_theme_css}
 
-    [html_theme_css ?prefix label] returns a CSS rule that activates the theme
-    stored under [--ochre-<label>-*] variables.
+    [html_theme_css ?prefix label] returns a CSS rule that maps base variables
+    ([--ochre-*]) to the label-scoped variables ([--ochre-<label>-*]).
 
     Pass [~prefix] to match a custom {!Html_options.css_variable_prefix}.
     Default: ["--ochre-"].
@@ -432,11 +433,11 @@ val html_theme_prefers_dark_css : string
       @media (prefers-color-scheme: dark) {
         .ochre,
         .ochre span {
-          color: var(--ochre-dark) !important;
-          background-color: var(--ochre-dark-bg) !important;
-          font-style: var(--ochre-dark-font-style) !important;
-          font-weight: var(--ochre-dark-font-weight) !important;
-          text-decoration: var(--ochre-dark-text-decoration) !important;
+          --ochre: var(--ochre-dark);
+          --ochre-bg: var(--ochre-dark-bg);
+          --ochre-font-style: var(--ochre-dark-font-style);
+          --ochre-font-weight: var(--ochre-dark-font-weight);
+          --ochre-text-decoration: var(--ochre-dark-text-decoration);
         }
       }
     ]} *)

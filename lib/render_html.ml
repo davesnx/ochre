@@ -1,14 +1,22 @@
 open Token
 
-let font_style_to_css = function
+let font_style_to_css_var_fallback prefix = function
   | Bold ->
-      "font-weight:bold"
+      "font-weight:var(" ^ prefix ^ "font-weight,bold)"
   | Italic ->
-      "font-style:italic"
+      "font-style:var(" ^ prefix ^ "font-style,italic)"
   | Underline ->
-      "text-decoration:underline"
+      "text-decoration:var(" ^ prefix ^ "text-decoration,underline)"
   | Strikethrough ->
-      "text-decoration:line-through"
+      "text-decoration:var(" ^ prefix ^ "text-decoration,line-through)"
+
+let css_var_foreground_name prefix =
+  if String.length prefix > 0 && prefix.[String.length prefix - 1] = '-' then
+    String.sub prefix 0 (String.length prefix - 1)
+  else
+    prefix
+
+let css_var_background_name prefix = prefix ^ "bg"
 
 (** [prefix] is expected to end with [-] (e.g. [--ochre-dark-]). *)
 let font_style_to_css_var prefix = function
@@ -21,13 +29,15 @@ let font_style_to_css_var prefix = function
   | Strikethrough ->
       prefix ^ "text-decoration:line-through"
 
-let token_style_to_css ~emit_default token =
+let token_style_to_css ~emit_default ~prefix token =
+  let fg_var = css_var_foreground_name prefix in
+  let bg_var = css_var_background_name prefix in
   let styles = [] in
   let styles =
     if emit_default then
       match token.foreground with
       | Some color ->
-          ("color:" ^ color) :: styles
+          ("color:var(" ^ fg_var ^ "," ^ color ^ ")") :: styles
       | None ->
           styles
     else
@@ -37,7 +47,7 @@ let token_style_to_css ~emit_default token =
     if emit_default then
       match token.background with
       | Some color ->
-          ("background-color:" ^ color) :: styles
+          ("background-color:var(" ^ bg_var ^ "," ^ color ^ ")") :: styles
       | None ->
           styles
     else
@@ -45,7 +55,7 @@ let token_style_to_css ~emit_default token =
   in
   let styles =
     if emit_default then
-      List.map font_style_to_css token.font_style @ styles
+      List.map (font_style_to_css_var_fallback prefix) token.font_style @ styles
     else
       styles
   in
@@ -56,14 +66,7 @@ let token_style_to_css ~emit_default token =
     [--ochre-dark:#color], [--ochre-dark-bg:#color],
     [--ochre-dark-font-weight:bold]. *)
 let token_style_to_css_vars prefix token =
-  (* Strip trailing dash for the foreground variable name:
-     --ochre-dark- → --ochre-dark *)
-  let fg_name =
-    if String.length prefix > 0 && prefix.[String.length prefix - 1] = '-' then
-      String.sub prefix 0 (String.length prefix - 1)
-    else
-      prefix
-  in
+  let fg_name = css_var_foreground_name prefix in
   let vars = [] in
   let vars =
     match token.foreground with
@@ -215,16 +218,9 @@ let render_span_attrs ~options ~registry style decoration scopes =
               Some (String.concat " " parts)
     )
 
-let render_token ~options ~registry ~extras primary =
+let render_token ~options ~registry ~extras ~emit_default primary =
   let prefix = options.Html_options.css_variable_prefix in
-  let emit_default =
-    match options.Html_options.default_color with
-    | Html_options.Default_color ->
-        true
-    | Html_options.No_default_color ->
-        false
-  in
-  let primary_style = token_style_to_css ~emit_default primary in
+  let primary_style = token_style_to_css ~emit_default ~prefix primary in
   let extra_vars =
     List.concat_map
       (fun (label, tok) -> token_style_to_css_vars (prefix ^ label ^ "-") tok)
@@ -248,14 +244,26 @@ let render_token ~options ~registry ~extras primary =
   | Some attrs ->
       Printf.sprintf "<span %s>%s</span>" attrs text
 
-let render_line ~options ~registry ~extras_line primary_line =
+let render_line ~options ~registry ~extras_line ~emit_default primary_line =
   let render_one i tok =
     let extras =
       List.map (fun (label, line) -> (label, List.nth line i)) extras_line
     in
-    render_token ~options ~registry ~extras tok
+    render_token ~options ~registry ~extras ~emit_default tok
   in
   String.concat "" (List.mapi render_one primary_line)
+
+let dedupe_preserving_order items =
+  let rec loop seen acc = function
+    | [] ->
+        List.rev acc
+    | x :: xs ->
+        if List.mem x seen then
+          loop seen acc xs
+        else
+          loop (x :: seen) (x :: acc) xs
+  in
+  loop [] [] items
 
 let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
   let has_extras = extra_themes <> [] in
@@ -271,6 +279,14 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
     | Html_options.Inline_styles ->
         None
   in
+  let emit_default =
+    match options.default_color with
+    | Html_options.Default_color ->
+        true
+    | Html_options.No_default_color ->
+        false
+  in
+  let emit_default_token_styles = emit_default in
   let lines =
     List.mapi
       (fun i line ->
@@ -279,7 +295,10 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
             (fun (label, codes) -> (label, List.nth codes i))
             extras_codes
         in
-        let content = render_line ~options ~registry ~extras_line line in
+        let content =
+          render_line ~options ~registry ~extras_line
+            ~emit_default:emit_default_token_styles line
+        in
         if options.line_numbers then
           Printf.sprintf "<span class=\"line\" data-line=\"%d\">%s</span>"
             (i + 1) content
@@ -291,21 +310,24 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
   let code_content = String.concat "\n" lines in
   (* Build <pre> classes *)
   let pre_classes =
-    [ "ochre" ]
-    @ ( if has_extras then
-          [ "ochre-themes" ]
-        else
-          []
-      )
-    @ ( if has_extras then
-          theme.Theme.name
-          :: List.map
-               (fun (_label, theme, _tokens) -> theme.Theme.name)
-               extra_themes
-        else
-          []
-      )
-    @ match options.pre_class with Some c -> [ c ] | None -> []
+    let classes =
+      [ "ochre" ]
+      @ ( if has_extras then
+            [ "ochre-themes" ]
+          else
+            []
+        )
+      @ ( if has_extras then
+            theme.Theme.name
+            :: List.map
+                 (fun (_label, theme, _tokens) -> theme.Theme.name)
+                 extra_themes
+          else
+            []
+        )
+      @ match options.pre_class with Some c -> [ c ] | None -> []
+    in
+    dedupe_preserving_order classes
   in
   let pre_class_attr = String.concat " " pre_classes in
   (* Build <code> class *)
@@ -313,16 +335,16 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
     match options.code_class with Some c -> Some c | None -> None
   in
   (* Build <pre> style *)
-  let emit_default =
-    match options.default_color with
-    | Html_options.Default_color ->
-        true
-    | Html_options.No_default_color ->
-        false
-  in
   let pre_style_parts =
     ( if emit_default then
-        [ "background-color:" ^ theme.Theme.bg; "color:" ^ theme.Theme.fg ]
+        [
+          "background-color:var("
+          ^ css_var_background_name prefix
+          ^ "," ^ theme.Theme.bg ^ ")";
+          "color:var("
+          ^ css_var_foreground_name prefix
+          ^ "," ^ theme.Theme.fg ^ ")";
+        ]
       else
         []
     )
@@ -356,17 +378,24 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
     pre_class_attr pre_style code_attrs code_content
 
 let theme_css ?(prefix = "--ochre-") label =
-  let p = prefix ^ label ^ "-" in
+  let base_fg = css_var_foreground_name prefix in
+  let base_bg = css_var_background_name prefix in
+  let base_font_style = prefix ^ "font-style" in
+  let base_font_weight = prefix ^ "font-weight" in
+  let base_text_decoration = prefix ^ "text-decoration" in
+  let themed_fg = prefix ^ label in
+  let themed_prefix = prefix ^ label ^ "-" in
   Printf.sprintf
     {|.ochre,
 .ochre span {
-  color: var(%s) !important;
-  background-color: var(%sbg) !important;
-  font-style: var(%sfont-style) !important;
-  font-weight: var(%sfont-weight) !important;
-  text-decoration: var(%stext-decoration) !important;
+  %s: var(%s);
+  %s: var(%sbg);
+  %s: var(%sfont-style);
+  %s: var(%sfont-weight);
+  %s: var(%stext-decoration);
 }|}
-    (prefix ^ label) p p p p
+    base_fg themed_fg base_bg themed_prefix base_font_style themed_prefix
+    base_font_weight themed_prefix base_text_decoration themed_prefix
 
 let theme_prefers_dark_css ?(prefix = "--ochre-") () =
   let body = theme_css ~prefix "dark" in
@@ -397,7 +426,9 @@ let render_theme_css ~class_prefix (theme : Theme.theme) code =
     (fun line ->
       List.iter
         (fun (tok : styled_token) ->
-          let style = token_style_to_css ~emit_default:true tok in
+          let style =
+            token_style_to_css ~emit_default:true ~prefix:"--ochre-" tok
+          in
           if style <> "" then ignore (class_for_style reg style)
         )
         line

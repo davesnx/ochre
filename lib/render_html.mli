@@ -25,7 +25,8 @@ val render :
     {3 Default (backward-compatible) output}
 
     {[
-      <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4"
+      <pre class="ochre"
+           style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)"
            tabindex="0">
         <code>
           <span class="line">...</span>
@@ -64,9 +65,11 @@ val theme_css : ?prefix:string -> string -> string
     {[
       .ochre,
       .ochre span {
-        color: var(--ochre-dark) !important;
-        background-color: var(--ochre-dark-bg) !important;
-        ...
+        --ochre: var(--ochre-dark);
+        --ochre-bg: var(--ochre-dark-bg);
+        --ochre-font-style: var(--ochre-dark-font-style);
+        --ochre-font-weight: var(--ochre-dark-font-weight);
+        --ochre-text-decoration: var(--ochre-dark-text-decoration);
       }
     ]}
 

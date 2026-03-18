@@ -105,9 +105,9 @@ Scope marker (keyword prefix)
 
 HTML output with line highlight transform
   $ ./test_transform.exe html-with-transform
-  <pre class="ochre" style="background-color:#1e1e1e;color:#d4d4d4" tabindex="0"><code><span class="line"><span style="font-weight:bold;background-color:#ffffff22;color:#ff0000">let</span><span style="background-color:#ffffff22;color:#d4d4d4"> x = </span><span style="background-color:#ffffff22;color:#0000ff">42</span><span style="background-color:#ffffff22;color:#d4d4d4">
+  <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span style="font-weight:var(--ochre-font-weight,bold);background-color:var(--ochre-bg,#ffffff22);color:var(--ochre,#ff0000)">let</span><span style="background-color:var(--ochre-bg,#ffffff22);color:var(--ochre,#d4d4d4)"> x = </span><span style="background-color:var(--ochre-bg,#ffffff22);color:var(--ochre,#0000ff)">42</span><span style="background-color:var(--ochre-bg,#ffffff22);color:var(--ochre,#d4d4d4)">
   </span></span>
-  <span class="line"><span style="font-weight:bold;color:#ff0000">let</span><span style="color:#d4d4d4"> y = </span><span style="color:#0000ff">10</span><span style="color:#d4d4d4">
+  <span class="line"><span style="font-weight:var(--ochre-font-weight,bold);color:var(--ochre,#ff0000)">let</span><span style="color:var(--ochre,#d4d4d4)"> y = </span><span style="color:var(--ochre,#0000ff)">10</span><span style="color:var(--ochre,#d4d4d4)">
   </span></span></code></pre>
 
 Combined transforms (line-highlight + word-highlight)

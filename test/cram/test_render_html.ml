@@ -93,6 +93,12 @@ let () =
            ~extra_themes:[ ("dark", theme) ]
            ~lang:"test" "let x = 42\nlet y = 10"
         )
+  | "themes-light-dark-vars" ->
+      print_endline
+        (Ochre.to_html hl ~theme:light_theme
+           ~extra_themes:[ ("light", light_theme); ("dark", theme) ]
+           ~lang:"test" "let x = 42"
+        )
   | "themes-no-default" ->
       (* omit ~theme, first entry in ~extra_themes becomes default *)
       print_endline
