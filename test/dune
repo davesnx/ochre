@@ -3,7 +3,7 @@
  (libraries ochre alcotest))
 
 (executables
- (names test_html test_latex test_svg)
+ (names test_html test_html_dual_theme test_latex test_svg)
  (libraries ochre unix))
 
 (rule
@@ -40,3 +40,12 @@
   (with-stdout-to
    %{target}
    (run %{dep:test_html.exe} --preview))))
+
+(rule
+ (target html-dual-theme-preview.html)
+ (mode promote)
+ (deps test_html_dual_theme.exe)
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{dep:test_html_dual_theme.exe} --preview))))

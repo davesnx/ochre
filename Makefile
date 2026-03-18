@@ -35,6 +35,10 @@ test: ## Run the unit tests
 test-browser: ## Serve sample highlighted page on port 5000
 	$(DUNE) exec test/test_html.exe
 
+.PHONY: test-browser-dual
+test-browser-dual: ## Serve dual-theme HTML preview on port 5000
+	$(DUNE) exec test/test_html_dual_theme.exe
+
 .PHONY: test-svg
 test-svg: ## Serve sample highlighted page on port 5000 + promote SVG preview for GitHub rendering
 	$(DUNE) build test/svg-preview.svg --auto-promote

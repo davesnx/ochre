@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>
+ochre dual-theme HTML preview
+</title>
+<style>
+:root { --page-bg: #f5f5f5; --page-fg: #111827; --card-bg: #ffffff; }
+body { margin:0; padding:24px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--page-bg); color: var(--page-fg); }
+.page { max-width: 960px; margin: 0 auto; display: grid; gap: 16px; }
+.toolbar { display:flex; align-items:center; justify-content:center; }
+.toggle { display: inline-flex; align-items: center; gap: 10px; }
+.toggle input { width:42px; height:24px; }
+.label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; }
+#theme-label { display:inline-block; width:5ch; text-align:center; }
+pre.ochre { margin: 0; padding: 24px 20px; border-radius: 10px; overflow-x: auto; }
+:root[data-theme="dark"] .ochre, :root[data-theme="dark"] .ochre span { --ochre: var(--ochre-dark); --ochre-bg: var(--ochre-dark-bg); --ochre-font-style: var(--ochre-dark-font-style); --ochre-font-weight: var(--ochre-dark-font-weight); --ochre-text-decoration: var(--ochre-dark-text-decoration); }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="toolbar">
+<label class="toggle" for="theme-toggle">
+<span class="label">
+Theme
+</span>
+<input id="theme-toggle" type="checkbox" aria-label="Toggle dark mode">
+<span id="theme-label">
+Light
+</span>
+</label>
+</div>
+<pre class="ochre ochre-themes light dark" style="background-color:var(--ochre-bg,#FFFFFF);color:var(--ochre,#000000);--ochre-dark-bg:#1E1E1E;--ochre-dark:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:var(--ochre,#AF00DB);--ochre-dark:#C586C0">let</span><span style="color:var(--ochre,#000000);--ochre-dark:#D4D4D4"> answer = </span><span style="color:var(--ochre,#098658);--ochre-dark:#b5cea8">42</span><span style="color:var(--ochre,#000000);--ochre-dark:#D4D4D4">
+</span></span>
+<span class="line"><span style="color:var(--ochre,#008000);--ochre-dark:#6A9955">(* toggle light and dark theme *)</span><span style="color:var(--ochre,#000000);--ochre-dark:#D4D4D4">
+</span></span>
+<span class="line"><span style="color:var(--ochre,#AF00DB);--ochre-dark:#C586C0">let</span><span style="color:var(--ochre,#000000);--ochre-dark:#D4D4D4"> greet = </span><span style="color:var(--ochre,#a31515);--ochre-dark:#ce9178">&quot;hello from ochre&quot;</span><span style="color:var(--ochre,#000000);--ochre-dark:#D4D4D4">
+</span></span></code></pre>
+</div>
+<script>
+(function () {
+  var root = document.documentElement;
+  var toggle = document.getElementById('theme-toggle');
+  var label = document.getElementById('theme-label');
+  function setTheme(mode) {
+    root.setAttribute('data-theme', mode);
+    label.textContent = mode === 'dark' ? 'Dark' : 'Light';
+    toggle.checked = mode === 'dark';
+  }
+  setTheme('light');
+  toggle.addEventListener('change', function () {
+    setTheme(toggle.checked ? 'dark' : 'light');
+  });
+})();
+</script>
+</body>
+</html>
