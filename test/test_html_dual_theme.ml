@@ -59,8 +59,8 @@ let render_page ~highlighter ~source =
                     ("content", "width=device-width, initial-scale=1");
                   ]
                 "meta";
-              component "title" [ "ochre dual-theme HTML preview" ];
-              component "style" css;
+              node "title" [ "ochre dual-theme HTML preview" ];
+              node "style" css;
             ]
          )
        ~body:
@@ -72,12 +72,10 @@ let render_page ~highlighter ~source =
                   div
                     ~attrs:[ ("class", "toolbar") ]
                     [
-                      component "label"
+                      node "label"
                         ~attrs:[ ("class", "toggle"); ("for", "theme-toggle") ]
                         [
-                          component "span"
-                            ~attrs:[ ("class", "label") ]
-                            [ "Theme" ];
+                          node "span" ~attrs:[ ("class", "label") ] [ "Theme" ];
                           void
                             ~attrs:
                               [
@@ -86,14 +84,14 @@ let render_page ~highlighter ~source =
                                 ("aria-label", "Toggle dark mode");
                               ]
                             "input";
-                          component "span"
+                          node "span"
                             ~attrs:[ ("id", "theme-label") ]
                             [ "Light" ];
                         ];
                     ];
                   highlighted;
                 ];
-              component "script" script;
+              node "script" script;
             ]
          )
        ()

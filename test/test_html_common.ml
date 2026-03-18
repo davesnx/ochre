@@ -25,22 +25,22 @@ module Html = struct
 
   let void ?(attrs = []) tag = Printf.sprintf "<%s%s>" tag (render_attrs attrs)
 
-  let component ?(attrs = []) tag children =
+  let node ?(attrs = []) tag children =
     String.concat "\n" ([ open_tag ~attrs tag ] @ children @ [ close_tag tag ])
 
-  let div ?(attrs = []) children = component ~attrs "div" children
+  let div ?(attrs = []) children = node ~attrs "div" children
 
-  let section ?(attrs = []) children = component ~attrs "section" children
+  let section ?(attrs = []) children = node ~attrs "section" children
 
-  let head children = component "head" children
+  let head children = node "head" children
 
-  let body ?(attrs = []) children = component ~attrs "body" children
+  let body ?(attrs = []) children = node ~attrs "body" children
 
   let page ?(attrs = []) ~lang ~head ~body () =
     String.concat "\n"
       [
         "<!doctype html>";
-        component ~attrs:(("lang", lang) :: attrs) "html" [ head; body ];
+        node ~attrs:(("lang", lang) :: attrs) "html" [ head; body ];
       ]
 
   let render html = html

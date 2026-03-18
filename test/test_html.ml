@@ -27,7 +27,7 @@ let render_page ~highlighter ~source =
               ~attrs:
                 [
                   ( "style",
-                    "font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280"
+                    "font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#1f1f1f"
                   );
                 ]
               [ name ];
@@ -35,7 +35,7 @@ let render_page ~highlighter ~source =
           ]
     | None ->
         section
-          [ component "p" [ Printf.sprintf "Missing built-in theme: %s" name ] ]
+          [ node "p" [ Printf.sprintf "Missing built-in theme: %s" name ] ]
   in
   let rendered_sections = List.map render_theme preview_themes in
   render
@@ -44,8 +44,8 @@ let render_page ~highlighter ~source =
          (head
             [
               void ~attrs:[ ("charset", "utf-8") ] "meta";
-              component "title" [ "ochre HTML preview" ];
-              component "style" [ "pre.ochre {padding: 24px 20px}" ];
+              node "title" [ "ochre HTML preview" ];
+              node "style" [ "pre.ochre {padding: 24px 20px}" ];
             ]
          )
        ~body:

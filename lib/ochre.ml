@@ -186,7 +186,6 @@ let to_html_with t ?(decorations = []) ~transforms ?options ?theme ?extra_themes
       Render_html.render ?options default_theme ~extra_themes:themed_extras
         default_code
 
-let html_theme_prefers_dark_css = Render_html.theme_prefers_dark_css ()
 let html_theme_css = Render_html.theme_css
 let to_ansi t = render_to_string t Render_ansi.render
 let to_latex t = render_to_string t Render_latex.render

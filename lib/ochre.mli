@@ -402,44 +402,19 @@ val to_html :
     becomes the default. When neither [~theme] nor [~extra_themes] is provided,
     {!Theme.dark} is used as the default.
 
-    Pair with {!val-html_theme_prefers_dark_css} or {!val-html_theme_css} to
-    activate alternate themes via CSS. *)
+    Pair with {!val-html_theme_css} to activate alternate themes via CSS. *)
 
-val html_theme_css : ?prefix:string -> string -> string
+val html_theme_css : string -> string
 (** {2 html_theme_css}
 
-    [html_theme_css ?prefix label] returns a CSS rule that maps base variables
+    [html_theme_css label] returns a CSS rule that maps base variables
     ([--ochre-*]) to the label-scoped variables ([--ochre-<label>-*]).
-
-    Pass [~prefix] to match a custom {!Html_options.css_variable_prefix}.
-    Default: ["--ochre-"].
 
     Wrap this in your own selector (a media query, a [.dark] class, a
     [data-theme] attribute selector, etc.) to control when the theme activates.
 
     {[
       Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
-    ]} *)
-
-val html_theme_prefers_dark_css : string
-(** {2 html_theme_prefers_dark_css}
-
-    {!val-html_theme_css} for ["dark"] wrapped in an
-    [@media (prefers-color-scheme: dark)] query.
-
-    Include this in a [<style>] tag or external stylesheet.
-
-    {[
-      @media (prefers-color-scheme: dark) {
-        .ochre,
-        .ochre span {
-          --ochre: var(--ochre-dark);
-          --ochre-bg: var(--ochre-dark-bg);
-          --ochre-font-style: var(--ochre-dark-font-style);
-          --ochre-font-weight: var(--ochre-dark-font-weight);
-          --ochre-text-decoration: var(--ochre-dark-text-decoration);
-        }
-      }
     ]} *)
 
 val to_ansi : t -> theme:Theme.theme -> lang:string -> string -> string

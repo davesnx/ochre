@@ -149,42 +149,19 @@ Pass `~options` to control rendering behaviour:
 ```
 When `~theme` is omitted but `~extra_themes` is provided, the first entry becomes the default. When neither `~theme` nor `~extra_themes` is provided, [`Theme.dark`](./Ochre-Theme.md#val-dark) is used as the default.
 
-Pair with [`html_theme_prefers_dark_css`](./#val-html_theme_prefers_dark_css) or [`html_theme_css`](./#val-html_theme_css) to activate alternate themes via CSS.
+Pair with [`html_theme_css`](./#val-html_theme_css) to activate alternate themes via CSS.
 
 ```ocaml
-val html_theme_css : ?prefix:string -> string -> string
+val html_theme_css : string -> string
 ```
 html\_theme\_css
 
-`html_theme_css ?prefix label` returns a CSS rule that maps base variables (`--ochre-*`) to the label-scoped variables (`--ochre-<label>-*`).
-
-Pass `~prefix` to match a custom [`Html_options.t.css_variable_prefix`](./Ochre-Html_options.md#type-t.css_variable_prefix). Default: `"--ochre-"`.
+`html_theme_css label` returns a CSS rule that maps base variables (`--ochre-*`) to the label-scoped variables (`--ochre-<label>-*`).
 
 Wrap this in your own selector (a media query, a `.dark` class, a `data-theme` attribute selector, etc.) to control when the theme activates.
 
 ```ocaml
   Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
-```
-```ocaml
-val html_theme_prefers_dark_css : string
-```
-html\_theme\_prefers\_dark\_css
-
-[`html_theme_css`](./#val-html_theme_css) for `"dark"` wrapped in an `@media (prefers-color-scheme: dark)` query.
-
-Include this in a `<style>` tag or external stylesheet.
-
-```ocaml
-  @media (prefers-color-scheme: dark) {
-    .ochre,
-    .ochre span {
-      --ochre: var(--ochre-dark);
-      --ochre-bg: var(--ochre-dark-bg);
-      --ochre-font-style: var(--ochre-dark-font-style);
-      --ochre-font-weight: var(--ochre-dark-font-weight);
-      --ochre-text-decoration: var(--ochre-dark-text-decoration);
-    }
-  }
 ```
 ```ocaml
 val to_ansi : t -> theme:Theme.theme -> lang:string -> string -> string

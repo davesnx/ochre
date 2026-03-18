@@ -377,7 +377,8 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
   Printf.sprintf "<pre class=\"%s\"%s tabindex=\"0\"><code%s>%s</code></pre>"
     pre_class_attr pre_style code_attrs code_content
 
-let theme_css ?(prefix = "--ochre-") label =
+let theme_css label =
+  let prefix = "--ochre-" in
   let base_fg = css_var_foreground_name prefix in
   let base_bg = css_var_background_name prefix in
   let base_font_style = prefix ^ "font-style" in
@@ -396,15 +397,6 @@ let theme_css ?(prefix = "--ochre-") label =
 }|}
     base_fg themed_fg base_bg themed_prefix base_font_style themed_prefix
     base_font_weight themed_prefix base_text_decoration themed_prefix
-
-let theme_prefers_dark_css ?(prefix = "--ochre-") () =
-  let body = theme_css ~prefix "dark" in
-  let indented =
-    String.split_on_char '\n' body
-    |> List.map (fun line -> "  " ^ line)
-    |> String.concat "\n"
-  in
-  Printf.sprintf "@media (prefers-color-scheme: dark) {\n%s\n}" indented
 
 (** Generate a CSS stylesheet from a class registry (for Css_classes mode).
     Returns a string of CSS rules mapping each class to its style properties. *)
