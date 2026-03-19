@@ -22,8 +22,13 @@
   "ochre is a syntax highlighter inspired by Shiki, using TextMate grammars and themes to produce accurate, beautiful syntax highlighting. It supports HTML output with inline styles, ANSI terminal colors, and raw token output.")
  (depends
   (ocaml
-   (>= 5.4.0))
-  dune
+   (>= 4.14.0))
+  (dune
+   (or
+    (and
+     (>= 3.22)
+     (= :with-doc true))
+    (= :with-doc false)))
   (textmate-language
    (>= 0.5.0))
   (yojson
@@ -43,8 +48,13 @@
   "CLI tool for highlighting source code using TextMate grammars and themes.")
  (depends
   (ocaml
-   (>= 5.4.0))
-  dune
+   (>= 4.14.0))
+   (dune
+    (or
+     (and
+      (>= 3.22)
+      (= :with-doc true))
+     (= :with-doc false)))
    ochre
    (tm-grammars
     (>= 1.0.1))

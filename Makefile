@@ -80,7 +80,6 @@ install: ## Install opam dependencies
 
 .PHONY: pin
 pin: ## Pin dependencies
-	opam pin dune https://github.com/ocaml/dune.git#main -y
 	opam pin odoc-parser https://github.com/davesnx/odoc.git#markdown-types -y
 	opam pin odoc https://github.com/davesnx/odoc.git#markdown-types -y
 

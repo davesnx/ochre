@@ -10,8 +10,8 @@ license: "MIT"
 homepage: "https://github.com/yourusername/ochre"
 bug-reports: "https://github.com/yourusername/ochre/issues"
 depends: [
-  "ocaml" {>= "5.4.0"}
-  "dune" {>= "3.17"}
+  "ocaml" {>= "4.14.0"}
+  "dune" {>= "3.17" & (>= "3.22" & with-doc = "true" | with-doc = "false")}
   "ochre"
   "tm-grammars" {>= "1.0.1"}
   "cmdliner" {>= "1.1.0"}
