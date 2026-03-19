@@ -99,7 +99,7 @@ let render highlighter ~theme ~lang ~format ~options source =
       print_endline (Ochre.to_html highlighter ~options ~theme ~lang source);
       `Ok ()
   | _ ->
-      print_endline (Ochre.to_string highlighter ~format ~theme ~lang source);
+      print_string (Ochre.to_string highlighter ~format ~theme ~lang source);
       `Ok ()
 
 let render_html_multi highlighter ~theme ~extra_themes ~lang ~options source =
