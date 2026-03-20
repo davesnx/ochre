@@ -18,7 +18,7 @@ depends: [
   "odoc" {>= "3.1.0"}
   "alcotest" {with-test}
   "ocaml-lsp-server" {with-dev-setup}
-  "ocamlformat" {with-dev-setup}
+  "ocamlformat" {= "0.28.1" & with-dev-setup}
 ]
 build: [
   ["dune" "subst"] {dev}
