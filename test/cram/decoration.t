@@ -20,8 +20,11 @@ Decoration that splits a token mid-way
 
 Decoration in debug tokens format
   $ ./test_decoration.exe debug-tokens
-  {let}[keyword.control.test,source.test]<class=hl>{ x = }[source.test]{42}[constant.numeric.test,source.test]{
-  }[source.test]
+  line 1:
+    "let"  keyword.control.test, source.test <class=hl>
+    " x = "  source.test
+    "42"  constant.numeric.test, source.test
+    "\n"  source.test
 
 Decoration spanning multiple lines
   $ ./test_decoration.exe multiline-html
