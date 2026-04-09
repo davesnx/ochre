@@ -164,7 +164,7 @@ Wrap this in your own selector (a media query, a `.dark` class, a `data-theme` a
   Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
 ```
 ```ocaml
-val html_render_theme_css :
+val html_render_theme_css : 
   class_prefix:string ->
   Theme.theme ->
   Token.highlighted_code ->
@@ -225,7 +225,7 @@ Produces an `<svg>` with monospace `<text>` elements and per-token `<tspan>` sty
 These wrap the corresponding exception-raising functions and return `(string, string) result` instead of raising. `Failure`, `TmLanguage.Error`, and `Oniguruma.Error` are caught and returned as `Error msg`.
 
 ```ocaml
-val to_html_result :
+val to_html_result : 
   t ->
   ?options:Html_options.t ->
   ?theme:Theme.theme ->
@@ -239,7 +239,7 @@ to\_html\_result
 Like [`to_html`](./#val-to_html) but returns a `result` instead of raising.
 
 ```ocaml
-val to_ansi_result :
+val to_ansi_result : 
   t ->
   theme:Theme.theme ->
   lang:string ->
@@ -251,7 +251,7 @@ to\_ansi\_result
 Like [`to_ansi`](./#val-to_ansi) but returns a `result` instead of raising.
 
 ```ocaml
-val to_latex_result :
+val to_latex_result : 
   t ->
   theme:Theme.theme ->
   lang:string ->
@@ -263,7 +263,7 @@ to\_latex\_result
 Like [`to_latex`](./#val-to_latex) but returns a `result` instead of raising.
 
 ```ocaml
-val to_svg_result :
+val to_svg_result : 
   t ->
   theme:Theme.theme ->
   lang:string ->

@@ -36,15 +36,14 @@ let highlighter = Ochre.create_from_json ~grammars:[ ("ocaml", Tm_grammars.ocaml
 let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" "let x = 42"
 ```
 
-## Backends
+## Output formats
 
-Ochre can render highlighted code to several output formats:
+`ochre` can render highlighted code to several output formats (also called backends):
 
 - **HTML** — Self-contained `<pre><code>` blocks with inline styles or CSS classes. Supports multi-theme via CSS custom properties, line numbers, and configurable class prefixes. See [rendered example](https://davesnx.github.io/ochre/examples/html-preview.html).
+- **SVG** — Standalone `<svg>` elements with monospace `<text>` and per-token `<tspan>` styling. Open preview: [SVG rendered example](https://davesnx.github.io/ochre/examples/svg-preview.svg). Source: [.svg file](test/svg-preview.svg).
 - **ANSI** — 24-bit color escape sequences for terminal display.
 - **LaTeX** — `\textcolor` commands inside an `ochrehighlight` environment. Requires the `xcolor` and `soul` packages. See [rendered PDF](https://davesnx.github.io/ochre/examples/latex-preview.pdf) (source: [.tex file](test/latex-preview.tex)).
-- **SVG** — Standalone `<svg>` elements with monospace `<text>` and per-token `<tspan>` styling. Open preview: [SVG rendered example](https://davesnx.github.io/ochre/examples/svg-preview.svg). Source: [.svg file](test/svg-preview.svg).
-- **Tokens** — Raw structured tokens for custom rendering or debugging.
 All backends share the same interface: create a highlighter, pick a theme, and call the corresponding `to_*` function.
 
 
@@ -76,4 +75,4 @@ MIT — see [LICENSE](LICENSE).
 ## Credits
 
 - Inspired by [Shiki](https://shiki.style/) by Pine Wu and Anthony Fu
-- Uses [textmate-language](https://github.com/alan-j-hu/ocaml-textmate-language) by Alan Hu
+- Uses [textmate-language](https://github.com/alan-j-hu/ocaml-textmate-language) and [ocaml-oniguruma](https://github.com/alan-j-hu/ocaml-oniguruma) by Alan Hu
