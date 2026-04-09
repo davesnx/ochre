@@ -4,7 +4,7 @@ Set Shell "bash"
 Set FontSize 22
 Set FontFamily "JetBrains Mono"
 Set Width 1024
-Set Height 720
+Set Height 600
 Set CursorBlink false
 
 Type `echo "let a = 33" | ochre 'ocaml' --format ansi`
