@@ -275,16 +275,15 @@ let check_overlapping_begin_captures_opening_quote () =
       && has_scope "string.quoted.double.test" closing
     | _ -> false)
 
-
 let check_injection_right_priority () =
-  let t, grammar = make_grammar (Yojson.Basic.from_file "data/injection.json") in
+  let t, grammar =
+    make_grammar (Yojson.Basic.from_file "data/injection.json")
+  in
   let toks, _ =
     TmLanguage.tokenize_exn t grammar TmLanguage.empty "<style>#ff0000</style>"
   in
   let spans = spans_of_tokens "<style>#ff0000</style>" toks in
-  let color_span =
-    List.find_opt (fun (text, _) -> text = "#ff0000") spans
-  in
+  let color_span = List.find_opt (fun (text, _) -> text = "#ff0000") spans in
   Alcotest.(check bool)
     "injected color pattern matches inside embedded CSS scope" true
     (match color_span with
@@ -299,9 +298,7 @@ let check_injection_left_priority () =
     TmLanguage.tokenize_exn t grammar TmLanguage.empty "INJECTED"
   in
   let spans = spans_of_tokens "INJECTED" toks in
-  let inj_span =
-    List.find_opt (fun (text, _) -> text = "INJECTED") spans
-  in
+  let inj_span = List.find_opt (fun (text, _) -> text = "INJECTED") spans in
   Alcotest.(check bool)
     "L: injected pattern wins over regular word pattern" true
     (match inj_span with
@@ -309,17 +306,18 @@ let check_injection_left_priority () =
     | None -> false)
 
 let check_injection_no_match_outside_scope () =
-  let t, grammar = make_grammar (Yojson.Basic.from_file "data/injection.json") in
-  let toks, _ =
-    TmLanguage.tokenize_exn t grammar TmLanguage.empty "hello"
+  let t, grammar =
+    make_grammar (Yojson.Basic.from_file "data/injection.json")
   in
+  let toks, _ = TmLanguage.tokenize_exn t grammar TmLanguage.empty "hello" in
   let spans = spans_of_tokens "hello" toks in
   let has_injected =
-    List.exists (fun (_, scopes) -> has_scope "constant.color.injected" scopes) spans
+    List.exists
+      (fun (_, scopes) -> has_scope "constant.color.injected" scopes)
+      spans
   in
   Alcotest.(check bool)
-    "injection pattern does not match outside target scope" false
-    has_injected
+    "injection pattern does not match outside target scope" false has_injected
 
 let () =
   Alcotest.run "Highlighting"
@@ -522,8 +520,9 @@ let () =
         [
           Alcotest.test_case "Right-priority injection into embedded scope"
             `Quick check_injection_right_priority;
-          Alcotest.test_case "Left-priority injection wins over regular patterns"
-            `Quick check_injection_left_priority;
+          Alcotest.test_case
+            "Left-priority injection wins over regular patterns" `Quick
+            check_injection_left_priority;
           Alcotest.test_case "Injection does not match outside target scope"
             `Quick check_injection_no_match_outside_scope;
         ] );

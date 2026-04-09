@@ -13,7 +13,7 @@
 
 typedef struct {
     OnigRegSet* regset;
-    value regexes;
+    value* regexes;
 } regset_t;
 
 #define RegSet_val(v) ((regset_t*)Data_custom_val(v))
@@ -254,19 +254,22 @@ static struct custom_operations region_ops = {
 static void finalize_regset(value v)
 {
     regset_t* const regset = RegSet_val(v);
-    if (regset->regexes != Val_unit) {
-        const mlsize_t regex_count = Wosize_val(regset->regexes);
-        for (mlsize_t i = 0; i < regex_count; ++i) {
-            Regex_val(Field(regset->regexes, i)) = NULL;
+    if (regset->regexes != NULL) {
+        if (*regset->regexes != Val_unit) {
+            const mlsize_t regex_count = Wosize_val(*regset->regexes);
+            for (mlsize_t i = 0; i < regex_count; ++i) {
+                Regex_val(Field(*regset->regexes, i)) = NULL;
+            }
         }
     }
     if (regset->regset != NULL) {
         onig_regset_free(regset->regset);
         regset->regset = NULL;
     }
-    if (regset->regexes != Val_unit) {
-        caml_remove_generational_global_root(&regset->regexes);
-        regset->regexes = Val_unit;
+    if (regset->regexes != NULL) {
+        caml_remove_generational_global_root(regset->regexes);
+        caml_stat_free(regset->regexes);
+        regset->regexes = NULL;
     }
 }
 
@@ -316,8 +319,9 @@ CAMLprim value ocaml_onig_regset_new(value regexes_val)
     regset_val = caml_alloc_custom(&regset_ops, sizeof(regset_t), 0, 1);
     regset_t* const wrapped = RegSet_val(regset_val);
     wrapped->regset = regset;
-    wrapped->regexes = regexes_val;
-    caml_register_generational_global_root(&wrapped->regexes);
+    wrapped->regexes = caml_stat_alloc(sizeof(value));
+    *wrapped->regexes = regexes_val;
+    caml_register_generational_global_root(wrapped->regexes);
 
     CAMLreturn(regset_val);
 }

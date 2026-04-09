@@ -36,6 +36,7 @@
    (plist-xml (>= 0.3.0))
    (ezjsonm :with-test)
    (odoc (>= 3.1.0))
+   (tm-grammars :with-test)
    (alcotest :with-test)
    (ocaml-lsp-server :with-dev-setup)
    (ocamlformat

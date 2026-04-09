@@ -305,9 +305,9 @@ let rec collect_candidates ~t ~base_grammar ?(scope = None) repos cur_grammar =
 
 let scope_matches_selector_part scope part =
   scope = part
-  || (String.length part < String.length scope
+  || String.length part < String.length scope
      && String.starts_with ~prefix:part scope
-     && scope.[String.length part] = '.')
+     && scope.[String.length part] = '.'
 
 let injection_selector_matches scopes (sel : injection_selector) =
   let rev_scopes = List.rev scopes in
@@ -331,8 +331,8 @@ let collect_injection_candidates ~t ~base_grammar scopes =
       (fun (sel, patterns) ->
         if injection_selector_matches scopes sel then begin
           let cs =
-            collect_candidates ~t ~base_grammar [ grammar.repository ]
-              grammar patterns
+            collect_candidates ~t ~base_grammar [ grammar.repository ] grammar
+              patterns
           in
           if sel.selector_left then left := List.rev_append cs !left
           else right := List.rev_append cs !right
@@ -356,7 +356,6 @@ let collect_injection_candidates ~t ~base_grammar scopes =
           end)
     t.by_scope_name;
   (List.rev !left, List.rev !right)
-
 
 let drop n list =
   let rec loop n = function

@@ -4,7 +4,7 @@
 
 (executables
  (names test_html test_html_dual_theme test_latex test_svg)
- (libraries ochre unix))
+ (libraries ochre unix tm-grammars))
 
 (rule
  (target test_latex.tex)

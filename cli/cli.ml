@@ -162,8 +162,35 @@ let build_html_options ~css_classes ~line_numbers ~no_default_color
   Ochre.Html_options.make ~style_mode ~default_color ~line_numbers
     ~css_variable_prefix ~scopes_as_data_attrs:scopes_data ()
 
-let highlight lang theme_path theme_dark theme_light grammars format input_file
-    css_classes line_numbers no_default_color css_var_prefix scopes_data =
+let lang_id_of_path path =
+  let base = Filename.basename path in
+  match String.split_on_char '.' base with
+  | name :: _ when name <> "" ->
+      name
+  | _ ->
+      base
+
+let grammar_json_of_path path = (lang_id_of_path path, read_file path)
+
+let resolve_include name_or_path =
+  if Sys.file_exists name_or_path then
+    Ok (grammar_json_of_path name_or_path)
+  else
+    match Tm_grammars.find name_or_path with
+    | Some json ->
+        Ok (name_or_path, json)
+    | None ->
+        Error
+          (Printf.sprintf
+             "Cannot resolve --include '%s': not a file and not a bundled \
+              grammar. Available: %s"
+             name_or_path
+             (String.concat ", " Tm_grammars.available)
+          )
+
+let highlight lang theme_path theme_dark theme_light grammars includes format
+    input_file css_classes line_numbers no_default_color css_var_prefix
+    scopes_data =
   let source =
     match input_file with
     | Some path ->
@@ -178,22 +205,55 @@ let highlight lang theme_path theme_dark theme_light grammars format input_file
   | None ->
       error "Provide a file path or pipe input via stdin"
   | Some source -> (
+      let resolve_includes () =
+        List.fold_left
+          (fun acc inc ->
+            match acc with
+            | Error _ ->
+                acc
+            | Ok grammars -> (
+                match resolve_include inc with
+                | Ok g ->
+                    Ok (g :: grammars)
+                | Error msg ->
+                    Error msg
+              )
+          )
+          (Ok []) includes
+      in
       let make_highlighter grammars_arg =
-        match grammars_arg with
-        | _ :: _ ->
-            Ok (Ochre.create ~grammars:grammars_arg ())
-        | [] -> (
-            match Tm_grammars.find lang with
-            | Some json ->
-                Ok (Ochre.create_from_json ~grammars:[ (lang, json) ] ())
-            | None ->
-                Error
-                  (Printf.sprintf
-                     "No bundled grammar for '%s'. Available: %s. Use \
-                      --grammar to provide one."
-                     lang
-                     (String.concat ", " Tm_grammars.available)
+        match resolve_includes () with
+        | Error msg ->
+            Error msg
+        | Ok include_grammars -> (
+            let include_grammars = List.rev include_grammars in
+            match grammars_arg with
+            | _ :: _ ->
+                let file_grammars =
+                  List.map grammar_json_of_path grammars_arg
+                in
+                Ok
+                  (Ochre.create_from_json
+                     ~grammars:(file_grammars @ include_grammars)
+                     ()
                   )
+            | [] -> (
+                match Tm_grammars.find lang with
+                | Some json ->
+                    Ok
+                      (Ochre.create_from_json
+                         ~grammars:([ (lang, json) ] @ include_grammars)
+                         ()
+                      )
+                | None ->
+                    Error
+                      (Printf.sprintf
+                         "No bundled grammar for '%s'. Available: %s. Use \
+                          --grammar to provide one."
+                         lang
+                         (String.concat ", " Tm_grammars.available)
+                      )
+              )
           )
       in
       let options =
@@ -257,6 +317,17 @@ let grammars =
   in
   Arg.(value & opt_all string [] & info [ "grammar"; "g" ] ~docv:"FILE" ~doc)
 
+let includes =
+  let doc =
+    "Additional grammar to load by name (from bundled grammars) or file path. \
+     Use to enable cross-grammar features like HTML embedding CSS/JS. Can be \
+     specified multiple times"
+  in
+  Arg.(
+    value & opt_all string []
+    & info [ "include"; "i" ] ~docv:"LANG_OR_PATH" ~doc
+  )
+
 let format =
   let doc = "Output format: html, ansi, latex, svg, or tokens" in
   Arg.(
@@ -314,7 +385,7 @@ let cmd =
     Term.(
       ret
         (const highlight $ lang $ theme_path $ theme_dark $ theme_light
-       $ grammars $ format $ input_file $ css_classes $ line_numbers
+       $ grammars $ includes $ format $ input_file $ css_classes $ line_numbers
        $ no_default_color $ css_var_prefix $ scopes_data
         )
     )
