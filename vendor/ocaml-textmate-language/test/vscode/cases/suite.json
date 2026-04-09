@@ -1,0 +1,75 @@
+{
+  "cases": [
+    {
+      "id": "a-basic",
+      "grammar_path": "data/a.json",
+      "grammar_format": "json",
+      "scope_name": "source.a",
+      "lines": [
+        "a",
+        "a(a)",
+        "a(",
+        "a)"
+      ]
+    },
+    {
+      "id": "while-state",
+      "grammar_path": "data/while.json",
+      "grammar_format": "json",
+      "scope_name": "source.while",
+      "lines": [
+        "ac",
+        "bc"
+      ]
+    },
+    {
+      "id": "multiwhile-state",
+      "grammar_path": "data/multiwhile.json",
+      "grammar_format": "json",
+      "scope_name": "source.multiwhile",
+      "lines": [
+        "X",
+        "xY",
+        "yxy",
+        "xy",
+        "y"
+      ]
+    },
+    {
+      "id": "groups-single-line",
+      "grammar_path": "data/groups.json",
+      "grammar_format": "json",
+      "scope_name": "source.groups",
+      "lines": [
+        "({#aaff59})"
+      ]
+    },
+    {
+      "id": "ocaml-simple",
+      "grammar_path": "data/ocaml.tmLanguage.json",
+      "grammar_format": "json",
+      "scope_name": "source.ocaml",
+      "lines": [
+        "let x = 1"
+      ]
+    },
+    {
+      "id": "cpp-simple",
+      "grammar_path": "data/cpp.tmLanguage.json",
+      "grammar_format": "json",
+      "scope_name": "source.cpp",
+      "lines": [
+        "int main()"
+      ]
+    },
+    {
+      "id": "csharp-simple",
+      "grammar_path": "data/csharp.tmLanguage",
+      "grammar_format": "plist",
+      "scope_name": "source.cs",
+      "lines": [
+        "using StreamReader streamReader = new(Console.OpenStandardInput());"
+      ]
+    }
+  ]
+}

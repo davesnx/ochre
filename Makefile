@@ -76,7 +76,7 @@ create-switch: ## Create opam switch
 
 .PHONY: install
 install: ## Install opam dependencies
-	CI=true opam install . --deps-only --with-test --with-doc --with-dev-setup -y
+	opam install . --deps-only --with-test --with-doc --with-dev-setup -y
 
 .PHONY: pin
 pin: ## Pin dependencies

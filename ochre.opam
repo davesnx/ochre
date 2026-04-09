@@ -12,9 +12,12 @@ bug-reports: "https://github.com/yourusername/ochre/issues"
 depends: [
   "ocaml" {>= "4.14.0"}
   "dune" {>= "3.17" & (>= "3.22" & with-doc = "true" | with-doc = "false")}
-  "textmate-language" {>= "0.5.0"}
   "yojson" {>= "2.0.0"}
   "melange-json-native" {>= "2.0.0"}
+  "conf-oniguruma" {= "1"}
+  "dune-configurator" {>= "2.9" & build}
+  "plist-xml" {with-test}
+  "ezjsonm" {with-test}
   "odoc" {>= "3.1.0"}
   "alcotest" {with-test}
   "ocaml-lsp-server" {with-dev-setup}

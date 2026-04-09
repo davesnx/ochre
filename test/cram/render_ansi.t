@@ -17,7 +17,7 @@ Multiple lines with ANSI codes
 
 Compound scope entries prefer string over function scopes
   $ ./test_render_ansi.exe compound-scope
-  \e[38;2;0;255;0mx\e[0m\e[38;2;212;212;212m
+  \e[38;2;255;255;0mx\e[0m\e[38;2;212;212;212m
   \e[0m
 
 Invalid foreground falls back to white on dark background

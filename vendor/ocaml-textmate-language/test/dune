@@ -1,0 +1,11 @@
+(tests
+ (names test_find test_tokenize test_cpp test_csharp test_ocaml)
+ (modes native)
+ (deps
+  (glob_files data/*))
+ (libraries alcotest ezjsonm plist-xml ochre.textmate_language yojson))
+
+(executable
+ (name test_vscode_compat)
+ (modules test_vscode_compat)
+ (libraries alcotest plist-xml ochre.textmate_language yojson unix))

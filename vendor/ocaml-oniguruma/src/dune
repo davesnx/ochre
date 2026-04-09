@@ -1,0 +1,17 @@
+(library
+ (name oniguruma)
+ (public_name ochre.oniguruma)
+ (foreign_stubs
+  (language c)
+  (names onig_stubs)
+  (flags
+   (:standard
+    -fPIC
+    (:include cflags.sexp))))
+ (c_library_flags
+  (:include libs.sexp)))
+
+(rule
+ (targets cflags.sexp libs.sexp)
+ (action
+  (run ./config/discover.exe)))

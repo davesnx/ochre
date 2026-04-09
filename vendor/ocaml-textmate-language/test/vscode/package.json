@@ -1,0 +1,9 @@
+{
+  "name": "textmate-vscode-compat",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.2.1"
+  }
+}

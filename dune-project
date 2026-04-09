@@ -29,16 +29,15 @@
      (>= 3.22)
      (= :with-doc true))
     (= :with-doc false)))
-  (textmate-language
-   (>= 0.5.0))
-  (yojson
-   (>= 2.0.0))
-  (melange-json-native
-   (>= 2.0.0))
-  (odoc
-   (>= 3.1.0))
-  (alcotest :with-test)
-  (ocaml-lsp-server :with-dev-setup)
+   (yojson (>= 2.0.0))
+   (melange-json-native (>= 2.0.0))
+   (conf-oniguruma (= 1))
+   (dune-configurator (and (>= 2.9) :build))
+   (plist-xml :with-test)
+   (ezjsonm :with-test)
+   (odoc (>= 3.1.0))
+   (alcotest :with-test)
+   (ocaml-lsp-server :with-dev-setup)
    (ocamlformat
     (and
      (= 0.28.1)
@@ -49,9 +48,9 @@
  (synopsis "Command-line interface for ochre syntax highlighter")
  (description
   "CLI tool for highlighting source code using TextMate grammars and themes.")
- (depends
-  (ocaml
-   (>= 4.14.0))
+  (depends
+   (ocaml
+    (>= 4.14.0))
    (dune
     (or
      (and
@@ -59,7 +58,5 @@
       (= :with-doc true))
      (= :with-doc false)))
    ochre
-   (tm-grammars
-    (>= 1.0.1))
-   (cmdliner
-    (>= 1.1.0))))
+   (tm-grammars (>= 1.0.1))
+   (cmdliner (>= 1.1.0))))

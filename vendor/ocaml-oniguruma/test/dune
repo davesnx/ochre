@@ -1,0 +1,27 @@
+(library
+ (name test_util)
+ (modules test_util)
+ (libraries oniguruma))
+
+(tests
+ (names
+  test_ascii
+  test_utf8
+  test_options
+  test_syntax
+  test_misc
+  test_regset
+  test_encodings
+  test_advanced
+  test_introspection)
+ (modules
+  test_ascii
+  test_utf8
+  test_options
+  test_syntax
+  test_misc
+  test_regset
+  test_encodings
+  test_advanced
+  test_introspection)
+ (libraries oniguruma test_util))

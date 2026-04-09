@@ -8,5 +8,5 @@ Reason bundled grammar works through the CLI
     "="  keyword.control.less, source.reason
     " "  source.reason
     "1"  constant.numeric, source.reason
-    ";"  variable.other.class.js variable.interpolation keyword.operator keyword.control message.error, source.reason
+    ";"  message.error, keyword.control, keyword.operator, variable.interpolation, variable.other.class.js, source.reason
     "\n"  source.reason
