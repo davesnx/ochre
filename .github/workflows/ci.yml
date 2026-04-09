@@ -73,7 +73,9 @@ jobs:
         uses: davesnx/dune-release-action@v0.2.14
         if: startsWith(github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest'
         with:
-          packages: 'ochre ochre-cli'
+          packages: |
+            ochre
+            ochre-cli
           changelog: './CHANGES.md'
           github-token: ${{ secrets.GH_TOKEN }}
 
