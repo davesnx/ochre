@@ -67,11 +67,13 @@ Falls back to the filename as the theme name when none is specified in the JSON.
   let theme = Ochre.Theme.load "/path/to/theme.json"
 ```
 ```ocaml
-val load_from_string : string -> theme
+val load_from_string : ?base_dir:string -> string -> theme
 ```
 load\_from\_string
 
 Parse a theme from a raw JSON string.
+
+When `~base_dir` is provided, `"include"` paths in the JSON are resolved relative to that directory (same as [load](./#load) does with the file's parent directory). When omitted, `"include"` fields are silently ignored.
 
 ```ocaml
   let theme =

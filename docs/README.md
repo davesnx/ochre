@@ -164,6 +164,22 @@ Wrap this in your own selector (a media query, a `.dark` class, a `data-theme` a
   Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
 ```
 ```ocaml
+val html_render_theme_css :
+  class_prefix:string ->
+  Theme.theme ->
+  Token.highlighted_code ->
+  string
+```
+html\_render\_theme\_css
+
+`html_render_theme_css ~class_prefix theme code` generates a complete CSS stylesheet for the given theme and highlighted code when using [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode. Walks all tokens to discover unique styles and maps each to a deterministic class name prefixed with `class_prefix`.
+
+```ocaml
+  let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
+  let css = Ochre.html_render_theme_css ~class_prefix:"oc-" theme tokens in
+  Printf.printf "<style>%s</style>" css
+```
+```ocaml
 val to_ansi : t -> theme:Theme.theme -> lang:string -> string -> string
 ```
 to\_ansi
@@ -203,6 +219,61 @@ Produces an `<svg>` with monospace `<text>` elements and per-token `<tspan>` sty
 ```ocaml
   let svg = Ochre.to_svg hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
 ```
+
+## Result-returning variants
+
+These wrap the corresponding exception-raising functions and return `(string, string) result` instead of raising. `Failure`, `TmLanguage.Error`, and `Oniguruma.Error` are caught and returned as `Error msg`.
+
+```ocaml
+val to_html_result :
+  t ->
+  ?options:Html_options.t ->
+  ?theme:Theme.theme ->
+  ?extra_themes:(string * Theme.theme) list ->
+  lang:string ->
+  string ->
+  (string, string) Stdlib.result
+```
+to\_html\_result
+
+Like [`to_html`](./#val-to_html) but returns a `result` instead of raising.
+
+```ocaml
+val to_ansi_result :
+  t ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  (string, string) Stdlib.result
+```
+to\_ansi\_result
+
+Like [`to_ansi`](./#val-to_ansi) but returns a `result` instead of raising.
+
+```ocaml
+val to_latex_result :
+  t ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  (string, string) Stdlib.result
+```
+to\_latex\_result
+
+Like [`to_latex`](./#val-to_latex) but returns a `result` instead of raising.
+
+```ocaml
+val to_svg_result :
+  t ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  (string, string) Stdlib.result
+```
+to\_svg\_result
+
+Like [`to_svg`](./#val-to_svg) but returns a `result` instead of raising.
+
 ```ocaml
 val to_debug_tokens : t -> theme:Theme.theme -> lang:string -> string -> string
 ```

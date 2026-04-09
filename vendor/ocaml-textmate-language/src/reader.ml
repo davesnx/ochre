@@ -145,6 +145,53 @@ and patterns_of_plist obj =
       Scope_patterns { scope_name; child_patterns }
     | Some _, Some _ -> error "Pattern must not have both match and begin.")
 
+let parse_injection_selector raw =
+  let s = String.trim raw in
+  if String.length s >= 2 && s.[0] = 'L' && s.[1] = ':' then
+    let rest = String.trim (String.sub s 2 (String.length s - 2)) in
+    {
+      selector_left = true;
+      selector_segments =
+        String.split_on_char ' ' rest
+        |> List.map String.trim
+        |> List.filter (fun x -> x <> "");
+    }
+  else
+    let rest =
+      if String.length s >= 2 && s.[0] = 'R' && s.[1] = ':' then
+        String.trim (String.sub s 2 (String.length s - 2))
+      else s
+    in
+    {
+      selector_left = false;
+      selector_segments =
+        String.split_on_char ' ' rest
+        |> List.map String.trim
+        |> List.filter (fun x -> x <> "");
+    }
+
+let get_injections obj =
+  match List.assoc_opt "injections" obj with
+  | None -> []
+  | Some inj_obj ->
+    let entries = get_dict inj_obj in
+    List.filter_map
+      (fun (selector_str, value) ->
+        let selector = parse_injection_selector selector_str in
+        if selector.selector_segments = [] then None
+        else
+          let patterns =
+            let d = get_dict value in
+            match List.assoc_opt "patterns" d with
+            | None -> (
+              match (List.assoc_opt "match" d, List.assoc_opt "begin" d) with
+              | None, None -> []
+              | _, _ -> [ patterns_of_plist d ])
+            | Some v -> get_pattern_list v
+          in
+          Some (selector, patterns))
+      entries
+
 let of_doc_exn (plist : union) =
   let rec get_repo_item obj =
     {
@@ -171,6 +218,8 @@ let of_doc_exn (plist : union) =
   {
     name = Option.map get_string (List.assoc_opt "name" obj);
     scope_name = get_string (find_exn "scopeName" obj);
+    injection_selector =
+      Option.map get_string (List.assoc_opt "injectionSelector" obj);
     filetypes =
       (match List.assoc_opt "fileTypes" obj with
       | None -> []
@@ -180,6 +229,7 @@ let of_doc_exn (plist : union) =
       (match List.assoc_opt "repository" obj with
       | None -> Hashtbl.create 0
       | Some obj -> get_repo obj);
+    injections = get_injections obj;
   }
 
 let of_plist_exn = (of_doc_exn :> plist -> grammar)

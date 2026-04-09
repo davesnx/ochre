@@ -134,10 +134,14 @@ module Theme : sig
         let theme = Ochre.Theme.load "/path/to/theme.json"
       ]} *)
 
-  val load_from_string : string -> theme
+  val load_from_string : ?base_dir:string -> string -> theme
   (** {2 load_from_string}
 
       Parse a theme from a raw JSON string.
+
+      When [~base_dir] is provided, ["include"] paths in the JSON are resolved
+      relative to that directory (same as {!load} does with the file's parent
+      directory). When omitted, ["include"] fields are silently ignored.
 
       {[
         let theme =
@@ -417,6 +421,21 @@ val html_theme_css : string -> string
       Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
     ]} *)
 
+val html_render_theme_css :
+  class_prefix:string -> Theme.theme -> Token.highlighted_code -> string
+(** {2 html_render_theme_css}
+
+    [html_render_theme_css ~class_prefix theme code] generates a complete CSS
+    stylesheet for the given theme and highlighted code when using
+    {!Html_options.Css_classes} mode. Walks all tokens to discover unique styles
+    and maps each to a deterministic class name prefixed with [class_prefix].
+
+    {[
+      let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
+      let css = Ochre.html_render_theme_css ~class_prefix:"oc-" theme tokens in
+      Printf.printf "<style>%s</style>" css
+    ]} *)
+
 val to_ansi : t -> theme:Theme.theme -> lang:string -> string -> string
 (** {2 to_ansi}
 
@@ -458,6 +477,42 @@ val to_svg : t -> theme:Theme.theme -> lang:string -> string -> string
     {[
       let svg = Ochre.to_svg hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
     ]} *)
+
+(** {1 Result-returning variants}
+
+    These wrap the corresponding exception-raising functions and return
+    [(string, string) result] instead of raising. [Failure], [TmLanguage.Error],
+    and [Oniguruma.Error] are caught and returned as [Error msg]. *)
+
+val to_html_result :
+  t ->
+  ?options:Html_options.t ->
+  ?theme:Theme.theme ->
+  ?extra_themes:(string * Theme.theme) list ->
+  lang:string ->
+  string ->
+  (string, string) result
+(** {2 to_html_result}
+
+    Like {!val-to_html} but returns a [result] instead of raising. *)
+
+val to_ansi_result :
+  t -> theme:Theme.theme -> lang:string -> string -> (string, string) result
+(** {2 to_ansi_result}
+
+    Like {!val-to_ansi} but returns a [result] instead of raising. *)
+
+val to_latex_result :
+  t -> theme:Theme.theme -> lang:string -> string -> (string, string) result
+(** {2 to_latex_result}
+
+    Like {!val-to_latex} but returns a [result] instead of raising. *)
+
+val to_svg_result :
+  t -> theme:Theme.theme -> lang:string -> string -> (string, string) result
+(** {2 to_svg_result}
+
+    Like {!val-to_svg} but returns a [result] instead of raising. *)
 
 val to_debug_tokens : t -> theme:Theme.theme -> lang:string -> string -> string
 (** {2 to_debug_tokens}

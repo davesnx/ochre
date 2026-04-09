@@ -58,10 +58,14 @@ val load : string -> theme
       let theme = Theme.load "/path/to/theme.json"
     ]} *)
 
-val load_from_string : string -> theme
+val load_from_string : ?base_dir:string -> string -> theme
 (** {2 load_from_string}
 
     Parse a theme from a raw JSON string.
+
+    When [~base_dir] is provided, ["include"] paths in the JSON are resolved
+    relative to that directory (same as {!load} does with the file's parent
+    directory). When omitted, ["include"] fields are silently ignored.
 
     {[
       let theme =

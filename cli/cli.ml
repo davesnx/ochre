@@ -1,16 +1,16 @@
 open Cmdliner
 
 let read_file path =
-  let ic = open_in path in
-  let rec read_lines acc =
-    try
-      let line = input_line ic in
-      read_lines (line :: acc)
-    with End_of_file ->
-      close_in ic;
-      List.rev acc
-  in
-  String.concat "\n" (read_lines [])
+  In_channel.with_open_text path (fun ic ->
+      let rec read_lines acc =
+        match input_line ic with
+        | line ->
+            read_lines (line :: acc)
+        | exception End_of_file ->
+            List.rev acc
+      in
+      String.concat "\n" (read_lines [])
+  )
 
 let read_stdin () =
   let rec read_lines acc =
@@ -309,7 +309,7 @@ let scopes_data =
 
 let cmd =
   let doc = "Syntax highlighter using TextMate grammars and themes" in
-  let info = Cmd.info "ochre" ~version:"0.1.0" ~doc in
+  let info = Cmd.info "ochre" ~version:"1.0.0" ~doc in
   Cmd.v info
     Term.(
       ret

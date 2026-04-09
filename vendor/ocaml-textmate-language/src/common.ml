@@ -46,12 +46,19 @@ type repo_item = {
   repo_inner : (string, repo_item) Hashtbl.t;
 }
 
+type injection_selector = {
+  selector_segments : string list;
+  selector_left : bool;
+}
+
 type grammar = {
   name : string option;
   scope_name : string;
+  injection_selector : string option;
   filetypes : string list;
   patterns : rule list;
   repository : (string, repo_item) Hashtbl.t;
+  injections : (injection_selector * rule list) list;
 }
 
 type t = {

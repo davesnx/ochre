@@ -1,0 +1,25 @@
+{
+  "name": "injection-left-test",
+  "scopeName": "source.injleft",
+  "patterns": [
+    {
+      "match": "[0-9]+",
+      "name": "constant.numeric.injleft"
+    },
+    {
+      "match": "[a-zA-Z]+",
+      "name": "word.injleft"
+    }
+  ],
+  "repository": {},
+  "injections": {
+    "L:source.injleft": {
+      "patterns": [
+        {
+          "match": "INJECTED",
+          "name": "keyword.injected.left"
+        }
+      ]
+    }
+  }
+}

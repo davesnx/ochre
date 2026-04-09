@@ -126,6 +126,8 @@ let parse_token_color_rule = function
       in
       Some { name; scope; settings }
   | _ ->
+      (* Non-object entries in tokenColors are malformed; skip rather than fail
+         because real-world themes sometimes include stray nulls or comments. *)
       None
 
 let parse_rules_json = function
@@ -201,6 +203,9 @@ let parse_theme_fields ?base_dir json =
   let colors =
     match json_field "colors" json with Some v -> parse_colors v | None -> []
   in
+  (* fg/bg fall back through "fg" -> "foreground" -> None. Non-string values
+     are ignored because some themes use objects or numbers here; the color
+     cascade in finalize_theme will supply a sensible default. *)
   let fg_legacy =
     match json_field "fg" json with
     | Some (`String s) ->
@@ -242,6 +247,9 @@ let parse_theme_fields ?base_dir json =
     | json_rules ->
         parse_rules_json json_rules
   in
+  (* Missing tokenColors is common in themes that rely entirely on "settings"
+     or inherit all rules via "include". Producing empty rules here is correct;
+     merge_loaded or settings_rules below will supply the actual rules. *)
   let token_colors =
     match json_field "tokenColors" json with
     | Some value ->
@@ -334,9 +342,11 @@ let load path =
   finalize_theme ~name ~colors:data.colors ~fg_legacy:data.fg_legacy
     ~bg_legacy:data.bg_legacy ~token_colors:data.token_colors
 
-let load_from_string str =
+let load_from_string ?base_dir str =
   let json = Yojson.Basic.from_string str in
-  let data = load_theme_data_from_json ~visited:[] json in
+  (* Without base_dir, any "include" field in the JSON is silently ignored
+     because we have no directory to resolve relative paths against. *)
+  let data = load_theme_data_from_json ?base_dir ~visited:[] json in
   let name = Option.value data.name_opt ~default:"unnamed" in
   finalize_theme ~name ~colors:data.colors ~fg_legacy:data.fg_legacy
     ~bg_legacy:data.bg_legacy ~token_colors:data.token_colors
@@ -345,60 +355,73 @@ let load_builtin json ~name =
   let theme = load_from_string json in
   { theme with name }
 
-let dark = load_builtin Theme_builtin_json.dark_plus ~name:"dark"
-let light = load_builtin Theme_builtin_json.light_plus ~name:"light"
-let tokyonight = load_builtin Theme_builtin_json.tokyo_night ~name:"tokyonight"
+let lazy_builtin json ~name = lazy (load_builtin json ~name)
 
-let everforest =
-  load_builtin Theme_builtin_json.everforest_dark ~name:"everforest"
-
-let ayu = load_builtin Theme_builtin_json.ayu_dark ~name:"ayu"
-
-let catppuccin =
-  load_builtin Theme_builtin_json.catppuccin_mocha ~name:"catppuccin"
-
-let catppuccin_macchiato =
-  load_builtin Theme_builtin_json.catppuccin_macchiato
-    ~name:"catppuccin-macchiato"
-
-let gruvbox =
-  load_builtin Theme_builtin_json.gruvbox_dark_medium ~name:"gruvbox"
-let kanagawa = load_builtin Theme_builtin_json.kanagawa_wave ~name:"kanagawa"
-let nord = load_builtin Theme_builtin_json.nord ~name:"nord"
-
-let matrix =
-  make ~name:"matrix"
-    ~colors:
-      [ ("editor.foreground", "#00ff41"); ("editor.background", "#000000") ]
-    ~token_colors:
-      [
-        rule ~scope:[ "comment" ] ~foreground:"#008f11" ~font_style:[ Italic ]
-          ();
-        rule ~scope:[ "string" ] ~foreground:"#00cc33" ();
-        rule ~scope:[ "constant.numeric" ] ~foreground:"#66ff66" ();
-        rule ~scope:[ "keyword" ] ~foreground:"#39ff14" ();
-        rule ~scope:[ "entity.name.function" ] ~foreground:"#00ff99" ();
-        rule ~scope:[ "entity.name.type" ] ~foreground:"#00ff66" ();
-      ]
-    ()
-
-let one_dark = load_builtin Theme_builtin_json.one_dark_pro ~name:"one-dark"
-
-let themes =
+let lazy_themes : (string * theme Lazy.t) list =
   [
-    ("dark", dark);
-    ("light", light);
-    ("tokyonight", tokyonight);
-    ("everforest", everforest);
-    ("ayu", ayu);
-    ("catppuccin", catppuccin);
-    ("catppuccin-macchiato", catppuccin_macchiato);
-    ("gruvbox", gruvbox);
-    ("kanagawa", kanagawa);
-    ("nord", nord);
-    ("matrix", matrix);
-    ("one-dark", one_dark);
+    ("dark", lazy_builtin Theme_builtin_json.dark_plus ~name:"dark");
+    ("light", lazy_builtin Theme_builtin_json.light_plus ~name:"light");
+    ( "tokyonight",
+      lazy_builtin Theme_builtin_json.tokyo_night ~name:"tokyonight"
+    );
+    ( "everforest",
+      lazy_builtin Theme_builtin_json.everforest_dark ~name:"everforest"
+    );
+    ("ayu", lazy_builtin Theme_builtin_json.ayu_dark ~name:"ayu");
+    ( "catppuccin",
+      lazy_builtin Theme_builtin_json.catppuccin_mocha ~name:"catppuccin"
+    );
+    ( "catppuccin-macchiato",
+      lazy_builtin Theme_builtin_json.catppuccin_macchiato
+        ~name:"catppuccin-macchiato"
+    );
+    ( "gruvbox",
+      lazy_builtin Theme_builtin_json.gruvbox_dark_medium ~name:"gruvbox"
+    );
+    ("kanagawa", lazy_builtin Theme_builtin_json.kanagawa_wave ~name:"kanagawa");
+    ("nord", lazy_builtin Theme_builtin_json.nord ~name:"nord");
+    ( "matrix",
+      lazy
+        (make ~name:"matrix"
+           ~colors:
+             [
+               ("editor.foreground", "#00ff41"); ("editor.background", "#000000");
+             ]
+           ~token_colors:
+             [
+               rule ~scope:[ "comment" ] ~foreground:"#008f11"
+                 ~font_style:[ Italic ] ();
+               rule ~scope:[ "string" ] ~foreground:"#00cc33" ();
+               rule ~scope:[ "constant.numeric" ] ~foreground:"#66ff66" ();
+               rule ~scope:[ "keyword" ] ~foreground:"#39ff14" ();
+               rule ~scope:[ "entity.name.function" ] ~foreground:"#00ff99" ();
+               rule ~scope:[ "entity.name.type" ] ~foreground:"#00ff66" ();
+             ]
+           ()
+        )
+    );
+    ("one-dark", lazy_builtin Theme_builtin_json.one_dark_pro ~name:"one-dark");
   ]
 
-let find name = List.assoc_opt name themes
-let available_names = List.map fst themes
+let find name =
+  match List.assoc_opt name lazy_themes with
+  | Some t ->
+      Some (Lazy.force t)
+  | None ->
+      None
+
+let available_names = List.map fst lazy_themes
+let themes = List.map (fun (name, t) -> (name, Lazy.force t)) lazy_themes
+let dark = Lazy.force (List.assoc "dark" lazy_themes)
+let light = Lazy.force (List.assoc "light" lazy_themes)
+let tokyonight = Lazy.force (List.assoc "tokyonight" lazy_themes)
+let everforest = Lazy.force (List.assoc "everforest" lazy_themes)
+let ayu = Lazy.force (List.assoc "ayu" lazy_themes)
+let catppuccin = Lazy.force (List.assoc "catppuccin" lazy_themes)
+let catppuccin_macchiato =
+  Lazy.force (List.assoc "catppuccin-macchiato" lazy_themes)
+let gruvbox = Lazy.force (List.assoc "gruvbox" lazy_themes)
+let kanagawa = Lazy.force (List.assoc "kanagawa" lazy_themes)
+let nord = Lazy.force (List.assoc "nord" lazy_themes)
+let matrix = Lazy.force (List.assoc "matrix" lazy_themes)
+let one_dark = Lazy.force (List.assoc "one-dark" lazy_themes)

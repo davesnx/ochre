@@ -3,14 +3,33 @@ type t = {
   grammars : (string * TmLanguage.grammar) list;
 }
 
+type file_format = Json | Plist
+
 let lang_id_of_path path =
   let base = Filename.basename path in
   if Filename.check_suffix base ".tmLanguage.json" then
     Filename.chop_suffix base ".tmLanguage.json"
   else if Filename.check_suffix base ".json" then
     Filename.chop_suffix base ".json"
+  else if Filename.check_suffix base ".tmLanguage" then
+    Filename.chop_suffix base ".tmLanguage"
+  else if Filename.check_suffix base ".plist" then
+    Filename.chop_suffix base ".plist"
   else
     base
+
+let format_of_path path =
+  let base = Filename.basename path in
+  if Filename.check_suffix base ".tmLanguage.json" then
+    Json
+  else if Filename.check_suffix base ".json" then
+    Json
+  else if Filename.check_suffix base ".tmLanguage" then
+    Plist
+  else if Filename.check_suffix base ".plist" then
+    Plist
+  else
+    Json
 
 let rec normalize_grammar_json = function
   | `Assoc fields ->
@@ -47,8 +66,18 @@ and is_capture_field key =
   key = "captures" || String.ends_with ~suffix:"Captures" key
 
 let load_grammar_from_file path =
-  let json = Yojson.Basic.from_file path in
-  TmLanguage.of_yojson_exn (normalize_grammar_json json)
+  match format_of_path path with
+  | Json ->
+      let json = Yojson.Basic.from_file path in
+      TmLanguage.of_yojson_exn (normalize_grammar_json json)
+  | Plist ->
+      let ic = open_in path in
+      let plist =
+        Fun.protect
+          ~finally:(fun () -> close_in ic)
+          (fun () -> Plist_xml.from_channel ic)
+      in
+      TmLanguage.of_plist_exn plist
 
 let load_grammar_from_string json_string =
   let json = Yojson.Basic.from_string json_string in

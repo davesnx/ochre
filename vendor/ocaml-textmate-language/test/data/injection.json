@@ -1,0 +1,41 @@
+{
+  "name": "injection-test",
+  "scopeName": "source.injtest",
+  "patterns": [
+    {
+      "begin": "<style>",
+      "end": "</style>",
+      "beginCaptures": {
+        "0": { "name": "punctuation.tag.open" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.tag.close" }
+      },
+      "name": "meta.style.injtest",
+      "contentName": "source.css.embedded",
+      "patterns": [
+        { "include": "#css-basics" }
+      ]
+    },
+    {
+      "match": "[a-zA-Z]+",
+      "name": "text.plain.injtest"
+    }
+  ],
+  "repository": {
+    "css-basics": {
+      "match": "[a-zA-Z-]+",
+      "name": "entity.name.css"
+    }
+  },
+  "injections": {
+    "source.css.embedded": {
+      "patterns": [
+        {
+          "match": "#[0-9a-fA-F]+",
+          "name": "constant.color.injected"
+        }
+      ]
+    }
+  }
+}

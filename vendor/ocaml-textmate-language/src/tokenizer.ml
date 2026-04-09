@@ -48,14 +48,16 @@ let anchor_options ~anchor ~pos =
 
 let match_pattern regex line pos anchor =
   match Oniguruma.match_ regex line pos (anchor_options ~anchor ~pos) with
+  | exception Oniguruma.Error _ -> No_match
   | None -> No_match
   | Some region ->
     let start = Oniguruma.Region.capture_beg region 0 in
     let end_ = Oniguruma.Region.capture_end region 0 in
-    assert (start = pos);
-    let matched = { region; regex; end_ } in
-    if has_progress start end_ then Nonempty_match matched
-    else Empty_match matched
+    if start <> pos then No_match
+    else
+      let matched = { region; regex; end_ } in
+      if has_progress start end_ then Nonempty_match matched
+      else Empty_match matched
 
 let has_same_delim_at_pos stack delim pos =
   List.exists
@@ -142,6 +144,10 @@ let handle_captures ~t ~grammar ~line scopes default mat_start mat_end region
     Hashtbl.fold
       (fun k capture acc ->
         match k with
+        (* Capture_name keys come from non-numeric keys in the grammar JSON
+           captures dict (e.g. {"name": ...} at the captures level rather than
+           {"0": ...}). These are not regex named groups — they are malformed
+           or exotic grammar entries. vscode-textmate also ignores them. *)
         | Capture_name _ -> acc
         | Capture_idx idx ->
           if idx < 0 || idx >= region_len then acc
@@ -230,6 +236,7 @@ type candidate = {
   candidate_kind : candidate_kind;
   candidate_repos : (string, repo_item) Hashtbl.t list;
   candidate_grammar : grammar;
+  candidate_scope : string option;
 }
 
 let candidate_regex_source = function
@@ -240,52 +247,116 @@ let candidate_regex = function
   | { candidate_kind = Candidate_match m; _ } -> m.pattern
   | { candidate_kind = Candidate_delim d; _ } -> d.delim_begin
 
-let rec collect_candidates ~t ~base_grammar repos cur_grammar = function
+let rec collect_candidates ~t ~base_grammar ?(scope = None) repos cur_grammar =
+  function
   | [] -> []
   | Match m :: pats ->
     {
       candidate_kind = Candidate_match m;
       candidate_repos = repos;
       candidate_grammar = cur_grammar;
+      candidate_scope = scope;
     }
-    :: collect_candidates ~t ~base_grammar repos cur_grammar pats
+    :: collect_candidates ~t ~base_grammar ~scope repos cur_grammar pats
   | Delim d :: pats ->
     {
       candidate_kind = Candidate_delim d;
       candidate_repos = repos;
       candidate_grammar = cur_grammar;
+      candidate_scope = scope;
     }
-    :: collect_candidates ~t ~base_grammar repos cur_grammar pats
-  | Scope_patterns { scope_name = _; child_patterns } :: pats ->
-    collect_candidates ~t ~base_grammar repos cur_grammar child_patterns
-    @ collect_candidates ~t ~base_grammar repos cur_grammar pats
+    :: collect_candidates ~t ~base_grammar ~scope repos cur_grammar pats
+  | Scope_patterns { scope_name; child_patterns } :: pats ->
+    let inner_scope =
+      match scope_name with
+      | Some _ -> scope_name
+      | None -> scope
+    in
+    collect_candidates ~t ~base_grammar ~scope:inner_scope repos cur_grammar
+      child_patterns
+    @ collect_candidates ~t ~base_grammar ~scope repos cur_grammar pats
   | Include_scope name :: pats -> (
     match find_by_scope_name t name with
-    | None -> collect_candidates ~t ~base_grammar repos cur_grammar pats
+    | None -> collect_candidates ~t ~base_grammar ~scope repos cur_grammar pats
     | Some g ->
-      collect_candidates ~t ~base_grammar [ g.repository ] g g.patterns
-      @ collect_candidates ~t ~base_grammar repos cur_grammar pats)
+      collect_candidates ~t ~base_grammar ~scope [ g.repository ] g g.patterns
+      @ collect_candidates ~t ~base_grammar ~scope repos cur_grammar pats)
   | Include_base :: pats ->
-    collect_candidates ~t ~base_grammar
+    collect_candidates ~t ~base_grammar ~scope
       [ base_grammar.repository ]
       base_grammar base_grammar.patterns
-    @ collect_candidates ~t ~base_grammar repos cur_grammar pats
+    @ collect_candidates ~t ~base_grammar ~scope repos cur_grammar pats
   | Include_self :: pats ->
-    collect_candidates ~t ~base_grammar [ cur_grammar.repository ] cur_grammar
-      cur_grammar.patterns
-    @ collect_candidates ~t ~base_grammar repos cur_grammar pats
+    collect_candidates ~t ~base_grammar ~scope [ cur_grammar.repository ]
+      cur_grammar cur_grammar.patterns
+    @ collect_candidates ~t ~base_grammar ~scope repos cur_grammar pats
   | Include_local key :: pats -> (
     match find_nested key repos with
-    | None -> collect_candidates ~t ~base_grammar repos cur_grammar pats
+    | None -> collect_candidates ~t ~base_grammar ~scope repos cur_grammar pats
     | Some item -> (
       match item.repo_item_kind with
       | Repo_rule rule ->
-        collect_candidates ~t ~base_grammar (item.repo_inner :: repos)
+        collect_candidates ~t ~base_grammar ~scope (item.repo_inner :: repos)
           cur_grammar (rule :: pats)
       | Repo_patterns pats' ->
-        collect_candidates ~t ~base_grammar (item.repo_inner :: repos)
+        collect_candidates ~t ~base_grammar ~scope (item.repo_inner :: repos)
           cur_grammar pats'
-        @ collect_candidates ~t ~base_grammar repos cur_grammar pats))
+        @ collect_candidates ~t ~base_grammar ~scope repos cur_grammar pats))
+
+let scope_matches_selector_part scope part =
+  scope = part
+  || (String.length part < String.length scope
+     && String.starts_with ~prefix:part scope
+     && scope.[String.length part] = '.')
+
+let injection_selector_matches scopes (sel : injection_selector) =
+  let rev_scopes = List.rev scopes in
+  let rec go segments scope_list =
+    match segments with
+    | [] -> true
+    | seg :: rest_segs -> (
+      match scope_list with
+      | [] -> false
+      | scope :: rest_scopes ->
+        if scope_matches_selector_part scope seg then go rest_segs rest_scopes
+        else go segments rest_scopes)
+  in
+  go sel.selector_segments rev_scopes
+
+let collect_injection_candidates ~t ~base_grammar scopes =
+  let left = ref [] in
+  let right = ref [] in
+  let check_injections injections grammar =
+    List.iter
+      (fun (sel, patterns) ->
+        if injection_selector_matches scopes sel then begin
+          let cs =
+            collect_candidates ~t ~base_grammar [ grammar.repository ]
+              grammar patterns
+          in
+          if sel.selector_left then left := List.rev_append cs !left
+          else right := List.rev_append cs !right
+        end)
+      injections
+  in
+  check_injections base_grammar.injections base_grammar;
+  Hashtbl.iter
+    (fun _name (g : grammar) ->
+      if g.scope_name <> base_grammar.scope_name then
+        match g.injection_selector with
+        | None -> ()
+        | Some sel_str ->
+          let sel = Reader.parse_injection_selector sel_str in
+          if injection_selector_matches scopes sel then begin
+            let cs =
+              collect_candidates ~t ~base_grammar [ g.repository ] g g.patterns
+            in
+            if sel.selector_left then left := List.rev_append cs !left
+            else right := List.rev_append cs !right
+          end)
+    t.by_scope_name;
+  (List.rev !left, List.rev !right)
+
 
 let drop n list =
   let rec loop n = function
@@ -294,24 +365,41 @@ let drop n list =
   in
   loop n list
 
+module RegSet_cache : sig
+  val find_or_create : string list -> Oniguruma.RegSet.t
+end = struct
+  let max_size = 256
+
+  let tbl : (string list, Oniguruma.RegSet.t) Hashtbl.t =
+    Hashtbl.create max_size
+
+  let find_or_create sources =
+    match Hashtbl.find_opt tbl sources with
+    | Some regset -> regset
+    | None ->
+      if Hashtbl.length tbl >= max_size then Hashtbl.clear tbl;
+      let regexes =
+        sources
+        |> List.map (fun src ->
+            compile_regex ~error_context:("RegSet scanner pattern: " ^ src) src)
+        |> Array.of_list
+      in
+      let regset = Oniguruma.RegSet.create regexes in
+      Hashtbl.replace tbl sources regset;
+      regset
+end
+
 let search_candidates_at_pos ~line ~pos ~anchor candidates =
   match candidates with
   | [] -> None
   | _ -> (
-    let scanner_regexes =
-      candidates
-      |> List.map (fun c ->
-          compile_regex
-            ~error_context:
-              ("RegSet scanner pattern: " ^ candidate_regex_source c)
-            (candidate_regex_source c))
-      |> Array.of_list
-    in
-    let regset = Oniguruma.RegSet.create scanner_regexes in
+    let sources = List.map candidate_regex_source candidates in
+    let regset = RegSet_cache.find_or_create sources in
     match
       Oniguruma.RegSet.search regset line pos (String.length line)
         (anchor_options ~anchor ~pos)
     with
+    | exception Oniguruma.Error _ -> None
     | None -> None
     | Some (idx, region) -> (
       if Oniguruma.Region.capture_beg region 0 <> pos then None
@@ -341,6 +429,13 @@ let rec match_line ~t ~grammar ~stack ~anchor ~pos ~toks ~line rem_pats =
   let len = String.length line in
   let scopes = frame_scopes grammar stack in
   let try_pats repos cur_grammar ~k pats =
+    let base_candidates =
+      collect_candidates ~t ~base_grammar:grammar repos cur_grammar pats
+    in
+    let inj_left, inj_right =
+      collect_injection_candidates ~t ~base_grammar:grammar scopes
+    in
+    let candidates = inj_left @ base_candidates @ inj_right in
     let rec try_candidates candidates =
       match search_candidates_at_pos ~line ~pos ~anchor candidates with
       | None -> k ()
@@ -350,6 +445,7 @@ let rec match_line ~t ~grammar ~stack ~anchor ~pos ~toks ~line rem_pats =
         | _, No_match | Candidate_match _, Empty_match _ ->
           try_candidates remaining
         | Candidate_match m, Nonempty_match matched ->
+          let scopes = add_scope scopes candidate.candidate_scope in
           let toks = { scopes; ending = pos } :: toks in
           let toks =
             handle_captures ~t ~grammar:candidate.candidate_grammar ~line
@@ -365,6 +461,7 @@ let rec match_line ~t ~grammar ~stack ~anchor ~pos ~toks ~line rem_pats =
         | ( Candidate_delim d,
             ( Empty_match ({ region; end_; _ } as matched)
             | Nonempty_match ({ region; end_; _ } as matched) ) ) ->
+          let scopes = add_scope scopes candidate.candidate_scope in
           let toks = { scopes; ending = pos } :: toks in
           let toks =
             handle_captures ~t ~grammar:candidate.candidate_grammar ~line
@@ -395,8 +492,7 @@ let rec match_line ~t ~grammar ~stack ~anchor ~pos ~toks ~line rem_pats =
           match_line ~t ~grammar ~stack:(se :: stack) ~anchor:(Some end_)
             ~pos:end_ ~toks ~line d.delim_patterns)
     in
-    try_candidates
-      (collect_candidates ~t ~base_grammar:grammar repos cur_grammar pats)
+    try_candidates candidates
   in
   let try_delim_end se stack_tail ~k =
     let delim = se.stack_delim in

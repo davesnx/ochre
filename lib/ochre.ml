@@ -33,10 +33,16 @@ let output_formats =
     (fun f -> (string_of_output_format f, f))
     [ Html; Ansi; Latex; Svg; Tokens ]
 
+let configure_oniguruma_limits () =
+  Oniguruma.set_retry_limit_in_match 1_000_000;
+  Oniguruma.set_match_stack_limit_size 100_000
+
 let create ~grammars () =
+  configure_oniguruma_limits ();
   { grammar_loader = Grammar_loader.create ~grammars () }
 
 let create_from_json ~grammars () =
+  configure_oniguruma_limits ();
   { grammar_loader = Grammar_loader.create_from_json ~grammars () }
 
 let tokenize_with_grammar tm_collection grammar source =
@@ -187,9 +193,27 @@ let to_html_with t ?(decorations = []) ~transforms ?options ?theme ?extra_themes
         default_code
 
 let html_theme_css = Render_html.theme_css
+let html_render_theme_css = Render_html.render_theme_css
 let to_ansi t = render_to_string t Render_ansi.render
 let to_latex t = render_to_string t Render_latex.render
 let to_svg t = render_to_string t Render_svg.render
+
+let wrap_result f =
+  try Ok (f ())
+  with Failure msg | TmLanguage.Error msg | Oniguruma.Error msg -> Error msg
+
+let to_html_result t ?options ?theme ?extra_themes ~lang source =
+  wrap_result (fun () -> to_html t ?options ?theme ?extra_themes ~lang source)
+
+let to_ansi_result t ~theme ~lang source =
+  wrap_result (fun () -> to_ansi t ~theme ~lang source)
+
+let to_latex_result t ~theme ~lang source =
+  wrap_result (fun () -> to_latex t ~theme ~lang source)
+
+let to_svg_result t ~theme ~lang source =
+  wrap_result (fun () -> to_svg t ~theme ~lang source)
+
 let to_debug_tokens t = render_to_string t Render_tokens.render
 
 let to_ansi_with t ?decorations =

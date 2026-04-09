@@ -2,16 +2,16 @@
 
 (name ochre)
 
-(version 0.1.0)
+(version 1.0.0)
 
 (generate_opam_files true)
 
 (source
- (github yourusername/ochre))
+ (github davesnx/ochre))
 
-(authors "Your Name")
+(authors "David Sancho")
 
-(maintainers "Your Name")
+(maintainers "David Sancho")
 
 (license MIT)
 
@@ -33,7 +33,7 @@
    (melange-json-native (>= 2.0.0))
    (conf-oniguruma (= 1))
    (dune-configurator (and (>= 2.9) :build))
-   (plist-xml :with-test)
+   (plist-xml (>= 0.3.0))
    (ezjsonm :with-test)
    (odoc (>= 3.1.0))
    (alcotest :with-test)

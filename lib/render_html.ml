@@ -245,9 +245,12 @@ let render_token ~options ~registry ~extras ~emit_default primary =
       Printf.sprintf "<span %s>%s</span>" attrs text
 
 let render_line ~options ~registry ~extras_line ~emit_default primary_line =
+  let extras_arrays =
+    List.map (fun (label, line) -> (label, Array.of_list line)) extras_line
+  in
   let render_one i tok =
     let extras =
-      List.map (fun (label, line) -> (label, List.nth line i)) extras_line
+      List.map (fun (label, arr) -> (label, Array.get arr i)) extras_arrays
     in
     render_token ~options ~registry ~extras ~emit_default tok
   in
@@ -287,13 +290,14 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
         false
   in
   let emit_default_token_styles = emit_default in
+  let extras_arrays =
+    List.map (fun (label, codes) -> (label, Array.of_list codes)) extras_codes
+  in
   let lines =
     List.mapi
       (fun i line ->
         let extras_line =
-          List.map
-            (fun (label, codes) -> (label, List.nth codes i))
-            extras_codes
+          List.map (fun (label, arr) -> (label, Array.get arr i)) extras_arrays
         in
         let content =
           render_line ~options ~registry ~extras_line
