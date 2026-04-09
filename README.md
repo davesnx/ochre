@@ -4,6 +4,7 @@
 
 A syntax highlighter for OCaml using TextMate grammars and themes, inspired by [Shiki](https://shiki.style/).
 
+![docs/video/ochre-examples.gif](docs/video/ochre-examples.gif)
 
 ## Installation
 

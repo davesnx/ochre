@@ -2,6 +2,8 @@
 
 A syntax highlighter for OCaml using TextMate grammars and themes, inspired by {{:https://shiki.style/} Shiki}.
 
+{image:docs/video/ochre-examples.gif}
+
 {1 Installation}
 
 {@bash[
