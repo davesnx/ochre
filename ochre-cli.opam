@@ -10,12 +10,12 @@ license: "MIT"
 homepage: "https://github.com/davesnx/ochre"
 bug-reports: "https://github.com/davesnx/ochre/issues"
 depends: [
+  "dune" {>= "3.22"}
   "ocaml" {>= "4.14.0"}
-  "dune" {>= "3.17" & (>= "3.22" & with-doc = "true" | with-doc = "false")}
   "ochre"
+  "odoc" {>= "3.1.0" & with-doc}
   "tm-grammars" {>= "1.0.1"}
   "cmdliner" {>= "1.1.0"}
-  "odoc" {with-doc}
 ]
 build: [
   ["dune" "subst"] {dev}
@@ -32,3 +32,4 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/davesnx/ochre.git"
+x-maintenance-intent: ["(latest)"]

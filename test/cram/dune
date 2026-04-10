@@ -11,6 +11,7 @@
  (libraries ochre unix))
 
 (cram
+ (package ochre-cli)
  (deps
   %{bin:ochre}
   test_theme.exe

@@ -1,4 +1,4 @@
-(lang dune 3.17)
+(lang dune 3.22)
 
 (name ochre)
 
@@ -21,21 +21,14 @@
  (description
   "ochre is a syntax highlighter inspired by Shiki, using TextMate grammars and themes to produce accurate, beautiful syntax highlighting. It supports HTML output with inline styles, ANSI terminal colors, and raw token output.")
  (depends
-  (ocaml
-   (>= 4.14.0))
-  (dune
-   (or
-    (and
-     (>= 3.22)
-     (= :with-doc true))
-    (= :with-doc false)))
+   (ocaml (>= 4.14.0))
    (yojson (>= 2.0.0))
    (melange-json-native (>= 2.0.0))
    (conf-oniguruma (= 1))
    (dune-configurator (and (>= 2.9) :build))
-   (plist-xml (>= 0.3.0))
+   (plist-xml (>= 0.5.0))
    (ezjsonm :with-test)
-   (odoc (>= 3.1.0))
+   (odoc (and (>= 3.1.0) :with-doc))
    (tm-grammars :with-test)
    (alcotest :with-test)
    (ocaml-lsp-server :with-dev-setup)
@@ -50,14 +43,8 @@
  (description
   "CLI tool for highlighting source code using TextMate grammars and themes.")
   (depends
-   (ocaml
-    (>= 4.14.0))
-   (dune
-    (or
-     (and
-      (>= 3.22)
-      (= :with-doc true))
-     (= :with-doc false)))
+   (ocaml (>= 4.14.0))
    ochre
    (tm-grammars (>= 1.0.1))
-   (cmdliner (>= 1.1.0))))
+   (cmdliner (>= 1.1.0))
+   (odoc (and (>= 3.1.0) :with-doc))))
