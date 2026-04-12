@@ -3,6 +3,7 @@
 
 (rule
  (alias doc-markdown)
+ (enabled_if %{bin-available:odoc})
  (mode
   (promote (until-clean)))
  (deps %{workspace_root}/_doc/_markdown/ochre/README.md)
