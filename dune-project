@@ -42,9 +42,11 @@
  (synopsis "Command-line interface for ochre syntax highlighter")
  (description
   "CLI tool for highlighting source code using TextMate grammars and themes.")
-  (depends
+ (depends
    (ocaml (>= 4.14.0))
    ochre
    (tm-grammars (>= 1.0.1))
    (cmdliner (>= 1.1.0))
+   (ezjsonm :with-test)
+   (alcotest :with-test)
    (odoc (and (>= 3.1.0) :with-doc))))

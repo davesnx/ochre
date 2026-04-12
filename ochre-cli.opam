@@ -15,6 +15,8 @@ depends: [
   "ochre"
   "tm-grammars" {>= "1.0.1"}
   "cmdliner" {>= "1.1.0"}
+  "ezjsonm" {with-test}
+  "alcotest" {with-test}
   "odoc" {>= "3.1.0" & with-doc}
 ]
 build: [
