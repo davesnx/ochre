@@ -1,9 +1,30 @@
+(rule
+ (targets test_html.ml test_html_dual_theme.ml test_svg.ml)
+ (deps test_html.mlx test_html_dual_theme.mlx test_svg.mlx)
+ (action
+  (progn
+   (with-stdout-to
+    test_html.ml
+    (run mlx-pp %{dep:test_html.mlx}))
+   (with-stdout-to
+    test_html_dual_theme.ml
+    (run mlx-pp %{dep:test_html_dual_theme.mlx}))
+   (with-stdout-to
+    test_svg.ml
+    (run mlx-pp %{dep:test_svg.mlx})))))
+
 (test
  (name test_ochre)
  (libraries ochre alcotest))
 
 (executables
- (names test_html test_html_dual_theme test_latex test_svg)
+ (names test_html test_html_dual_theme test_svg)
+ (libraries ochre unix tm-grammars html_of_jsx tiny_httpd)
+ (preprocess
+  (pps html_of_jsx.ppx)))
+
+(executables
+ (names test_latex)
  (libraries ochre unix tm-grammars))
 
 (rule

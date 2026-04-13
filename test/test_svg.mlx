@@ -1,0 +1,293 @@
+let preview_themes =
+  [
+    "tokyonight";
+    "everforest";
+    "ayu";
+    "catppuccin";
+    "catppuccin-macchiato";
+    "gruvbox";
+    "kanagawa";
+    "nord";
+    "matrix";
+    "one-dark";
+  ]
+
+let font_family =
+  "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, \
+   Courier New, monospace"
+
+let ocaml_source =
+  "let answer = 42\n\
+   (* open this in a browser *)\n\
+   let greet = \"hello from ochre\""
+
+let html_source =
+  {|<!DOCTYPE html>
+<html>
+<head>
+  <style>body { color: #333; font-family: sans-serif; }</style>
+</head>
+<body>
+  <h1>Hello</h1>
+  <script>
+    const name = "world";
+    console.log(name);
+  </script>
+</body>
+</html>|}
+
+let find_grammar name =
+  match Tm_grammars.find name with
+  | Some json ->
+      (name, json)
+  | None ->
+      failwith (Printf.sprintf "grammar %s not found in tm-grammars" name)
+
+let ocaml_highlighter =
+  Ochre.create_from_json ~grammars:[ find_grammar "ocaml" ] ()
+
+let html_highlighter =
+  let grammars = List.map find_grammar [ "html"; "css"; "javascript" ] in
+  Ochre.create_from_json ~grammars ()
+
+let fmt0 value = Printf.sprintf "%.0f" value
+
+let svg_node tag attrs children =
+  JSX.node tag (Test_html_common.attrs attrs) children
+
+let text_label ~x ~y ~font_size ~fill ?(letter_spacing = None) text =
+  let text = JSX.string text in
+  match letter_spacing with
+  | Some spacing ->
+      svg_node "text"
+        [
+          ("x", x);
+          ("y", y);
+          ("font-size", font_size);
+          ("font-family", font_family);
+          ("fill", fill);
+          ("letter-spacing", spacing);
+        ]
+        [ text ]
+  | None ->
+      svg_node "text"
+        [
+          ("x", x);
+          ("y", y);
+          ("font-size", font_size);
+          ("font-family", font_family);
+          ("fill", fill);
+        ]
+        [ text ]
+
+let with_full_width_svg svg =
+  let prefix = "<svg " in
+  let prefix_len = String.length prefix in
+  if String.length svg >= prefix_len && String.sub svg 0 prefix_len = prefix
+  then
+    "<svg style=\"width:100%;height:auto;display:block\" "
+    ^ String.sub svg prefix_len (String.length svg - prefix_len)
+  else
+    svg
+
+let render_svg ~highlighter ~lang ~source name =
+  match Ochre.Theme.find name with
+  | Some theme ->
+      Ochre.to_svg highlighter ~theme ~lang source
+  | None ->
+      Printf.eprintf "Missing built-in theme: %s\n" name;
+      exit 1
+
+let find_substring haystack needle =
+  let haystack_len = String.length haystack in
+  let needle_len = String.length needle in
+  let rec loop idx =
+    if idx + needle_len > haystack_len then
+      None
+    else if String.sub haystack idx needle_len = needle then
+      Some idx
+    else
+      loop (idx + 1)
+  in
+  loop 0
+
+let svg_attr svg name =
+  let prefix = name ^ "=\"" in
+  match find_substring svg prefix with
+  | None ->
+      failwith (Printf.sprintf "Missing SVG %s attribute" name)
+  | Some start ->
+      let value_start = start + String.length prefix in
+      let value_end =
+        match String.index_from_opt svg value_start '"' with
+        | Some idx ->
+            idx
+        | None ->
+            failwith (Printf.sprintf "Unterminated SVG %s attribute" name)
+      in
+      String.sub svg value_start (value_end - value_start)
+
+let svg_height svg = float_of_string (svg_attr svg "height")
+
+let svg_body svg =
+  match String.index_opt svg '>' with
+  | None ->
+      svg
+  | Some open_end ->
+      let close_tag = "</svg>" in
+      let close_tag_len = String.length close_tag in
+      let len = String.length svg in
+      if
+        len >= close_tag_len
+        && String.sub svg (len - close_tag_len) close_tag_len = close_tag
+      then
+        String.sub svg (open_end + 1) (len - open_end - close_tag_len - 1)
+      else
+        String.sub svg (open_end + 1) (len - open_end - 1)
+
+type preview_card = { body : string; height : float }
+
+let render_preview_card ~highlighter ~lang ~source name =
+  let svg = render_svg ~highlighter ~lang ~source name in
+  { body = svg_body svg; height = svg_height svg }
+
+let render_theme_blocks ~x ~y ~width ~highlighter ~lang ~source themes =
+  let rec loop current_y acc = function
+    | [] ->
+        (List.rev acc, current_y)
+    | name :: rest ->
+        let card = render_preview_card ~highlighter ~lang ~source name in
+        let label = String.uppercase_ascii name in
+        let body = JSX.unsafe card.body in
+        let card_x = fmt0 x in
+        let card_y = fmt0 (current_y +. 20.0) in
+        let card_width = fmt0 width in
+        let card_height = fmt0 card.height in
+        let block =
+          [
+            text_label ~x:(fmt0 x) ~y:(fmt0 (current_y +. 12.0))
+              ~font_size:"12px" ~fill:"#1f1f1f"
+              ~letter_spacing:(Some "0.08em") label;
+            svg_node "svg"
+              [
+                ("x", card_x);
+                ("y", card_y);
+                ("width", card_width);
+                ("height", card_height);
+                ("xmlns", "http://www.w3.org/2000/svg");
+              ]
+              [ body ];
+          ]
+        in
+        let next_y =
+          current_y +. 20.0 +. card.height
+          +.
+          if rest = [] then
+            0.0
+          else
+            24.0
+        in
+        loop next_y (List.rev_append block acc) rest
+  in
+  loop y [] themes
+
+let render_section ~x ~y ~width ~title ~highlighter ~lang ~source =
+  let heading =
+    text_label ~x:(fmt0 x) ~y:(fmt0 (y +. 18.0)) ~font_size:"18px"
+      ~fill:"#1f1f1f" title
+  in
+  let theme_blocks, next_y =
+    render_theme_blocks ~x ~y:(y +. 42.0) ~width ~highlighter ~lang ~source
+      preview_themes
+  in
+  (heading :: theme_blocks, next_y)
+
+let render_theme_gallery_svg () =
+  let page_padding = 24.0 in
+  let page_width = 1008.0 in
+  let content_x = page_padding in
+  let content_width = page_width -. (page_padding *. 2.0) in
+  let ocaml_section, ocaml_end_y =
+    render_section ~x:content_x ~y:page_padding ~width:content_width
+      ~title:"OCaml" ~highlighter:ocaml_highlighter ~lang:"ocaml"
+      ~source:ocaml_source
+  in
+  let html_section, html_end_y =
+    render_section ~x:content_x ~y:(ocaml_end_y +. 48.0) ~width:content_width
+      ~title:"HTML + CSS + JS" ~highlighter:html_highlighter ~lang:"html"
+      ~source:html_source
+  in
+  let page_height = html_end_y +. page_padding in
+  let sections = JSX.list (ocaml_section @ html_section) in
+  let view_box =
+    Printf.sprintf "0 0 %s %s" (fmt0 page_width) (fmt0 page_height)
+  in
+  let page_width = fmt0 page_width in
+  let page_height = fmt0 page_height in
+  JSX.render
+    (svg_node "svg"
+       [
+         ("xmlns", "http://www.w3.org/2000/svg");
+         ("width", "100%");
+         ("viewBox", view_box);
+         ("preserveAspectRatio", "xMidYMin meet");
+         ("style", "display:block");
+       ]
+       [
+         svg_node "rect"
+           [
+             ("x", "0");
+             ("y", "0");
+             ("width", page_width);
+             ("height", page_height);
+             ("fill", "#f5f5f5");
+           ]
+           [];
+         sections;
+       ]
+    )
+
+let () =
+  if Array.length Sys.argv > 1 && Sys.argv.(1) = "--github-preview" then
+    print_endline (render_theme_gallery_svg ())
+  else
+    let render_theme name =
+      let svg =
+        render_svg ~highlighter:ocaml_highlighter ~lang:"ocaml"
+          ~source:ocaml_source name
+      in
+      let name = JSX.string name in
+      let svg = JSX.unsafe (with_full_width_svg svg) in
+      <section style="display:grid;gap:8px">
+        <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280">
+          name
+        </div>
+        <div style="overflow:auto;background:#fff">svg</div>
+      </section>
+    in
+    let rendered_sections = JSX.list (List.map render_theme preview_themes) in
+    let page_title = JSX.string "Ochre SVG preview" in
+    let page =
+      JSX.render
+        (JSX.node "html" (Test_html_common.attrs [ ("lang", "en") ])
+           [
+             <head>
+               <meta charset="utf-8" />
+               <title>page_title</title>
+             </head>;
+             <body style="margin:0;background:#f5f5f5;font-family:ui-monospace,monospace">
+               <div style="padding:24px;display:grid;gap:24px;">
+                 rendered_sections
+               </div>
+             </body>;
+           ]
+        )
+    in
+    let port = Test_html_common.port_from_env () in
+    try Test_html_common.serve_html ~name:"ochre preview" ~port ~html:page
+    with Unix.Unix_error (Unix.EADDRINUSE, "bind", _) ->
+      Printf.eprintf
+        "Port %d is already in use. Stop the existing process or run with \
+         PORT=<n> (e.g. PORT=5001 make test-svg-serve).\n"
+        port;
+      exit 2

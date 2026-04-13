@@ -1,123 +1,361 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="320" height="1224">
-<rect x="0" y="0" width="320" height="1224" fill="#f5f5f5"/>
-<text x="20" y="36" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">tokyonight</text>
-<svg x="20" y="44" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
-
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 1008 4332" preserveAspectRatio="xMidYMin meet" style="display:block"><rect x="0" y="0" width="1008" height="4332" fill="#f5f5f5"></rect><text x="24" y="42" font-size="18px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f">OCaml</text><text x="24" y="78" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">TOKYONIGHT</text><svg x="24" y="86" width="960" height="75" xmlns="http://www.w3.org/2000/svg">
  <rect width="100%" height="100%" fill="#1a1b26"/>
-  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#bb9af7">let</tspan><tspan fill="#a9b1d6"> answer = </tspan><tspan fill="#ff9e64">42</tspan><tspan fill="#a9b1d6">
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#bb9af7">let</tspan><tspan fill="#a9b1d6"> </tspan><tspan fill="#7aa2f7">answer</tspan><tspan fill="#a9b1d6"> </tspan><tspan fill="#89ddff">=</tspan><tspan fill="#a9b1d6"> </tspan><tspan fill="#ff9e64">42</tspan><tspan fill="#a9b1d6">
 </tspan></text>
-  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#51597d">(* open this in a browser *)</tspan><tspan fill="#a9b1d6">
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#51597d">(*</tspan><tspan font-style="italic" fill="#51597d"> open this in a browser </tspan><tspan font-style="italic" fill="#51597d">*)</tspan><tspan fill="#a9b1d6">
 </tspan></text>
-  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#bb9af7">let</tspan><tspan fill="#a9b1d6"> greet = </tspan><tspan fill="#9ece6a">&quot;hello from ochre&quot;</tspan><tspan fill="#a9b1d6">
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#bb9af7">let</tspan><tspan fill="#a9b1d6"> </tspan><tspan fill="#7aa2f7">greet</tspan><tspan fill="#a9b1d6"> </tspan><tspan fill="#89ddff">=</tspan><tspan fill="#a9b1d6"> </tspan><tspan fill="#9ece6a">&quot;</tspan><tspan fill="#9ece6a">hello from ochre</tspan><tspan fill="#9ece6a">&quot;</tspan><tspan fill="#a9b1d6">
 </tspan></text>
-
-</svg>
-<text x="20" y="156" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">everforest</text>
-<svg x="20" y="164" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
-
+</svg><text x="24" y="197" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">EVERFOREST</text><svg x="24" y="205" width="960" height="75" xmlns="http://www.w3.org/2000/svg">
  <rect width="100%" height="100%" fill="#2d353b"/>
-  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#e67e80">let</tspan><tspan fill="#d3c6aa"> answer = </tspan><tspan fill="#d699b6">42</tspan><tspan fill="#d3c6aa">
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#e67e80">let</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#a7c080">answer</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#e69875">=</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#d699b6">42</tspan><tspan fill="#d3c6aa">
 </tspan></text>
-  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#859289">(* open this in a browser *)</tspan><tspan fill="#d3c6aa">
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#859289">(*</tspan><tspan font-style="italic" fill="#859289"> open this in a browser </tspan><tspan font-style="italic" fill="#859289">*)</tspan><tspan fill="#d3c6aa">
 </tspan></text>
-  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#e67e80">let</tspan><tspan fill="#d3c6aa"> greet = </tspan><tspan fill="#dbbc7f">&quot;hello from ochre&quot;</tspan><tspan fill="#d3c6aa">
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#e67e80">let</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#a7c080">greet</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#e69875">=</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#dbbc7f">&quot;</tspan><tspan fill="#dbbc7f">hello from ochre</tspan><tspan fill="#dbbc7f">&quot;</tspan><tspan fill="#d3c6aa">
 </tspan></text>
-
-</svg>
-<text x="20" y="276" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">ayu</text>
-<svg x="20" y="284" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
-
+</svg><text x="24" y="316" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">AYU</text><svg x="24" y="324" width="960" height="75" xmlns="http://www.w3.org/2000/svg">
  <rect width="100%" height="100%" fill="#10141c"/>
-  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ff8f40">let</tspan><tspan fill="#bfbdb6"> answer = </tspan><tspan fill="#d2a6ff">42</tspan><tspan fill="#bfbdb6">
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ff8f40">let</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#ffb454">answer</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#f29668">=</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#d2a6ff">42</tspan><tspan fill="#bfbdb6">
 </tspan></text>
-  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#5a6673">(* open this in a browser *)</tspan><tspan fill="#bfbdb6">
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#5a6673">(*</tspan><tspan font-style="italic" fill="#5a6673"> open this in a browser </tspan><tspan font-style="italic" fill="#5a6673">*)</tspan><tspan fill="#bfbdb6">
 </tspan></text>
-  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ff8f40">let</tspan><tspan fill="#bfbdb6"> greet = </tspan><tspan fill="#aad94c">&quot;hello from ochre&quot;</tspan><tspan fill="#bfbdb6">
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ff8f40">let</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#ffb454">greet</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#f29668">=</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#aad94c">&quot;</tspan><tspan fill="#aad94c">hello from ochre</tspan><tspan fill="#aad94c">&quot;</tspan><tspan fill="#bfbdb6">
 </tspan></text>
-
-</svg>
-<text x="20" y="396" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">catppuccin</text>
-<svg x="20" y="404" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
-
+</svg><text x="24" y="435" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">CATPPUCCIN</text><svg x="24" y="443" width="960" height="75" xmlns="http://www.w3.org/2000/svg">
  <rect width="100%" height="100%" fill="#1e1e2e"/>
-  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#cba6f7">let</tspan><tspan fill="#cdd6f4"> answer = </tspan><tspan fill="#fab387">42</tspan><tspan fill="#cdd6f4">
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#cba6f7">let</tspan><tspan fill="#cdd6f4"> </tspan><tspan font-style="italic" fill="#89b4fa">answer</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#94e2d5">=</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#fab387">42</tspan><tspan fill="#cdd6f4">
 </tspan></text>
-  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#9399b2">(* open this in a browser *)</tspan><tspan fill="#cdd6f4">
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#9399b2">(*</tspan><tspan font-style="italic" fill="#9399b2"> open this in a browser </tspan><tspan font-style="italic" fill="#9399b2">*)</tspan><tspan fill="#cdd6f4">
 </tspan></text>
-  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#cba6f7">let</tspan><tspan fill="#cdd6f4"> greet = </tspan><tspan fill="#a6e3a1">&quot;hello from ochre&quot;</tspan><tspan fill="#cdd6f4">
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#cba6f7">let</tspan><tspan fill="#cdd6f4"> </tspan><tspan font-style="italic" fill="#89b4fa">greet</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#94e2d5">=</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#a6e3a1">&quot;</tspan><tspan fill="#a6e3a1">hello from ochre</tspan><tspan fill="#a6e3a1">&quot;</tspan><tspan fill="#cdd6f4">
 </tspan></text>
-
-</svg>
-<text x="20" y="516" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">catppuccin-macchiato</text>
-<svg x="20" y="524" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
-
+</svg><text x="24" y="554" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">CATPPUCCIN-MACCHIATO</text><svg x="24" y="562" width="960" height="75" xmlns="http://www.w3.org/2000/svg">
  <rect width="100%" height="100%" fill="#24273a"/>
-  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#c6a0f6">let</tspan><tspan fill="#cad3f5"> answer = </tspan><tspan fill="#f5a97f">42</tspan><tspan fill="#cad3f5">
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#c6a0f6">let</tspan><tspan fill="#cad3f5"> </tspan><tspan font-style="italic" fill="#8aadf4">answer</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#8bd5ca">=</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#f5a97f">42</tspan><tspan fill="#cad3f5">
 </tspan></text>
-  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#939ab7">(* open this in a browser *)</tspan><tspan fill="#cad3f5">
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#939ab7">(*</tspan><tspan font-style="italic" fill="#939ab7"> open this in a browser </tspan><tspan font-style="italic" fill="#939ab7">*)</tspan><tspan fill="#cad3f5">
 </tspan></text>
-  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#c6a0f6">let</tspan><tspan fill="#cad3f5"> greet = </tspan><tspan fill="#a6da95">&quot;hello from ochre&quot;</tspan><tspan fill="#cad3f5">
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#c6a0f6">let</tspan><tspan fill="#cad3f5"> </tspan><tspan font-style="italic" fill="#8aadf4">greet</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#8bd5ca">=</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#a6da95">&quot;</tspan><tspan fill="#a6da95">hello from ochre</tspan><tspan fill="#a6da95">&quot;</tspan><tspan fill="#cad3f5">
 </tspan></text>
-
-</svg>
-<text x="20" y="636" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">gruvbox</text>
-<svg x="20" y="644" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
-
+</svg><text x="24" y="673" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">GRUVBOX</text><svg x="24" y="681" width="960" height="75" xmlns="http://www.w3.org/2000/svg">
  <rect width="100%" height="100%" fill="#282828"/>
-  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#fb4934">let</tspan><tspan fill="#ebdbb2"> answer = </tspan><tspan fill="#d3869b">42</tspan><tspan fill="#ebdbb2">
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#fb4934">let</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#fabd2f">answer</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#8ec07c">=</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#d3869b">42</tspan><tspan fill="#ebdbb2">
 </tspan></text>
-  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#928374">(* open this in a browser *)</tspan><tspan fill="#ebdbb2">
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#928374">(*</tspan><tspan font-style="italic" fill="#928374"> open this in a browser </tspan><tspan font-style="italic" fill="#928374">*)</tspan><tspan fill="#ebdbb2">
 </tspan></text>
-  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#fb4934">let</tspan><tspan fill="#ebdbb2"> greet = </tspan><tspan fill="#b8bb26">&quot;hello from ochre&quot;</tspan><tspan fill="#ebdbb2">
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#fb4934">let</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#fabd2f">greet</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#8ec07c">=</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#b8bb26">&quot;</tspan><tspan fill="#b8bb26">hello from ochre</tspan><tspan fill="#b8bb26">&quot;</tspan><tspan fill="#ebdbb2">
 </tspan></text>
-
-</svg>
-<text x="20" y="756" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">kanagawa</text>
-<svg x="20" y="764" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
-
+</svg><text x="24" y="792" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">KANAGAWA</text><svg x="24" y="800" width="960" height="75" xmlns="http://www.w3.org/2000/svg">
  <rect width="100%" height="100%" fill="#1F1F28"/>
-  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#957FB8">let</tspan><tspan fill="#DCD7BA"> answer = </tspan><tspan fill="#D27E99">42</tspan><tspan fill="#DCD7BA">
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#DCD7BA">let</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#7E9CD8">answer</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#E6C384">=</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#D27E99">42</tspan><tspan fill="#DCD7BA">
 </tspan></text>
-  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#727169">(* open this in a browser *)</tspan><tspan fill="#DCD7BA">
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#727169">(*</tspan><tspan fill="#727169"> open this in a browser </tspan><tspan fill="#727169">*)</tspan><tspan fill="#DCD7BA">
 </tspan></text>
-  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#957FB8">let</tspan><tspan fill="#DCD7BA"> greet = </tspan><tspan fill="#98BB6C">&quot;hello from ochre&quot;</tspan><tspan fill="#DCD7BA">
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#DCD7BA">let</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#7E9CD8">greet</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#E6C384">=</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#98BB6C">&quot;</tspan><tspan fill="#98BB6C">hello from ochre</tspan><tspan fill="#98BB6C">&quot;</tspan><tspan fill="#DCD7BA">
 </tspan></text>
-
-</svg>
-<text x="20" y="876" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">nord</text>
-<svg x="20" y="884" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
-
+</svg><text x="24" y="911" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">NORD</text><svg x="24" y="919" width="960" height="75" xmlns="http://www.w3.org/2000/svg">
  <rect width="100%" height="100%" fill="#2e3440"/>
-  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#81A1C1">let</tspan><tspan fill="#d8dee9ff"> answer = </tspan><tspan fill="#B48EAD">42</tspan><tspan fill="#d8dee9ff">
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#81A1C1">let</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#88C0D0">answer</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#81A1C1">=</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#B48EAD">42</tspan><tspan fill="#d8dee9ff">
 </tspan></text>
-  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#616E88">(* open this in a browser *)</tspan><tspan fill="#d8dee9ff">
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#616E88">(*</tspan><tspan fill="#616E88"> open this in a browser </tspan><tspan fill="#616E88">*)</tspan><tspan fill="#d8dee9ff">
 </tspan></text>
-  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#81A1C1">let</tspan><tspan fill="#d8dee9ff"> greet = </tspan><tspan fill="#A3BE8C">&quot;hello from ochre&quot;</tspan><tspan fill="#d8dee9ff">
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#81A1C1">let</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#88C0D0">greet</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#81A1C1">=</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#A3BE8C">&quot;</tspan><tspan fill="#A3BE8C">hello from ochre</tspan><tspan fill="#A3BE8C">&quot;</tspan><tspan fill="#d8dee9ff">
 </tspan></text>
-
-</svg>
-<text x="20" y="996" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">matrix</text>
-<svg x="20" y="1004" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
-
+</svg><text x="24" y="1030" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">MATRIX</text><svg x="24" y="1038" width="960" height="75" xmlns="http://www.w3.org/2000/svg">
  <rect width="100%" height="100%" fill="#000000"/>
-  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#39ff14">let</tspan><tspan fill="#00ff41"> answer = </tspan><tspan fill="#66ff66">42</tspan><tspan fill="#00ff41">
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#39ff14">let</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#00ff99">answer</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#39ff14">=</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#66ff66">42</tspan><tspan fill="#00ff41">
 </tspan></text>
-  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#008f11">(* open this in a browser *)</tspan><tspan fill="#00ff41">
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#008f11">(*</tspan><tspan font-style="italic" fill="#008f11"> open this in a browser </tspan><tspan font-style="italic" fill="#008f11">*)</tspan><tspan fill="#00ff41">
 </tspan></text>
-  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#39ff14">let</tspan><tspan fill="#00ff41"> greet = </tspan><tspan fill="#00cc33">&quot;hello from ochre&quot;</tspan><tspan fill="#00ff41">
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#39ff14">let</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#00ff99">greet</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#39ff14">=</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#00cc33">&quot;</tspan><tspan fill="#00cc33">hello from ochre</tspan><tspan fill="#00cc33">&quot;</tspan><tspan fill="#00ff41">
 </tspan></text>
-
-</svg>
-<text x="20" y="1116" font-size="12px" font-family="monospace" fill="#6b7280" letter-spacing="0.08em">one-dark</text>
-<svg x="20" y="1124" width="280" height="79" xmlns="http://www.w3.org/2000/svg">
-
+</svg><text x="24" y="1149" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">ONE-DARK</text><svg x="24" y="1157" width="960" height="75" xmlns="http://www.w3.org/2000/svg">
  <rect width="100%" height="100%" fill="#282c34"/>
-  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#c678dd">let</tspan><tspan fill="#abb2bf"> answer = </tspan><tspan fill="#d19a66">42</tspan><tspan fill="#abb2bf">
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#c678dd">let</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#61afef">answer</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#abb2bf">=</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#d19a66">42</tspan><tspan fill="#abb2bf">
 </tspan></text>
-  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#7f848e">(* open this in a browser *)</tspan><tspan fill="#abb2bf">
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan font-style="italic" fill="#7f848e">(*</tspan><tspan font-style="italic" fill="#7f848e"> open this in a browser </tspan><tspan font-style="italic" fill="#7f848e">*)</tspan><tspan fill="#abb2bf">
 </tspan></text>
-  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#c678dd">let</tspan><tspan fill="#abb2bf"> greet = </tspan><tspan fill="#98c379">&quot;hello from ochre&quot;</tspan><tspan fill="#abb2bf">
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#c678dd">let</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#61afef">greet</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#abb2bf">=</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#98c379">&quot;</tspan><tspan fill="#98c379">hello from ochre</tspan><tspan fill="#98c379">&quot;</tspan><tspan fill="#abb2bf">
 </tspan></text>
-
-</svg>
-</svg>
+</svg><text x="24" y="1298" font-size="18px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f">HTML + CSS + JS</text><text x="24" y="1334" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">TOKYONIGHT</text><svg x="24" y="1342" width="960" height="257" xmlns="http://www.w3.org/2000/svg">
+ <rect width="100%" height="100%" fill="#1a1b26"/>
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ba3c97">&lt;!</tspan><tspan fill="#f7768e">DOCTYPE</tspan><tspan fill="#de5971"> </tspan><tspan fill="#bb9af7">html</tspan><tspan fill="#ba3c97">&gt;</tspan><tspan fill="#9aa5ce">
+</tspan></text>
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ba3c97">&lt;</tspan><tspan fill="#f7768e">html</tspan><tspan fill="#ba3c97">&gt;</tspan><tspan fill="#9aa5ce">
+</tspan></text>
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ba3c97">&lt;</tspan><tspan fill="#f7768e">head</tspan><tspan fill="#ba3c97">&gt;</tspan><tspan fill="#9aa5ce">
+</tspan></text>
+  <text x="10" y="78.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#89ddff">  </tspan><tspan fill="#ba3c97">&lt;</tspan><tspan fill="#f7768e">style</tspan><tspan fill="#ba3c97">&gt;</tspan><tspan fill="#0db9d7">body</tspan><tspan fill="#c0caf5"> </tspan><tspan fill="#9abdf5">{</tspan><tspan fill="#9abdf5"> </tspan><tspan fill="#7aa2f7">color</tspan><tspan fill="#89ddff">:</tspan><tspan fill="#9abdf5"> </tspan><tspan fill="#ff9e64">#</tspan><tspan fill="#9aa5ce">333</tspan><tspan fill="#89ddff">;</tspan><tspan fill="#9abdf5"> </tspan><tspan fill="#7aa2f7">font-family</tspan><tspan fill="#89ddff">:</tspan><tspan fill="#9abdf5"> </tspan><tspan fill="#9ece6a">sans-serif</tspan><tspan fill="#89ddff">;</tspan><tspan fill="#9abdf5"> </tspan><tspan fill="#9abdf5">}</tspan><tspan fill="#ba3c97">&lt;</tspan><tspan fill="#ba3c97">/</tspan><tspan fill="#f7768e">style</tspan><tspan fill="#ba3c97">&gt;</tspan><tspan fill="#89ddff">
+</tspan></text>
+  <text x="10" y="96.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ba3c97">&lt;/</tspan><tspan fill="#f7768e">head</tspan><tspan fill="#ba3c97">&gt;</tspan><tspan fill="#9aa5ce">
+</tspan></text>
+  <text x="10" y="115.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ba3c97">&lt;</tspan><tspan fill="#f7768e">body</tspan><tspan fill="#ba3c97">&gt;</tspan><tspan fill="#9aa5ce">
+</tspan></text>
+  <text x="10" y="133.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#9aa5ce">  </tspan><tspan fill="#ba3c97">&lt;</tspan><tspan fill="#f7768e">h1</tspan><tspan fill="#ba3c97">&gt;</tspan><tspan fill="#9aa5ce">Hello</tspan><tspan fill="#ba3c97">&lt;/</tspan><tspan fill="#f7768e">h1</tspan><tspan fill="#ba3c97">&gt;</tspan><tspan fill="#9aa5ce">
+</tspan></text>
+  <text x="10" y="151.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#89ddff">  </tspan><tspan fill="#ba3c97">&lt;</tspan><tspan fill="#f7768e">script</tspan><tspan fill="#ba3c97">&gt;</tspan><tspan fill="#c0caf5">
+</tspan></text>
+  <text x="10" y="169.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#c0caf5">    </tspan><tspan fill="#bb9af7">const</tspan><tspan fill="#c0caf5"> </tspan><tspan fill="#ff9e64">name</tspan><tspan fill="#c0caf5"> </tspan><tspan fill="#89ddff">=</tspan><tspan fill="#c0caf5"> </tspan><tspan fill="#89ddff">&quot;</tspan><tspan fill="#9ece6a">world</tspan><tspan fill="#89ddff">&quot;</tspan><tspan fill="#89ddff">;</tspan><tspan fill="#c0caf5">
+</tspan></text>
+  <text x="10" y="187.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#c0caf5">    </tspan><tspan fill="#c0caf5">console</tspan><tspan fill="#89ddff">.</tspan><tspan fill="#7aa2f7">log</tspan><tspan fill="#9abdf5">(</tspan><tspan fill="#c0caf5">name</tspan><tspan fill="#9abdf5">)</tspan><tspan fill="#89ddff">;</tspan><tspan fill="#c0caf5">
+</tspan></text>
+  <text x="10" y="206.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#c0caf5">  </tspan><tspan fill="#ba3c97">&lt;</tspan><tspan fill="#ba3c97">/</tspan><tspan fill="#f7768e">script</tspan><tspan fill="#ba3c97">&gt;</tspan><tspan fill="#89ddff">
+</tspan></text>
+  <text x="10" y="224.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ba3c97">&lt;/</tspan><tspan fill="#f7768e">body</tspan><tspan fill="#ba3c97">&gt;</tspan><tspan fill="#9aa5ce">
+</tspan></text>
+  <text x="10" y="242.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ba3c97">&lt;/</tspan><tspan fill="#f7768e">html</tspan><tspan fill="#ba3c97">&gt;</tspan><tspan fill="#9aa5ce">
+</tspan></text>
+</svg><text x="24" y="1635" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">EVERFOREST</text><svg x="24" y="1643" width="960" height="257" xmlns="http://www.w3.org/2000/svg">
+ <rect width="100%" height="100%" fill="#2d353b"/>
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#a7c080">&lt;!</tspan><tspan fill="#e69875">DOCTYPE</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#dbbc7f">html</tspan><tspan fill="#a7c080">&gt;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#a7c080">&lt;</tspan><tspan fill="#e69875">html</tspan><tspan fill="#a7c080">&gt;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#a7c080">&lt;</tspan><tspan fill="#e69875">head</tspan><tspan fill="#a7c080">&gt;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="78.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#d3c6aa">  </tspan><tspan fill="#a7c080">&lt;</tspan><tspan fill="#e69875">style</tspan><tspan fill="#a7c080">&gt;</tspan><tspan fill="#d699b6">body</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#d3c6aa">{</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#83c092">color</tspan><tspan fill="#859289">:</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#d3c6aa">#</tspan><tspan fill="#a7c080">333</tspan><tspan fill="#859289">;</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#83c092">font-family</tspan><tspan fill="#859289">:</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#a7c080">sans-serif</tspan><tspan fill="#859289">;</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#d3c6aa">}</tspan><tspan fill="#a7c080">&lt;</tspan><tspan fill="#a7c080">/</tspan><tspan fill="#e69875">style</tspan><tspan fill="#a7c080">&gt;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="96.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#a7c080">&lt;/</tspan><tspan fill="#e69875">head</tspan><tspan fill="#a7c080">&gt;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="115.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#a7c080">&lt;</tspan><tspan fill="#e69875">body</tspan><tspan fill="#a7c080">&gt;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="133.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#d3c6aa">  </tspan><tspan fill="#a7c080">&lt;</tspan><tspan fill="#e69875">h1</tspan><tspan fill="#a7c080">&gt;</tspan><tspan fill="#d3c6aa">Hello</tspan><tspan fill="#a7c080">&lt;/</tspan><tspan fill="#e69875">h1</tspan><tspan fill="#a7c080">&gt;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="151.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#d3c6aa">  </tspan><tspan fill="#a7c080">&lt;</tspan><tspan fill="#e69875">script</tspan><tspan fill="#a7c080">&gt;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="169.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#d3c6aa">    </tspan><tspan fill="#e69875">const</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#d3c6aa">name</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#e69875">=</tspan><tspan fill="#d3c6aa"> </tspan><tspan fill="#dbbc7f">&quot;</tspan><tspan fill="#dbbc7f">world</tspan><tspan fill="#dbbc7f">&quot;</tspan><tspan fill="#d3c6aa">;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="187.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#d3c6aa">    </tspan><tspan fill="#d3c6aa">console</tspan><tspan fill="#859289">.</tspan><tspan fill="#a7c080">log</tspan><tspan fill="#d3c6aa">(</tspan><tspan fill="#d3c6aa">name</tspan><tspan fill="#d3c6aa">)</tspan><tspan fill="#d3c6aa">;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="206.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#d3c6aa">  </tspan><tspan fill="#a7c080">&lt;</tspan><tspan fill="#a7c080">/</tspan><tspan fill="#e69875">script</tspan><tspan fill="#a7c080">&gt;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="224.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#a7c080">&lt;/</tspan><tspan fill="#e69875">body</tspan><tspan fill="#a7c080">&gt;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+  <text x="10" y="242.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#a7c080">&lt;/</tspan><tspan fill="#e69875">html</tspan><tspan fill="#a7c080">&gt;</tspan><tspan fill="#d3c6aa">
+</tspan></text>
+</svg><text x="24" y="1936" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">AYU</text><svg x="24" y="1944" width="960" height="257" xmlns="http://www.w3.org/2000/svg">
+ <rect width="100%" height="100%" fill="#10141c"/>
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#39bae680">&lt;!</tspan><tspan fill="#39bae6">DOCTYPE</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#ffb454">html</tspan><tspan fill="#39bae680">&gt;</tspan><tspan fill="#bfbdb6">
+</tspan></text>
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#39bae680">&lt;</tspan><tspan fill="#39bae6">html</tspan><tspan fill="#39bae680">&gt;</tspan><tspan fill="#bfbdb6">
+</tspan></text>
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#39bae680">&lt;</tspan><tspan fill="#39bae6">head</tspan><tspan fill="#39bae680">&gt;</tspan><tspan fill="#bfbdb6">
+</tspan></text>
+  <text x="10" y="78.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#bfbdb6">  </tspan><tspan fill="#39bae680">&lt;</tspan><tspan fill="#39bae6">style</tspan><tspan fill="#39bae680">&gt;</tspan><tspan fill="#39bae6">body</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#bfbdb6">{</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#39bae6">color</tspan><tspan fill="#bfbdb6b3">:</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#95e6cb">#</tspan><tspan fill="#95e6cb">333</tspan><tspan fill="#bfbdb6b3">;</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#39bae6">font-family</tspan><tspan fill="#bfbdb6b3">:</tspan><tspan fill="#bfbdb6"> </tspan><tspan font-style="italic" fill="#f29668">sans-serif</tspan><tspan fill="#bfbdb6b3">;</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#bfbdb6">}</tspan><tspan fill="#39bae680">&lt;</tspan><tspan fill="#39bae680">/</tspan><tspan fill="#39bae6">style</tspan><tspan fill="#39bae680">&gt;</tspan><tspan fill="#bfbdb6">
+</tspan></text>
+  <text x="10" y="96.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#39bae680">&lt;/</tspan><tspan fill="#39bae6">head</tspan><tspan fill="#39bae680">&gt;</tspan><tspan fill="#bfbdb6">
+</tspan></text>
+  <text x="10" y="115.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#39bae680">&lt;</tspan><tspan fill="#39bae6">body</tspan><tspan fill="#39bae680">&gt;</tspan><tspan fill="#bfbdb6">
+</tspan></text>
+  <text x="10" y="133.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#bfbdb6">  </tspan><tspan fill="#39bae680">&lt;</tspan><tspan fill="#39bae6">h1</tspan><tspan fill="#39bae680">&gt;</tspan><tspan fill="#bfbdb6">Hello</tspan><tspan fill="#39bae680">&lt;/</tspan><tspan fill="#39bae6">h1</tspan><tspan fill="#39bae680">&gt;</tspan><tspan fill="#bfbdb6">
+</tspan></text>
+  <text x="10" y="151.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#bfbdb6">  </tspan><tspan fill="#39bae680">&lt;</tspan><tspan fill="#39bae6">script</tspan><tspan fill="#39bae680">&gt;</tspan><tspan fill="#bfbdb6">
+</tspan></text>
+  <text x="10" y="169.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#bfbdb6">    </tspan><tspan fill="#ff8f40">const</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#bfbdb6">name</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#f29668">=</tspan><tspan fill="#bfbdb6"> </tspan><tspan fill="#aad94c">&quot;</tspan><tspan fill="#aad94c">world</tspan><tspan fill="#aad94c">&quot;</tspan><tspan fill="#bfbdb6b3">;</tspan><tspan fill="#bfbdb6">
+</tspan></text>
+  <text x="10" y="187.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#bfbdb6">    </tspan><tspan fill="#bfbdb6">console</tspan><tspan fill="#f29668">.</tspan><tspan fill="#ffb454">log</tspan><tspan fill="#bfbdb6">(</tspan><tspan fill="#bfbdb6">name</tspan><tspan fill="#bfbdb6">)</tspan><tspan fill="#bfbdb6b3">;</tspan><tspan fill="#bfbdb6">
+</tspan></text>
+  <text x="10" y="206.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#bfbdb6">  </tspan><tspan fill="#39bae680">&lt;</tspan><tspan fill="#39bae680">/</tspan><tspan fill="#39bae6">script</tspan><tspan fill="#39bae680">&gt;</tspan><tspan fill="#bfbdb6">
+</tspan></text>
+  <text x="10" y="224.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#39bae680">&lt;/</tspan><tspan fill="#39bae6">body</tspan><tspan fill="#39bae680">&gt;</tspan><tspan fill="#bfbdb6">
+</tspan></text>
+  <text x="10" y="242.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#39bae680">&lt;/</tspan><tspan fill="#39bae6">html</tspan><tspan fill="#39bae680">&gt;</tspan><tspan fill="#bfbdb6">
+</tspan></text>
+</svg><text x="24" y="2237" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">CATPPUCCIN</text><svg x="24" y="2245" width="960" height="257" xmlns="http://www.w3.org/2000/svg">
+ <rect width="100%" height="100%" fill="#1e1e2e"/>
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#94e2d5">&lt;!</tspan><tspan fill="#89b4fa">DOCTYPE</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#f9e2af">html</tspan><tspan fill="#94e2d5">&gt;</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#94e2d5">&lt;</tspan><tspan fill="#89b4fa">html</tspan><tspan fill="#94e2d5">&gt;</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#94e2d5">&lt;</tspan><tspan fill="#89b4fa">head</tspan><tspan fill="#94e2d5">&gt;</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+  <text x="10" y="78.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#9399b2">  </tspan><tspan fill="#94e2d5">&lt;</tspan><tspan fill="#89b4fa">style</tspan><tspan fill="#94e2d5">&gt;</tspan><tspan fill="#89b4fa">body</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#9399b2">{</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#89b4fa">color</tspan><tspan fill="#94e2d5">:</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#9399b2">#</tspan><tspan fill="#cdd6f4">333</tspan><tspan fill="#9399b2">;</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#89b4fa">font-family</tspan><tspan fill="#94e2d5">:</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#cdd6f4">sans-serif</tspan><tspan fill="#9399b2">;</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#9399b2">}</tspan><tspan fill="#cdd6f4">&lt;</tspan><tspan fill="#94e2d5">/</tspan><tspan fill="#89b4fa">style</tspan><tspan fill="#94e2d5">&gt;</tspan><tspan fill="#9399b2">
+</tspan></text>
+  <text x="10" y="96.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#94e2d5">&lt;/</tspan><tspan fill="#89b4fa">head</tspan><tspan fill="#94e2d5">&gt;</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+  <text x="10" y="115.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#94e2d5">&lt;</tspan><tspan fill="#89b4fa">body</tspan><tspan fill="#94e2d5">&gt;</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+  <text x="10" y="133.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#cdd6f4">  </tspan><tspan fill="#94e2d5">&lt;</tspan><tspan fill="#89b4fa">h1</tspan><tspan fill="#94e2d5">&gt;</tspan><tspan fill="#cdd6f4">Hello</tspan><tspan fill="#94e2d5">&lt;/</tspan><tspan fill="#89b4fa">h1</tspan><tspan fill="#94e2d5">&gt;</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+  <text x="10" y="151.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#9399b2">  </tspan><tspan fill="#94e2d5">&lt;</tspan><tspan fill="#89b4fa">script</tspan><tspan fill="#94e2d5">&gt;</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+  <text x="10" y="169.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#cdd6f4">    </tspan><tspan fill="#cba6f7">const</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#cdd6f4">name</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#94e2d5">=</tspan><tspan fill="#cdd6f4"> </tspan><tspan fill="#a6e3a1">&quot;</tspan><tspan fill="#a6e3a1">world</tspan><tspan fill="#a6e3a1">&quot;</tspan><tspan fill="#9399b2">;</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+  <text x="10" y="187.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#cdd6f4">    </tspan><tspan fill="#cdd6f4">console</tspan><tspan fill="#94e2d5">.</tspan><tspan font-style="italic" fill="#89b4fa">log</tspan><tspan fill="#cdd6f4">(</tspan><tspan fill="#cdd6f4">name</tspan><tspan fill="#cdd6f4">)</tspan><tspan fill="#9399b2">;</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+  <text x="10" y="206.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#cdd6f4">  </tspan><tspan fill="#cdd6f4">&lt;</tspan><tspan fill="#94e2d5">/</tspan><tspan fill="#89b4fa">script</tspan><tspan fill="#94e2d5">&gt;</tspan><tspan fill="#9399b2">
+</tspan></text>
+  <text x="10" y="224.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#94e2d5">&lt;/</tspan><tspan fill="#89b4fa">body</tspan><tspan fill="#94e2d5">&gt;</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+  <text x="10" y="242.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#94e2d5">&lt;/</tspan><tspan fill="#89b4fa">html</tspan><tspan fill="#94e2d5">&gt;</tspan><tspan fill="#cdd6f4">
+</tspan></text>
+</svg><text x="24" y="2538" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">CATPPUCCIN-MACCHIATO</text><svg x="24" y="2546" width="960" height="257" xmlns="http://www.w3.org/2000/svg">
+ <rect width="100%" height="100%" fill="#24273a"/>
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#8bd5ca">&lt;!</tspan><tspan fill="#8aadf4">DOCTYPE</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#eed49f">html</tspan><tspan fill="#8bd5ca">&gt;</tspan><tspan fill="#cad3f5">
+</tspan></text>
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#8bd5ca">&lt;</tspan><tspan fill="#8aadf4">html</tspan><tspan fill="#8bd5ca">&gt;</tspan><tspan fill="#cad3f5">
+</tspan></text>
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#8bd5ca">&lt;</tspan><tspan fill="#8aadf4">head</tspan><tspan fill="#8bd5ca">&gt;</tspan><tspan fill="#cad3f5">
+</tspan></text>
+  <text x="10" y="78.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#939ab7">  </tspan><tspan fill="#8bd5ca">&lt;</tspan><tspan fill="#8aadf4">style</tspan><tspan fill="#8bd5ca">&gt;</tspan><tspan fill="#8aadf4">body</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#939ab7">{</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#8aadf4">color</tspan><tspan fill="#8bd5ca">:</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#939ab7">#</tspan><tspan fill="#cad3f5">333</tspan><tspan fill="#939ab7">;</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#8aadf4">font-family</tspan><tspan fill="#8bd5ca">:</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#cad3f5">sans-serif</tspan><tspan fill="#939ab7">;</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#939ab7">}</tspan><tspan fill="#cad3f5">&lt;</tspan><tspan fill="#8bd5ca">/</tspan><tspan fill="#8aadf4">style</tspan><tspan fill="#8bd5ca">&gt;</tspan><tspan fill="#939ab7">
+</tspan></text>
+  <text x="10" y="96.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#8bd5ca">&lt;/</tspan><tspan fill="#8aadf4">head</tspan><tspan fill="#8bd5ca">&gt;</tspan><tspan fill="#cad3f5">
+</tspan></text>
+  <text x="10" y="115.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#8bd5ca">&lt;</tspan><tspan fill="#8aadf4">body</tspan><tspan fill="#8bd5ca">&gt;</tspan><tspan fill="#cad3f5">
+</tspan></text>
+  <text x="10" y="133.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#cad3f5">  </tspan><tspan fill="#8bd5ca">&lt;</tspan><tspan fill="#8aadf4">h1</tspan><tspan fill="#8bd5ca">&gt;</tspan><tspan fill="#cad3f5">Hello</tspan><tspan fill="#8bd5ca">&lt;/</tspan><tspan fill="#8aadf4">h1</tspan><tspan fill="#8bd5ca">&gt;</tspan><tspan fill="#cad3f5">
+</tspan></text>
+  <text x="10" y="151.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#939ab7">  </tspan><tspan fill="#8bd5ca">&lt;</tspan><tspan fill="#8aadf4">script</tspan><tspan fill="#8bd5ca">&gt;</tspan><tspan fill="#cad3f5">
+</tspan></text>
+  <text x="10" y="169.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#cad3f5">    </tspan><tspan fill="#c6a0f6">const</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#cad3f5">name</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#8bd5ca">=</tspan><tspan fill="#cad3f5"> </tspan><tspan fill="#a6da95">&quot;</tspan><tspan fill="#a6da95">world</tspan><tspan fill="#a6da95">&quot;</tspan><tspan fill="#939ab7">;</tspan><tspan fill="#cad3f5">
+</tspan></text>
+  <text x="10" y="187.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#cad3f5">    </tspan><tspan fill="#cad3f5">console</tspan><tspan fill="#8bd5ca">.</tspan><tspan font-style="italic" fill="#8aadf4">log</tspan><tspan fill="#cad3f5">(</tspan><tspan fill="#cad3f5">name</tspan><tspan fill="#cad3f5">)</tspan><tspan fill="#939ab7">;</tspan><tspan fill="#cad3f5">
+</tspan></text>
+  <text x="10" y="206.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#cad3f5">  </tspan><tspan fill="#cad3f5">&lt;</tspan><tspan fill="#8bd5ca">/</tspan><tspan fill="#8aadf4">script</tspan><tspan fill="#8bd5ca">&gt;</tspan><tspan fill="#939ab7">
+</tspan></text>
+  <text x="10" y="224.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#8bd5ca">&lt;/</tspan><tspan fill="#8aadf4">body</tspan><tspan fill="#8bd5ca">&gt;</tspan><tspan fill="#cad3f5">
+</tspan></text>
+  <text x="10" y="242.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#8bd5ca">&lt;/</tspan><tspan fill="#8aadf4">html</tspan><tspan fill="#8bd5ca">&gt;</tspan><tspan fill="#cad3f5">
+</tspan></text>
+</svg><text x="24" y="2839" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">GRUVBOX</text><svg x="24" y="2847" width="960" height="257" xmlns="http://www.w3.org/2000/svg">
+ <rect width="100%" height="100%" fill="#282828"/>
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#83a598">&lt;!</tspan><tspan fill="#8ec07c">DOCTYPE</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#fabd2f">html</tspan><tspan fill="#83a598">&gt;</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#83a598">&lt;</tspan><tspan fill="#8ec07c">html</tspan><tspan fill="#83a598">&gt;</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#83a598">&lt;</tspan><tspan fill="#8ec07c">head</tspan><tspan fill="#83a598">&gt;</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+  <text x="10" y="78.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#a89984">  </tspan><tspan fill="#83a598">&lt;</tspan><tspan fill="#8ec07c">style</tspan><tspan fill="#83a598">&gt;</tspan><tspan fill="#8ec07c">body</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#a89984">{</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#fe8019">color</tspan><tspan fill="#a89984">:</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#a89984">#</tspan><tspan fill="#d3869b">333</tspan><tspan fill="#a89984">;</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#fe8019">font-family</tspan><tspan fill="#a89984">:</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#d3869b">sans-serif</tspan><tspan fill="#a89984">;</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#a89984">}</tspan><tspan fill="#83a598">&lt;</tspan><tspan fill="#83a598">/</tspan><tspan fill="#8ec07c">style</tspan><tspan fill="#83a598">&gt;</tspan><tspan fill="#a89984">
+</tspan></text>
+  <text x="10" y="96.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#83a598">&lt;/</tspan><tspan fill="#8ec07c">head</tspan><tspan fill="#83a598">&gt;</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+  <text x="10" y="115.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#83a598">&lt;</tspan><tspan fill="#8ec07c">body</tspan><tspan fill="#83a598">&gt;</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+  <text x="10" y="133.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ebdbb2">  </tspan><tspan fill="#83a598">&lt;</tspan><tspan fill="#8ec07c">h1</tspan><tspan fill="#83a598">&gt;</tspan><tspan fill="#ebdbb2">Hello</tspan><tspan fill="#83a598">&lt;/</tspan><tspan fill="#8ec07c">h1</tspan><tspan fill="#83a598">&gt;</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+  <text x="10" y="151.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#a89984">  </tspan><tspan fill="#83a598">&lt;</tspan><tspan fill="#8ec07c">script</tspan><tspan fill="#83a598">&gt;</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+  <text x="10" y="169.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ebdbb2">    </tspan><tspan fill="#fe8019">const</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#83a598">name</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#8ec07c">=</tspan><tspan fill="#ebdbb2"> </tspan><tspan fill="#a89984">&quot;</tspan><tspan fill="#b8bb26">world</tspan><tspan fill="#a89984">&quot;</tspan><tspan fill="#a89984">;</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+  <text x="10" y="187.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ebdbb2">    </tspan><tspan fill="#83a598">console</tspan><tspan fill="#a89984">.</tspan><tspan fill="#fabd2f">log</tspan><tspan fill="#ebdbb2">(</tspan><tspan fill="#83a598">name</tspan><tspan fill="#ebdbb2">)</tspan><tspan fill="#a89984">;</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+  <text x="10" y="206.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ebdbb2">  </tspan><tspan fill="#83a598">&lt;</tspan><tspan fill="#83a598">/</tspan><tspan fill="#8ec07c">script</tspan><tspan fill="#83a598">&gt;</tspan><tspan fill="#a89984">
+</tspan></text>
+  <text x="10" y="224.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#83a598">&lt;/</tspan><tspan fill="#8ec07c">body</tspan><tspan fill="#83a598">&gt;</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+  <text x="10" y="242.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#83a598">&lt;/</tspan><tspan fill="#8ec07c">html</tspan><tspan fill="#83a598">&gt;</tspan><tspan fill="#ebdbb2">
+</tspan></text>
+</svg><text x="24" y="3140" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">KANAGAWA</text><svg x="24" y="3148" width="960" height="257" xmlns="http://www.w3.org/2000/svg">
+ <rect width="100%" height="100%" fill="#1F1F28"/>
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#9CABCA">&lt;!</tspan><tspan fill="#E6C384">DOCTYPE</tspan><tspan fill="#957FB8"> </tspan><tspan fill="#957FB8">html</tspan><tspan fill="#9CABCA">&gt;</tspan><tspan fill="#DCD7BA">
+</tspan></text>
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#9CABCA">&lt;</tspan><tspan fill="#E6C384">html</tspan><tspan fill="#9CABCA">&gt;</tspan><tspan fill="#DCD7BA">
+</tspan></text>
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#9CABCA">&lt;</tspan><tspan fill="#E6C384">head</tspan><tspan fill="#9CABCA">&gt;</tspan><tspan fill="#DCD7BA">
+</tspan></text>
+  <text x="10" y="78.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#9CABCA">  </tspan><tspan fill="#9CABCA">&lt;</tspan><tspan fill="#E6C384">style</tspan><tspan fill="#9CABCA">&gt;</tspan><tspan fill="#E6C384">body</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#9CABCA">{</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#7AA89F">color</tspan><tspan fill="#9CABCA">:</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#9CABCA">#</tspan><tspan fill="#957FB8">333</tspan><tspan fill="#9CABCA">;</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#7AA89F">font-family</tspan><tspan fill="#9CABCA">:</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#FFA066">sans-serif</tspan><tspan fill="#9CABCA">;</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#9CABCA">}</tspan><tspan fill="#9CABCA">&lt;</tspan><tspan fill="#9CABCA">/</tspan><tspan fill="#E6C384">style</tspan><tspan fill="#9CABCA">&gt;</tspan><tspan fill="#9CABCA">
+</tspan></text>
+  <text x="10" y="96.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#9CABCA">&lt;/</tspan><tspan fill="#E6C384">head</tspan><tspan fill="#9CABCA">&gt;</tspan><tspan fill="#DCD7BA">
+</tspan></text>
+  <text x="10" y="115.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#9CABCA">&lt;</tspan><tspan fill="#E6C384">body</tspan><tspan fill="#9CABCA">&gt;</tspan><tspan fill="#DCD7BA">
+</tspan></text>
+  <text x="10" y="133.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#DCD7BA">  </tspan><tspan fill="#9CABCA">&lt;</tspan><tspan fill="#E6C384">h1</tspan><tspan fill="#9CABCA">&gt;</tspan><tspan fill="#DCD7BA">Hello</tspan><tspan fill="#9CABCA">&lt;/</tspan><tspan fill="#E6C384">h1</tspan><tspan fill="#9CABCA">&gt;</tspan><tspan fill="#DCD7BA">
+</tspan></text>
+  <text x="10" y="151.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#9CABCA">  </tspan><tspan fill="#9CABCA">&lt;</tspan><tspan fill="#E6C384">script</tspan><tspan fill="#9CABCA">&gt;</tspan><tspan fill="#DCD7BA">
+</tspan></text>
+  <text x="10" y="169.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#DCD7BA">    </tspan><tspan fill="#957FB8">const</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#DCD7BA">name</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#E6C384">=</tspan><tspan fill="#DCD7BA"> </tspan><tspan fill="#98BB6C">&quot;</tspan><tspan fill="#98BB6C">world</tspan><tspan fill="#98BB6C">&quot;</tspan><tspan fill="#9CABCA">;</tspan><tspan fill="#DCD7BA">
+</tspan></text>
+  <text x="10" y="187.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#DCD7BA">    </tspan><tspan fill="#DCD7BA">console</tspan><tspan fill="#9CABCA">.</tspan><tspan fill="#7E9CD8">log</tspan><tspan fill="#9CABCA">(</tspan><tspan fill="#DCD7BA">name</tspan><tspan fill="#9CABCA">)</tspan><tspan fill="#9CABCA">;</tspan><tspan fill="#DCD7BA">
+</tspan></text>
+  <text x="10" y="206.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#DCD7BA">  </tspan><tspan fill="#9CABCA">&lt;</tspan><tspan fill="#9CABCA">/</tspan><tspan fill="#E6C384">script</tspan><tspan fill="#9CABCA">&gt;</tspan><tspan fill="#9CABCA">
+</tspan></text>
+  <text x="10" y="224.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#9CABCA">&lt;/</tspan><tspan fill="#E6C384">body</tspan><tspan fill="#9CABCA">&gt;</tspan><tspan fill="#DCD7BA">
+</tspan></text>
+  <text x="10" y="242.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#9CABCA">&lt;/</tspan><tspan fill="#E6C384">html</tspan><tspan fill="#9CABCA">&gt;</tspan><tspan fill="#DCD7BA">
+</tspan></text>
+</svg><text x="24" y="3441" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">NORD</text><svg x="24" y="3449" width="960" height="257" xmlns="http://www.w3.org/2000/svg">
+ <rect width="100%" height="100%" fill="#2e3440"/>
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#81A1C1">&lt;!</tspan><tspan fill="#81A1C1">DOCTYPE</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#8FBCBB">html</tspan><tspan fill="#81A1C1">&gt;</tspan><tspan fill="#d8dee9ff">
+</tspan></text>
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#81A1C1">&lt;</tspan><tspan fill="#81A1C1">html</tspan><tspan fill="#81A1C1">&gt;</tspan><tspan fill="#d8dee9ff">
+</tspan></text>
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#81A1C1">&lt;</tspan><tspan fill="#81A1C1">head</tspan><tspan fill="#81A1C1">&gt;</tspan><tspan fill="#d8dee9ff">
+</tspan></text>
+  <text x="10" y="78.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ECEFF4">  </tspan><tspan fill="#81A1C1">&lt;</tspan><tspan fill="#81A1C1">style</tspan><tspan fill="#81A1C1">&gt;</tspan><tspan fill="#81A1C1">body</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#ECEFF4">{</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#8FBCBB">color</tspan><tspan fill="#ECEFF4">:</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#ECEFF4">#</tspan><tspan fill="#d8dee9ff">333</tspan><tspan fill="#81A1C1">;</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#8FBCBB">font-family</tspan><tspan fill="#ECEFF4">:</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#81A1C1">sans-serif</tspan><tspan fill="#81A1C1">;</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#ECEFF4">}</tspan><tspan fill="#81A1C1">&lt;</tspan><tspan fill="#81A1C1">/</tspan><tspan fill="#81A1C1">style</tspan><tspan fill="#81A1C1">&gt;</tspan><tspan fill="#ECEFF4">
+</tspan></text>
+  <text x="10" y="96.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#81A1C1">&lt;/</tspan><tspan fill="#81A1C1">head</tspan><tspan fill="#81A1C1">&gt;</tspan><tspan fill="#d8dee9ff">
+</tspan></text>
+  <text x="10" y="115.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#81A1C1">&lt;</tspan><tspan fill="#81A1C1">body</tspan><tspan fill="#81A1C1">&gt;</tspan><tspan fill="#d8dee9ff">
+</tspan></text>
+  <text x="10" y="133.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#d8dee9ff">  </tspan><tspan fill="#81A1C1">&lt;</tspan><tspan fill="#81A1C1">h1</tspan><tspan fill="#81A1C1">&gt;</tspan><tspan fill="#d8dee9ff">Hello</tspan><tspan fill="#81A1C1">&lt;/</tspan><tspan fill="#81A1C1">h1</tspan><tspan fill="#81A1C1">&gt;</tspan><tspan fill="#d8dee9ff">
+</tspan></text>
+  <text x="10" y="151.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#ECEFF4">  </tspan><tspan fill="#81A1C1">&lt;</tspan><tspan fill="#81A1C1">script</tspan><tspan fill="#81A1C1">&gt;</tspan><tspan fill="#d8dee9ff">
+</tspan></text>
+  <text x="10" y="169.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#d8dee9ff">    </tspan><tspan fill="#81A1C1">const</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#D8DEE9">name</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#81A1C1">=</tspan><tspan fill="#d8dee9ff"> </tspan><tspan fill="#ECEFF4">&quot;</tspan><tspan fill="#A3BE8C">world</tspan><tspan fill="#ECEFF4">&quot;</tspan><tspan fill="#81A1C1">;</tspan><tspan fill="#d8dee9ff">
+</tspan></text>
+  <text x="10" y="187.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#d8dee9ff">    </tspan><tspan fill="#D8DEE9">console</tspan><tspan fill="#ECEFF4">.</tspan><tspan fill="#88C0D0">log</tspan><tspan fill="#d8dee9ff">(</tspan><tspan fill="#D8DEE9">name</tspan><tspan fill="#d8dee9ff">)</tspan><tspan fill="#81A1C1">;</tspan><tspan fill="#d8dee9ff">
+</tspan></text>
+  <text x="10" y="206.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#d8dee9ff">  </tspan><tspan fill="#81A1C1">&lt;</tspan><tspan fill="#81A1C1">/</tspan><tspan fill="#81A1C1">script</tspan><tspan fill="#81A1C1">&gt;</tspan><tspan fill="#ECEFF4">
+</tspan></text>
+  <text x="10" y="224.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#81A1C1">&lt;/</tspan><tspan fill="#81A1C1">body</tspan><tspan fill="#81A1C1">&gt;</tspan><tspan fill="#d8dee9ff">
+</tspan></text>
+  <text x="10" y="242.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#81A1C1">&lt;/</tspan><tspan fill="#81A1C1">html</tspan><tspan fill="#81A1C1">&gt;</tspan><tspan fill="#d8dee9ff">
+</tspan></text>
+</svg><text x="24" y="3742" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">MATRIX</text><svg x="24" y="3750" width="960" height="257" xmlns="http://www.w3.org/2000/svg">
+ <rect width="100%" height="100%" fill="#000000"/>
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#00ff41">&lt;!</tspan><tspan fill="#00ff41">DOCTYPE</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#00ff41">html</tspan><tspan fill="#00ff41">&gt;</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#00ff41">&lt;</tspan><tspan fill="#00ff41">html</tspan><tspan fill="#00ff41">&gt;</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#00ff41">&lt;</tspan><tspan fill="#00ff41">head</tspan><tspan fill="#00ff41">&gt;</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="78.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#00ff41">  </tspan><tspan fill="#00ff41">&lt;</tspan><tspan fill="#00ff41">style</tspan><tspan fill="#00ff41">&gt;</tspan><tspan fill="#00ff41">body</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#00ff41">{</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#00ff41">color</tspan><tspan fill="#00ff41">:</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#00ff41">#</tspan><tspan fill="#00ff41">333</tspan><tspan fill="#00ff41">;</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#00ff41">font-family</tspan><tspan fill="#00ff41">:</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#00ff41">sans-serif</tspan><tspan fill="#00ff41">;</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#00ff41">}</tspan><tspan fill="#00ff41">&lt;</tspan><tspan fill="#00ff41">/</tspan><tspan fill="#00ff41">style</tspan><tspan fill="#00ff41">&gt;</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="96.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#00ff41">&lt;/</tspan><tspan fill="#00ff41">head</tspan><tspan fill="#00ff41">&gt;</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="115.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#00ff41">&lt;</tspan><tspan fill="#00ff41">body</tspan><tspan fill="#00ff41">&gt;</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="133.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#00ff41">  </tspan><tspan fill="#00ff41">&lt;</tspan><tspan fill="#00ff41">h1</tspan><tspan fill="#00ff41">&gt;</tspan><tspan fill="#00ff41">Hello</tspan><tspan fill="#00ff41">&lt;/</tspan><tspan fill="#00ff41">h1</tspan><tspan fill="#00ff41">&gt;</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="151.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#00ff41">  </tspan><tspan fill="#00ff41">&lt;</tspan><tspan fill="#00ff41">script</tspan><tspan fill="#00ff41">&gt;</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="169.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#00ff41">    </tspan><tspan fill="#00ff41">const</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#00ff41">name</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#39ff14">=</tspan><tspan fill="#00ff41"> </tspan><tspan fill="#00cc33">&quot;</tspan><tspan fill="#00cc33">world</tspan><tspan fill="#00cc33">&quot;</tspan><tspan fill="#00ff41">;</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="187.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#00ff41">    </tspan><tspan fill="#00ff41">console</tspan><tspan fill="#00ff41">.</tspan><tspan fill="#00ff99">log</tspan><tspan fill="#00ff41">(</tspan><tspan fill="#00ff41">name</tspan><tspan fill="#00ff41">)</tspan><tspan fill="#00ff41">;</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="206.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#00ff41">  </tspan><tspan fill="#00ff41">&lt;</tspan><tspan fill="#00ff41">/</tspan><tspan fill="#00ff41">script</tspan><tspan fill="#00ff41">&gt;</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="224.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#00ff41">&lt;/</tspan><tspan fill="#00ff41">body</tspan><tspan fill="#00ff41">&gt;</tspan><tspan fill="#00ff41">
+</tspan></text>
+  <text x="10" y="242.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#00ff41">&lt;/</tspan><tspan fill="#00ff41">html</tspan><tspan fill="#00ff41">&gt;</tspan><tspan fill="#00ff41">
+</tspan></text>
+</svg><text x="24" y="4043" font-size="12px" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" fill="#1f1f1f" letter-spacing="0.08em">ONE-DARK</text><svg x="24" y="4051" width="960" height="257" xmlns="http://www.w3.org/2000/svg">
+ <rect width="100%" height="100%" fill="#282c34"/>
+  <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#abb2bf">&lt;!</tspan><tspan fill="#e06c75">DOCTYPE</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#d19a66">html</tspan><tspan fill="#abb2bf">&gt;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#abb2bf">&lt;</tspan><tspan fill="#e06c75">html</tspan><tspan fill="#abb2bf">&gt;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="60.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#abb2bf">&lt;</tspan><tspan fill="#e06c75">head</tspan><tspan fill="#abb2bf">&gt;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="78.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#abb2bf">  </tspan><tspan fill="#abb2bf">&lt;</tspan><tspan fill="#e06c75">style</tspan><tspan fill="#abb2bf">&gt;</tspan><tspan fill="#e06c75">body</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#abb2bf">{</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#abb2bf">color</tspan><tspan fill="#abb2bf">:</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#d19a66">#</tspan><tspan fill="#d19a66">333</tspan><tspan fill="#abb2bf">;</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#abb2bf">font-family</tspan><tspan fill="#abb2bf">:</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#d19a66">sans-serif</tspan><tspan fill="#abb2bf">;</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#abb2bf">}</tspan><tspan fill="#abb2bf">&lt;</tspan><tspan fill="#abb2bf">/</tspan><tspan fill="#e06c75">style</tspan><tspan fill="#abb2bf">&gt;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="96.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#abb2bf">&lt;/</tspan><tspan fill="#e06c75">head</tspan><tspan fill="#abb2bf">&gt;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="115.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#abb2bf">&lt;</tspan><tspan fill="#e06c75">body</tspan><tspan fill="#abb2bf">&gt;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="133.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#abb2bf">  </tspan><tspan fill="#abb2bf">&lt;</tspan><tspan fill="#e06c75">h1</tspan><tspan fill="#abb2bf">&gt;</tspan><tspan fill="#abb2bf">Hello</tspan><tspan fill="#abb2bf">&lt;/</tspan><tspan fill="#e06c75">h1</tspan><tspan fill="#abb2bf">&gt;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="151.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#abb2bf">  </tspan><tspan fill="#abb2bf">&lt;</tspan><tspan fill="#e06c75">script</tspan><tspan fill="#abb2bf">&gt;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="169.6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#abb2bf">    </tspan><tspan fill="#c678dd">const</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#e5c07b">name</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#56b6c2">=</tspan><tspan fill="#abb2bf"> </tspan><tspan fill="#98c379">&quot;</tspan><tspan fill="#98c379">world</tspan><tspan fill="#98c379">&quot;</tspan><tspan fill="#abb2bf">;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="187.8" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#abb2bf">    </tspan><tspan fill="#e5c07b">console</tspan><tspan fill="#abb2bf">.</tspan><tspan fill="#61afef">log</tspan><tspan fill="#abb2bf">(</tspan><tspan fill="#e06c75">name</tspan><tspan fill="#abb2bf">)</tspan><tspan fill="#abb2bf">;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="206.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#abb2bf">  </tspan><tspan fill="#abb2bf">&lt;</tspan><tspan fill="#abb2bf">/</tspan><tspan fill="#e06c75">script</tspan><tspan fill="#abb2bf">&gt;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="224.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#abb2bf">&lt;/</tspan><tspan fill="#e06c75">body</tspan><tspan fill="#abb2bf">&gt;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+  <text x="10" y="242.4" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#abb2bf">&lt;/</tspan><tspan fill="#e06c75">html</tspan><tspan fill="#abb2bf">&gt;</tspan><tspan fill="#abb2bf">
+</tspan></text>
+</svg></svg>

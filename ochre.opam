@@ -18,10 +18,15 @@ depends: [
   "dune-configurator" {>= "2.9" & build}
   "plist-xml" {>= "0.5.0"}
   "ezjsonm" {with-test}
+  "html_of_jsx" {with-test}
+  "tiny_httpd" {with-test}
   "odoc" {>= "3.1.0" & with-doc}
   "tm-grammars" {>= "1.1.0" & with-test}
   "alcotest" {with-test}
+  "mlx" {with-test}
   "ocaml-lsp-server" {with-dev-setup}
+  "ocamlmerlin-mlx" {with-dev-setup}
+  "ocamlformat-mlx" {with-dev-setup}
   "ocamlformat" {= "0.28.1" & with-dev-setup}
 ]
 build: [

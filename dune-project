@@ -36,6 +36,8 @@
   (plist-xml
    (>= 0.5.0))
   (ezjsonm :with-test)
+  (html_of_jsx :with-test)
+  (tiny_httpd :with-test)
   (odoc
    (and
     (>= 3.1.0)
@@ -44,8 +46,11 @@
    (and
     (>= 1.1.0)
     :with-test))
-  (alcotest :with-test)
-  (ocaml-lsp-server :with-dev-setup)
+    (alcotest :with-test)
+    (mlx :with-test)
+    (ocaml-lsp-server :with-dev-setup)
+    (ocamlmerlin-mlx :with-dev-setup)
+    (ocamlformat-mlx :with-dev-setup)
   (ocamlformat
    (and
     (= 0.28.1)

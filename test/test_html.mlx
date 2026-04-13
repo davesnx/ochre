@@ -47,47 +47,35 @@ let html_highlighter =
   Ochre.create_from_json ~grammars ()
 
 let render_theme_block ~highlighter ~lang ~source theme_name =
-  let open Test_html_common.Html in
   match Ochre.Theme.find theme_name with
   | Some theme ->
-      let highlighted = Ochre.to_html highlighter ~theme ~lang source in
-      section
-        ~attrs:[ ("style", "display:grid;gap:8px") ]
-        [
-          div
-            ~attrs:
-              [
-                ( "style",
-                  "font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#1f1f1f"
-                );
-              ]
-            [ theme_name ];
-          highlighted;
-        ]
+      let theme_name = JSX.string theme_name in
+      let highlighted = JSX.unsafe (Ochre.to_html highlighter ~theme ~lang source) in
+      <section style="display:grid;gap:8px">
+        <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#1f1f1f">
+          theme_name
+        </div>
+        highlighted
+      </section>
   | None ->
-      section
-        [
-          Test_html_common.Html.node "p"
-            [ Printf.sprintf "Missing built-in theme: %s" theme_name ];
-        ]
+      let message =
+        JSX.string (Printf.sprintf "Missing built-in theme: %s" theme_name)
+      in
+      <section>
+        <p>message</p>
+      </section>
 
 let render_section ~highlighter ~lang ~source ~themes ~title =
-  let open Test_html_common.Html in
+  let title = JSX.string title in
   let theme_blocks =
-    List.map (render_theme_block ~highlighter ~lang ~source) themes
+    JSX.list (List.map (render_theme_block ~highlighter ~lang ~source) themes)
   in
-  div
-    ~attrs:[ ("style", "display:grid;gap:24px") ]
-    ([
-       node "h2"
-         ~attrs:[ ("style", "margin:0;font-size:18px;color:#1f1f1f") ]
-         [ title ];
-     ]
-    @ theme_blocks
-    )
+  <div style="display:grid;gap:24px">
+    <h2 style="margin:0;font-size:18px;color:#1f1f1f">title</h2>
+    theme_blocks
+  </div>
 
 let render_page () =
-  let open Test_html_common.Html in
   let ocaml_section =
     render_section ~highlighter:ocaml_highlighter ~lang:"ocaml"
       ~source:ocaml_source ~themes:preview_themes ~title:"OCaml"
@@ -96,37 +84,23 @@ let render_page () =
     render_section ~highlighter:html_highlighter ~lang:"html"
       ~source:html_source ~themes:preview_themes ~title:"HTML + CSS + JS"
   in
-  render
-    (page ~lang:"en"
-       ~head:
-         (head
-            [
-              void ~attrs:[ ("charset", "utf-8") ] "meta";
-              node "title" [ "ochre HTML preview" ];
-              node "style" [ "pre.ochre {padding: 24px 20px}" ];
-            ]
-         )
-       ~body:
-         (body
-            ~attrs:
-              [
-                ( "style",
-                  "margin:0;background:#f5f5f5;font-family:ui-monospace,monospace"
-                );
-              ]
-            [
-              div
-                ~attrs:
-                  [
-                    ( "style",
-                      "padding:24px;display:grid;gap:48px;max-width:960px;margin:0 \
-                       auto;"
-                    );
-                  ]
-                [ ocaml_section; html_section ];
-            ]
-         )
-       ()
+  let page_title = JSX.string "ochre HTML preview" in
+  let pre_style = JSX.unsafe "pre.ochre {padding: 24px 20px}" in
+  JSX.render
+    (JSX.node "html" (Test_html_common.attrs [ ("lang", "en") ])
+       [
+         <head>
+           <meta charset="utf-8" />
+           <title>page_title</title>
+           <style>pre_style</style>
+         </head>;
+         <body style="margin:0;background:#f5f5f5;font-family:ui-monospace,monospace">
+           <div style="padding:24px;display:grid;gap:48px;max-width:960px;margin:0 auto;">
+             ocaml_section
+             html_section
+           </div>
+         </body>;
+       ]
     )
 
 let () =

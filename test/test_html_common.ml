@@ -10,78 +10,18 @@ let grammar_json =
   ]
 }|}
 
-module Html = struct
-  type attr = string * string
-
-  let render_attrs attrs =
-    attrs
-    |> List.map (fun (name, value) -> Printf.sprintf " %s=\"%s\"" name value)
-    |> String.concat ""
-
-  let open_tag ?(attrs = []) tag =
-    Printf.sprintf "<%s%s>" tag (render_attrs attrs)
-
-  let close_tag tag = Printf.sprintf "</%s>" tag
-
-  let void ?(attrs = []) tag = Printf.sprintf "<%s%s>" tag (render_attrs attrs)
-
-  let node ?(attrs = []) tag children =
-    String.concat "\n" ([ open_tag ~attrs tag ] @ children @ [ close_tag tag ])
-
-  let div ?(attrs = []) children = node ~attrs "div" children
-
-  let section ?(attrs = []) children = node ~attrs "section" children
-
-  let head children = node "head" children
-
-  let body ?(attrs = []) children = node ~attrs "body" children
-
-  let page ?(attrs = []) ~lang ~head ~body () =
-    String.concat "\n"
-      [
-        "<!doctype html>";
-        node ~attrs:(("lang", lang) :: attrs) "html" [ head; body ];
-      ]
-
-  let render html = html
-end
-
-let read_http_request ic =
-  let rec consume_headers () =
-    match input_line ic with
-    | "" | "\r" ->
-        ()
-    | _ ->
-        consume_headers ()
-    | exception End_of_file ->
-        ()
-  in
-  (match input_line ic with _ -> () | exception End_of_file -> ());
-  consume_headers ()
+let attrs attrs = List.map (fun (name, value) -> (name, `String value)) attrs
 
 let serve_html ~name ~port ~html =
-  let open Unix in
-  let sock = socket PF_INET SOCK_STREAM 0 in
-  setsockopt sock SO_REUSEADDR true;
-  bind sock (ADDR_INET (inet_addr_any, port));
-  listen sock 16;
+  let headers = [ ("content-type", "text/html; charset=utf-8") ] in
+  let server =
+    Tiny_httpd.create ~enable_logging:false ~addr:"0.0.0.0" ~port ()
+  in
+  Tiny_httpd.set_top_handler server (fun _req ->
+      Tiny_httpd.Response.make_string ~headers (Ok html)
+  );
   Printf.printf "Serving %s at http://0.0.0.0:%d (Ctrl+C to stop)\n%!" name port;
-  while true do
-    let client, _ = accept sock in
-    let ic = in_channel_of_descr client in
-    let oc = out_channel_of_descr client in
-    read_http_request ic;
-    let body = html in
-    Printf.fprintf oc "HTTP/1.1 200 OK\r\n";
-    Printf.fprintf oc "Content-Type: text/html; charset=utf-8\r\n";
-    Printf.fprintf oc "Content-Length: %d\r\n" (String.length body);
-    Printf.fprintf oc "Connection: close\r\n\r\n";
-    output_string oc body;
-    flush oc;
-    close_in_noerr ic;
-    close_out_noerr oc
-  done;
-  close sock
+  match Tiny_httpd.run server with Ok () -> () | Error e -> raise e
 
 let port_from_env () =
   match Sys.getenv_opt "PORT" with
