@@ -13,7 +13,7 @@ depends: [
   "dune" {>= "3.22"}
   "ocaml" {>= "4.14.0"}
   "ochre"
-  "tm-grammars" {>= "1.0.1"}
+  "tm-grammars" {>= "1.1.0"}
   "cmdliner" {>= "1.1.0"}
   "ezjsonm" {with-test}
   "alcotest" {with-test}
