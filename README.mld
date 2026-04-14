@@ -55,30 +55,31 @@ All backends share the same interface: create a highlighter, pick a theme, and c
 {- {{:docs/cli.md} CLI reference} — command-line usage}
 }
 
-{1 Browser preview test}
+{1 Contribute}
 
-Serve a highlighted sample on port 5000:
-
-{v
-make test-browser
-v}
-
-Then open [http://localhost:5000] (or use SSH port forwarding).
-Stop it with Ctrl+C.
-
-If port 5000 is busy, pick another one:
+Set up the development environment:
 
 {v
-PORT=5001 make test-browser
+make init
 v}
 
-{1 License}
+Build the project:
 
-MIT — see {{:LICENSE} LICENSE}.
+{v
+make build
+v}
+
+Run the test suite:
+
+{v
+make test
+v}
+
+You can also preview highlighted output in a browser with [make test-browser], which serves a sample on port 5000.
 
 {1 Credits}
 
 {ul
-{- Inspired by {{:https://shiki.style/} Shiki} by Pine Wu and Anthony Fu}
-{- Uses {{:https://github.com/alan-j-hu/ocaml-textmate-language} textmate-language} and {{:https://github.com/alan-j-hu/ocaml-oniguruma} ocaml-oniguruma} by Alan Hu}
+{- Inspired by {{:https://shiki.style/} Shiki} by {{:https://github.com/octref} Pine Wu} and {{:https://github.com/antfu} Anthony Fu}}
+{- Uses {{:https://github.com/alan-j-hu/ocaml-textmate-language} textmate-language} and {{:https://github.com/alan-j-hu/ocaml-oniguruma} ocaml-oniguruma} by {{:https://github.com/alan-j-hu} Alan Hu}}
 }

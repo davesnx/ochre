@@ -53,27 +53,27 @@ All backends share the same interface: create a highlighter, pick a theme, and c
 - [Library API](docs/README.md) — `Ochre` module reference
 - [CLI reference](docs/cli.md) — command-line usage
 
-## Browser preview test
+## Contribute
 
-Serve a highlighted sample on port 5000:
-
-```
-make test-browser
-```
-Then open `http://localhost:5000` (or use SSH port forwarding). Stop it with Ctrl+C.
-
-If port 5000 is busy, pick another one:
+Set up the development environment:
 
 ```
-PORT=5001 make test-browser
+make init
 ```
+Build the project:
 
-## License
+```
+make build
+```
+Run the test suite:
 
-MIT — see [LICENSE](LICENSE).
+```
+make test
+```
+You can also preview highlighted output in a browser with `make test-browser`, which serves a sample on port 5000\.
 
 
 ## Credits
 
-- Inspired by [Shiki](https://shiki.style/) by Pine Wu and Anthony Fu
-- Uses [textmate-language](https://github.com/alan-j-hu/ocaml-textmate-language) and [ocaml-oniguruma](https://github.com/alan-j-hu/ocaml-oniguruma) by Alan Hu
+- Inspired by [Shiki](https://shiki.style/) by [Pine Wu](https://github.com/octref) and [Anthony Fu](https://github.com/antfu)
+- Uses [textmate-language](https://github.com/alan-j-hu/ocaml-textmate-language) and [ocaml-oniguruma](https://github.com/alan-j-hu/ocaml-oniguruma) by [Alan Hu](https://github.com/alan-j-hu)
