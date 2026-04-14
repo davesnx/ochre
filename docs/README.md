@@ -1,19 +1,90 @@
 
 # Module `Ochre`
 
-Ochre \- Syntax highlighter using TextMate grammars and themes.
+Syntax highlighter using TextMate grammars and themes.
 
-Ochre uses TextMate grammars (the same engine as VS Code) and themes to produce accurate syntax highlighting in multiple output formats.
-
-
-### Quick start
+Ochre turns source code into highlighted output using TextMate grammars (the same tokenizer that powers VS Code) and TextMate/VS Code themes. It supports HTML, ANSI terminal colors, LaTeX, and SVG output formats.
 
 ```ocaml
-  let hl = Ochre.create ~grammars:["/path/to/ocaml.tmLanguage.json"] () in
-  let html = Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" "let x = 42"
+  let highlighter = Ochre.create_exn [ ("ocaml", ocaml_grammar_json) ] in
+  let html =
+    Ochre.to_html highlighter ~theme:Ochre.Theme.nord ~lang:"ocaml"
+      "let x = 42"
 ```
 
-## Token types
+## Create a highlighter
+
+The highlighter holds loaded grammars and drives tokenization. Create one with [`create`](./#val-create) or [`create_from_files`](./#val-create_from_files), then pass it to any backend function.
+
+```ocaml
+type t
+```
+Highlighter instance. Holds loaded grammars and tokenization state.
+
+```ocaml
+val create : (string * string) list -> (t, string) Stdlib.result
+```
+create
+
+Create a highlighter from grammar JSON strings.
+
+Each pair is `(lang_id, json_content)` where `lang_id` is the language identifier and `json_content` is the raw TextMate grammar JSON.
+
+Returns `Error msg` when a grammar fails to parse.
+
+```ocaml
+  match Ochre.create [ ("ocaml", Tm_grammar_ocaml.json) ] with
+  | Ok hl ->
+      Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+  | Error msg ->
+      failwith msg
+```
+```ocaml
+val create_exn : (string * string) list -> t
+```
+create\_exn
+
+Create a highlighter from grammar JSON strings and raise on failure.
+
+Like [`create`](./#val-create) but raises on failure.
+
+```ocaml
+  let hl = Ochre.create_exn [ ("ocaml", Tm_grammar_ocaml.json) ]
+```
+```ocaml
+val create_from_files : string list -> (t, string) Stdlib.result
+```
+create\_from\_files
+
+Create a new highlighter from grammar files on disk.
+
+Each grammar is a path to a `.tmLanguage.json` file. The language identifier is derived from the filename (e.g. `"ocaml.tmLanguage.json"` registers as `"ocaml"`).
+
+Returns `Error msg` when a file cannot be read or a grammar fails to parse.
+
+```ocaml
+  match
+    Ochre.create_from_files [ "/usr/share/grammars/ocaml.tmLanguage.json" ]
+  with
+  | Ok hl ->
+      Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+  | Error msg ->
+      failwith msg
+```
+```ocaml
+val create_from_files_exn : string list -> t
+```
+create\_from\_files\_exn
+
+Like [`create_from_files`](./#val-create_from_files) but raises on failure.
+
+```ocaml
+  let hl =
+    Ochre.create_from_files_exn
+      [ "/usr/share/grammars/ocaml.tmLanguage.json" ]
+```
+
+## Tokens
 
 Tokens are the basic unit of highlighted code. After tokenization, each fragment of source code becomes a [`Token.styled_token`](./Ochre-Token.md#type-styled_token) carrying colors, font styles, and scope information resolved from a theme.
 
@@ -29,43 +100,16 @@ A theme maps TextMate scopes to colors and font styles. Ochre ships with several
 module Theme : sig ... end
 ```
 
-## Highlighter
+## Backends
 
-The highlighter holds loaded grammars and drives tokenization. Create one with [`create`](./#val-create) or [`create_from_json`](./#val-create_from_json), then pass it to any backend function.
+Ochre can render highlighted code to several output formats. All backends share the same pattern: pass a highlighter, a theme, a language, and the source code.
 
-```ocaml
-type t
-```
-Highlighter instance. Holds loaded grammars and tokenization state.
-
-```ocaml
-val create : grammars:string list -> unit -> t
-```
-create
-
-Create a new highlighter from grammar files on disk.
-
-Each grammar is a path to a `.tmLanguage.json` file. The language identifier is derived from the filename (e.g. `"ocaml.tmLanguage.json"` registers as `"ocaml"`).
-
-```ocaml
-  let hl =
-    Ochre.create
-      ~grammars:[ "/usr/share/grammars/ocaml.tmLanguage.json" ]
-      ()
-```
-```ocaml
-val create_from_json : grammars:(string * string) list -> unit -> t
-```
-create\_from\_json
-
-Create a highlighter from grammar JSON strings.
-
-Each pair is `(lang_id, json_content)` where `lang_id` is the language identifier and `json_content` is the raw TextMate grammar JSON.
-
-```ocaml
-  let hl =
-    Ochre.create_from_json ~grammars:[ ("ocaml", Tm_grammar_ocaml.json) ] ()
-```
+- **HTML** — Self-contained `<pre><code>` blocks with inline styles or CSS classes. Supports multi-theme via CSS custom properties, line numbers, and configurable class prefixes.
+- **ANSI** — 24-bit color escape sequences for terminal display.
+- **LaTeX** — `\textcolor` commands inside an `ochrehighlight` environment. Requires the `xcolor` and `soul` packages.
+- **SVG** — Standalone `<svg>` elements with monospace `<text>` and per-token `<tspan>` styling.
+- **Tokens** — Structured token output for full rendering control.
+- **Debug tokens** — Raw token text for debugging grammar and scope matching.
 ```ocaml
 val to_tokens : 
   t ->
@@ -90,16 +134,6 @@ Raises `Failure` if the grammar for `lang` cannot be found.
     )
     tokens
 ```
-
-## Backends
-
-Ochre can render highlighted code to several output formats. All backends share the same pattern: pass a highlighter, a theme, a language, and the source code.
-
-- **HTML** — Self-contained `<pre><code>` blocks with inline styles or CSS classes. Supports multi-theme via CSS custom properties, line numbers, and configurable class prefixes.
-- **ANSI** — 24-bit color escape sequences for terminal display.
-- **LaTeX** — `\textcolor` commands inside an `ochrehighlight` environment. Requires the `xcolor` and `soul` packages.
-- **SVG** — Standalone `<svg>` elements with monospace `<text>` and per-token `<tspan>` styling.
-- **Tokens** — Raw token text for debugging grammar and scope matching.
 
 ### HTML options
 
@@ -219,8 +253,64 @@ Produces an `<svg>` with monospace `<text>` elements and per-token `<tspan>` sty
 ```ocaml
   let svg = Ochre.to_svg hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
 ```
+```ocaml
+val to_debug_tokens : t -> theme:Theme.theme -> lang:string -> string -> string
+```
+to\_debug\_tokens
 
-## Result-returning variants
+Highlight source code and render each token as `{text}[scope1,scope2,...]`.
+
+Useful for debugging grammar and scope matching. Raises `Failure` if the grammar for `lang` cannot be found.
+
+```ocaml
+type output_format = 
+  | Html
+  | Ansi
+  | Latex
+  | Svg
+  | Tokens (* Supported output formats. Use with to_string to select a backend at runtime. *)
+```
+output\_format
+
+```ocaml
+val output_formats : (string * output_format) list
+```
+output\_formats
+
+Mapping of format names to typed variants.
+
+```ocaml
+val string_of_output_format : output_format -> string
+```
+string\_of\_output\_format
+
+Convert a format variant to its canonical lowercase name.
+
+```ocaml
+val output_format_of_string : string -> output_format option
+```
+output\_format\_of\_string
+
+Parse a format name into a variant. Returns `None` for unrecognised names.
+
+```ocaml
+val to_string : 
+  t ->
+  format:output_format ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
+```
+to\_string
+
+Highlight source code to one of the supported output formats.
+
+```ocaml
+  let output = Ochre.to_string hl ~format:Html ~theme ~lang:"ocaml" code
+```
+
+### Result-returning variants
 
 These wrap the corresponding exception-raising functions and return `(string, string) result` instead of raising. `Failure`, `TmLanguage.Error`, and `Oniguruma.Error` are caught and returned as `Error msg`.
 
@@ -274,63 +364,21 @@ to\_svg\_result
 
 Like [`to_svg`](./#val-to_svg) but returns a `result` instead of raising.
 
+
+## Transforms
+
+Transforms run after tokenization and theming, but before rendering. They can modify tokens, lines, or the entire document in a composable way.
+
 ```ocaml
-val to_debug_tokens : t -> theme:Theme.theme -> lang:string -> string -> string
+module Transform : sig ... end
 ```
-to\_debug\_tokens
 
-Highlight source code and render each token as `{text}[scope1,scope2,...]`.
+### Built-in transforms
 
-Useful for debugging grammar and scope matching. Raises `Failure` if the grammar for `lang` cannot be found.
-
-```ocaml
-type output_format = 
-  | Html
-  | Ansi
-  | Latex
-  | Svg
-  | Tokens
-```
-output\_format
-
-Supported output formats. Use with [`to_string`](./#val-to_string) to select a backend at runtime.
+Ready-to-use transforms for common highlighting patterns.
 
 ```ocaml
-val output_formats : (string * output_format) list
-```
-output\_formats
-
-Mapping of format names to typed variants.
-
-```ocaml
-val string_of_output_format : output_format -> string
-```
-string\_of\_output\_format
-
-Convert a format variant to its canonical lowercase name.
-
-```ocaml
-val output_format_of_string : string -> output_format option
-```
-output\_format\_of\_string
-
-Parse a format name into a variant. Returns `None` for unrecognised names.
-
-```ocaml
-val to_string : 
-  t ->
-  format:output_format ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-```
-to\_string
-
-Highlight source code to one of the supported output formats.
-
-```ocaml
-  let output = Ochre.to_string hl ~format:Html ~theme ~lang:"ocaml" code
+module Transform_builtin : sig ... end
 ```
 
 ## Decorations
@@ -341,25 +389,9 @@ Decorations attach format-agnostic properties (CSS class, inline style, data att
 module Decoration : sig ... end
 ```
 
-## Transforms
-
-Transforms run after tokenization and theming, but before rendering. They can modify tokens, lines, or the entire document in a composable way.
-
-```ocaml
-module Transform : sig ... end
-```
-
-## Built-in transforms
-
-Ready-to-use transforms for common highlighting patterns.
-
-```ocaml
-module Transform_builtin : sig ... end
-```
-
 ## Highlighting with transforms and decorations
 
-These functions are like their counterparts above but accept an optional `~decorations` list and a required `~transforms` list. Decorations are applied after tokenization/theming but before transforms. The original functions behave as if `~decorations:[]` and `~transforms:[]` were passed.
+These functions combine backends with optional decorations and transforms. Decorations are applied after tokenization/theming but before transforms.
 
 ```ocaml
   let code = "let x = 42\nlet y = 10" in

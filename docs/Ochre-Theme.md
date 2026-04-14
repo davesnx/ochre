@@ -13,11 +13,9 @@ type font_style = Token.font_style =
   | Bold
   | Italic
   | Underline
-  | Strikethrough
+  | Strikethrough (* Font style variants. *)
 ```
 font\_style
-
-Font style variants.
 
 ```ocaml
 type token_color_settings = {
@@ -73,7 +71,7 @@ load\_from\_string
 
 Parse a theme from a raw JSON string.
 
-When `~base_dir` is provided, `"include"` paths in the JSON are resolved relative to that directory (same as [load](./#load) does with the file's parent directory). When omitted, `"include"` fields are silently ignored.
+When `~base_dir` is provided, `"include"` paths in the JSON are resolved relative to that directory (same as [`load`](./#val-load) does with the file's parent directory). When omitted, `"include"` fields are silently ignored.
 
 ```ocaml
   let theme =

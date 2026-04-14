@@ -13,11 +13,9 @@ type font_style =
   | Bold
   | Italic
   | Underline
-  | Strikethrough
+  | Strikethrough (* Font style that can be applied to a token. *)
 ```
 font\_style
-
-Font style that can be applied to a token.
 
 ```ocaml
 type decoration_properties = {

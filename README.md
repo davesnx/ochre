@@ -16,7 +16,7 @@ opam install ochre -y
 
 ```ocaml
 let theme = Ochre.Theme.nord in
-let highlighter = Ochre.create ~grammars:["path/to/ocaml.tmLanguage.json"] () in
+let highlighter = Ochre.create_from_files_exn ["path/to/ocaml.tmLanguage.json"] in
 let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" source_code
 ```
 
@@ -33,7 +33,7 @@ Then load a grammar from OCaml and create a highlighter:
 
 ```ocaml
 let theme = Ochre.Theme.nord in
-let highlighter = Ochre.create_from_json ~grammars:[ ("ocaml", Tm_grammars.ocaml) ] () in
+let highlighter = Ochre.create_exn [ ("ocaml", Tm_grammars.ocaml) ] in
 let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" "let x = 42"
 ```
 
