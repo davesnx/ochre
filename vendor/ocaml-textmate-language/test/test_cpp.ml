@@ -17,7 +17,8 @@ let () =
                       "meta.qualified_type.cpp";
                       "meta.function.definition.cpp";
                       "source.cpp";
-                    ] );
+                    ]
+                  );
                   (4, [ "meta.function.definition.cpp"; "source.cpp" ]);
                   ( 8,
                     [
@@ -25,21 +26,24 @@ let () =
                       "meta.head.function.definition.cpp";
                       "meta.function.definition.cpp";
                       "source.cpp";
-                    ] );
+                    ]
+                  );
                   ( 9,
                     [
                       "punctuation.section.parameters.begin.bracket.round.cpp";
                       "meta.head.function.definition.cpp";
                       "meta.function.definition.cpp";
                       "source.cpp";
-                    ] );
+                    ]
+                  );
                   ( 10,
                     [
                       "punctuation.section.parameters.end.bracket.round.cpp";
                       "meta.head.function.definition.cpp";
                       "meta.function.definition.cpp";
                       "source.cpp";
-                    ] );
+                    ]
+                  );
                 ];
             };
           ];

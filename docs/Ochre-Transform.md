@@ -75,5 +75,5 @@ val run : t list -> document -> document
 Transforms are applied in list order. An empty list returns the document unchanged.
 
 ```ocaml
-let transformed = Ochre.Transform.run transforms document in
+let transformed = Ochre.Transform.run transforms document
 ```

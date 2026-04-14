@@ -92,15 +92,13 @@ val load_exn : ?base_dir:string -> string -> theme
 ```
 Like [`load`](./#val-load) but raises on failure.
 
-Raises `Failure msg` when the JSON is malformed.
-
 
 ### load\_from\_file
 
 ```ocaml
 val load_from_file : string -> (theme, string) Stdlib.result
 ```
-Load a theme from a VSCode theme JSON file on disk
+Load a theme from a VS Code theme JSON file.
 
 Falls back to the filename as the theme name when none is specified in the JSON. Returns `Error msg` when the file cannot be read or contains invalid JSON.
 
@@ -181,7 +179,7 @@ val find : string -> theme option
 Look up a built-in theme by name. Returns `None` when the name is not recognised.
 
 ```ocaml
-let theme = Ochre.Theme.find "nord" in
+let theme = Ochre.Theme.find "nord"
 ```
 
 ### Built-in themes

@@ -19,9 +19,7 @@ The highlighter holds loaded grammars and drives tokenization. Load one with [`l
 ```ocaml
 type t
 ```
-Highlighter instance
-
-Holds loaded grammars and tokenization state
+Highlighter instance. Holds loaded grammars and tokenization state.
 
 
 ### load
@@ -163,7 +161,7 @@ val to_html :
   string ->
   string
 ```
-Highlight source code to HTML
+Highlight source code to HTML.
 
 Single theme
 
@@ -306,10 +304,10 @@ Highlight source code and render each token as `{text}[scope1,scope2,...]`.
 Useful for debugging grammar and scope matching. Raises `Failure` if the grammar for `lang` cannot be found.
 
 ```ocaml
-let debug_tokens =
+let debug =
   Ochre.to_debug_tokens hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
 in
-Printf.printf "%s" debug_tokens
+print_string debug
 ```
 
 ### output\_format

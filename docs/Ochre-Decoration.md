@@ -59,7 +59,7 @@ val make :
   unit ->
   t
 ```
-Create a decoration with the given properties and range.
+Create a decoration.
 
 ```ocaml
 let d =
@@ -83,11 +83,14 @@ val apply :
 Overlapping decorations are merged: classes are space-concatenated, styles are semicolon-concatenated, data attributes are merged (later wins).
 
 ```ocaml
-let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
-let decorated =
-  Decoration.apply ~source:code
-    [ Decoration.make ~class_:"hl"
-        ~start:(Decoration.pos 0 0)
-        ~end_:(Decoration.pos 0 3) () ]
-    tokens
+  let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
+  let decorated =
+    Ochre.Decoration.apply ~source:code
+      [
+        Ochre.Decoration.make ~class_:"hl"
+          ~start:(Ochre.Decoration.pos 0 0)
+          ~end_:(Ochre.Decoration.pos 0 3)
+          ();
+      ]
+      tokens
 ```

@@ -24,10 +24,9 @@ let ganchor_grammar ~scope_name ~end_pattern : Yojson.Basic.t =
                 ("name", `String "string.quoted.test");
               ];
             `Assoc
-              [
-                ("match", `String "[a-zA-Z-]+"); ("name", `String "word.test");
-              ];
-          ] );
+              [ ("match", `String "[a-zA-Z-]+"); ("name", `String "word.test") ];
+          ]
+      );
     ]
 
 let parent_ganchor_grammar : Yojson.Basic.t =
@@ -50,7 +49,8 @@ let parent_ganchor_grammar : Yojson.Basic.t =
                         `Assoc
                           [ ("name", `String "punctuation.parenthesis.open") ]
                       );
-                    ] );
+                    ]
+                );
                 ( "endCaptures",
                   `Assoc
                     [
@@ -58,7 +58,8 @@ let parent_ganchor_grammar : Yojson.Basic.t =
                         `Assoc
                           [ ("name", `String "punctuation.parenthesis.close") ]
                       );
-                    ] );
+                    ]
+                );
                 ( "patterns",
                   `List
                     [
@@ -72,9 +73,11 @@ let parent_ganchor_grammar : Yojson.Basic.t =
                           ("name", `String "keyword.control.test-lang");
                           ("match", `String "\\GB");
                         ];
-                    ] );
+                    ]
+                );
               ];
-          ] );
+          ]
+      );
       ("repository", `Assoc []);
     ]
 
@@ -94,7 +97,8 @@ let ganchor_while_grammar ~scope_name ~while_pattern : Yojson.Basic.t =
               ];
             `Assoc
               [ ("match", `String "[a-zA-Z]+"); ("name", `String "word.test") ];
-          ] );
+          ]
+      );
     ]
 
 let check_end_pattern_g_anchor () =
@@ -137,7 +141,8 @@ let check_negative_g_anchor_matches_without_parent_anchor () =
   let t, grammar =
     make_grammar
       (ganchor_grammar ~scope_name:"source.ganchor.neg"
-         ~end_pattern:"(?<!\\G)\"")
+         ~end_pattern:"(?<!\\G)\""
+      )
   in
   let _, stack = TmLanguage.tokenize_exn t grammar TmLanguage.empty "\"" in
   let toks, _ = TmLanguage.tokenize_exn t grammar stack "\"x" in
@@ -176,9 +181,8 @@ let check_parent_g_anchor_closes_on_empty_content () =
         [ "punctuation.parenthesis.open"; "source.test-lang"; "source.tmtest" ]
       );
       ( 2,
-        [
-          "punctuation.parenthesis.close"; "source.test-lang"; "source.tmtest";
-        ] );
+        [ "punctuation.parenthesis.close"; "source.test-lang"; "source.tmtest" ]
+      );
     ]
     (toks_to_list toks)
 
@@ -186,7 +190,8 @@ let check_positive_g_anchor_while_fails_without_anchor () =
   let t, grammar =
     make_grammar
       (ganchor_while_grammar ~scope_name:"source.ganchor.while.pos"
-         ~while_pattern:"\\G.")
+         ~while_pattern:"\\G."
+      )
   in
   let _, stack = TmLanguage.tokenize_exn t grammar TmLanguage.empty "A" in
   let toks, _ = TmLanguage.tokenize_exn t grammar stack "x" in
@@ -200,7 +205,8 @@ let check_negative_g_anchor_while_matches_without_anchor () =
   let t, grammar =
     make_grammar
       (ganchor_while_grammar ~scope_name:"source.ganchor.while.neg"
-         ~while_pattern:"(?<!\\G).")
+         ~while_pattern:"(?<!\\G)."
+      )
   in
   let _, stack = TmLanguage.tokenize_exn t grammar TmLanguage.empty "A" in
   let toks, _ = TmLanguage.tokenize_exn t grammar stack "x" in
@@ -216,11 +222,12 @@ let has_scope scope = List.exists (( = ) scope)
 
 let spans_of_tokens line toks =
   let rec build start = function
-    | [] -> []
+    | [] ->
+        []
     | tok :: rest ->
-      let ending = TmLanguage.ending tok in
-      let text = String.sub line start (ending - start) in
-      (text, TmLanguage.scopes tok) :: build ending rest
+        let ending = TmLanguage.ending tok in
+        let text = String.sub line start (ending - start) in
+        (text, TmLanguage.scopes tok) :: build ending rest
   in
   build 0 toks
 
@@ -263,17 +270,24 @@ let check_overlapping_begin_captures_opening_quote () =
   let spans = tokenize_spans_from_json grammar_json line in
   let quote_scopes =
     List.fold_left
-      (fun acc (text, scopes) -> if text = "\"" then scopes :: acc else acc)
+      (fun acc (text, scopes) ->
+        if text = "\"" then
+          scopes :: acc
+        else
+          acc
+      )
       [] spans
     |> List.rev
   in
   Alcotest.(check bool)
     "opening and closing quotes should both be string-scoped" true
-    (match quote_scopes with
+    ( match quote_scopes with
     | [ opening; closing ] ->
-      has_scope "string.quoted.double.test" opening
-      && has_scope "string.quoted.double.test" closing
-    | _ -> false)
+        has_scope "string.quoted.double.test" opening
+        && has_scope "string.quoted.double.test" closing
+    | _ ->
+        false
+    )
 
 let check_injection_right_priority () =
   let t, grammar =
@@ -286,24 +300,28 @@ let check_injection_right_priority () =
   let color_span = List.find_opt (fun (text, _) -> text = "#ff0000") spans in
   Alcotest.(check bool)
     "injected color pattern matches inside embedded CSS scope" true
-    (match color_span with
-    | Some (_, scopes) -> has_scope "constant.color.injected" scopes
-    | None -> false)
+    ( match color_span with
+    | Some (_, scopes) ->
+        has_scope "constant.color.injected" scopes
+    | None ->
+        false
+    )
 
 let check_injection_left_priority () =
   let t, grammar =
     make_grammar (Yojson.Basic.from_file "data/injection_left.json")
   in
-  let toks, _ =
-    TmLanguage.tokenize_exn t grammar TmLanguage.empty "INJECTED"
-  in
+  let toks, _ = TmLanguage.tokenize_exn t grammar TmLanguage.empty "INJECTED" in
   let spans = spans_of_tokens "INJECTED" toks in
   let inj_span = List.find_opt (fun (text, _) -> text = "INJECTED") spans in
   Alcotest.(check bool)
     "L: injected pattern wins over regular word pattern" true
-    (match inj_span with
-    | Some (_, scopes) -> has_scope "keyword.injected.left" scopes
-    | None -> false)
+    ( match inj_span with
+    | Some (_, scopes) ->
+        has_scope "keyword.injected.left" scopes
+    | None ->
+        false
+    )
 
 let check_injection_no_match_outside_scope () =
   let t, grammar =
@@ -325,10 +343,7 @@ let () =
       test_tokenize_json "data/a.json" "source.a"
         [
           [
-            {
-              line = "a";
-              expected = [ (1, [ "keyword.letter"; "source.a" ]) ];
-            };
+            { line = "a"; expected = [ (1, [ "keyword.letter"; "source.a" ]) ] };
           ];
           [
             {
@@ -337,14 +352,14 @@ let () =
                 [
                   (1, [ "keyword.letter"; "source.a" ]);
                   ( 2,
-                    [
-                      "punctuation.paren.open"; "expression.group"; "source.a";
-                    ] );
+                    [ "punctuation.paren.open"; "expression.group"; "source.a" ]
+                  );
                   (3, [ "keyword.letter"; "expression.group"; "source.a" ]);
                   ( 4,
                     [
                       "punctuation.paren.close"; "expression.group"; "source.a";
-                    ] );
+                    ]
+                  );
                 ];
             };
           ];
@@ -355,9 +370,8 @@ let () =
                 [
                   (1, [ "keyword.letter"; "source.a" ]);
                   ( 2,
-                    [
-                      "punctuation.paren.open"; "expression.group"; "source.a";
-                    ] );
+                    [ "punctuation.paren.open"; "expression.group"; "source.a" ]
+                  );
                 ];
             };
             {
@@ -368,7 +382,8 @@ let () =
                   ( 2,
                     [
                       "punctuation.paren.close"; "expression.group"; "source.a";
-                    ] );
+                    ]
+                  );
                 ];
             };
           ];
@@ -449,7 +464,8 @@ let () =
                       "punctuation.paren.open";
                       "expression.group";
                       "source.groups";
-                    ] );
+                    ]
+                  );
                   ( 9,
                     [ "keyword.operator"; "expression.group"; "source.groups" ]
                   );
@@ -458,27 +474,20 @@ let () =
                       "punctuation.paren.close";
                       "expression.group";
                       "source.groups";
-                    ] );
+                    ]
+                  );
                 ];
             };
           ];
         ];
       test_tokenize_json "data/zero_width_loop.json" "source.zero-width-loop"
-        [
-          [ { line = "a"; expected = [ (1, [ "source.zero-width-loop" ]) ] } ];
-        ];
+        [ [ { line = "a"; expected = [ (1, [ "source.zero-width-loop" ]) ] } ] ];
       test_tokenize_json "data/zero_width_end_loop.json"
         "source.zero-width-end-loop"
         [
           [
-            {
-              line = "a";
-              expected = [ (1, [ "source.zero-width-end-loop" ]) ];
-            };
-            {
-              line = "z";
-              expected = [ (1, [ "source.zero-width-end-loop" ]) ];
-            };
+            { line = "a"; expected = [ (1, [ "source.zero-width-end-loop" ]) ] };
+            { line = "z"; expected = [ (1, [ "source.zero-width-end-loop" ]) ] };
           ];
         ];
       test_tokenize_json "data/zero_width_match_loop.json"
@@ -499,7 +508,8 @@ let () =
             `Quick check_positive_g_anchor_fails_without_parent_anchor;
           Alcotest.test_case "Negative \\G end matches without parent anchor"
             `Quick check_negative_g_anchor_matches_without_parent_anchor;
-        ] );
+        ]
+      );
       ( "g-anchor-parent-and-while",
         [
           Alcotest.test_case "Nested patterns use parent \\G anchor" `Quick
@@ -510,12 +520,14 @@ let () =
             check_positive_g_anchor_while_fails_without_anchor;
           Alcotest.test_case "Negative \\G while matches without anchor" `Quick
             check_negative_g_anchor_while_matches_without_anchor;
-        ] );
+        ]
+      );
       ( "overlapping-begin-captures",
         [
           Alcotest.test_case "Keeps string scope on opening quote" `Quick
             check_overlapping_begin_captures_opening_quote;
-        ] );
+        ]
+      );
       ( "injections",
         [
           Alcotest.test_case "Right-priority injection into embedded scope"
@@ -525,5 +537,6 @@ let () =
             check_injection_left_priority;
           Alcotest.test_case "Injection does not match outside target scope"
             `Quick check_injection_no_match_outside_scope;
-        ] );
+        ]
+      );
     ]

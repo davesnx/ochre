@@ -62,7 +62,7 @@ val make :
   unit ->
   t
 ```
-Construct options with defaults for any unspecified fields
+Construct options with defaults for any unspecified fields.
 
 ```ocaml
 let opts =

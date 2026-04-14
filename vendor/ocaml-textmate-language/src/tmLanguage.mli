@@ -40,8 +40,8 @@ type yojson =
   | `Assoc of (string * yojson) list
   | `List of yojson list ]
 (** A JSON document. This is the same type as [Basic.t] defined in the
-    {{:https://opam.ocaml.org/packages/yojson/} [yojson]} package (as of
-    version 1.7.0), but is reproduced here as not to depend on [yojson]. *)
+    {{:https://opam.ocaml.org/packages/yojson/} [yojson]} package (as of version
+    1.7.0), but is reproduced here as not to depend on [yojson]. *)
 
 val create : unit -> t
 (** Creates an empty collection of grammars. *)
@@ -56,12 +56,12 @@ val find_by_scope_name : t -> string -> grammar option
 (** Finds a grammar by its [scopeName] attribute. Case-sensitive. *)
 
 val find_by_filetype : t -> string -> grammar option
-(** Finds a grammar by matching one of the strings in its [fileTypes]
-    attribute. Case-sensitive. *)
+(** Finds a grammar by matching one of the strings in its [fileTypes] attribute.
+    Case-sensitive. *)
 
 val of_plist_exn : plist -> grammar
-(** Reads a TextMate grammar from a PLIST file. Raises {!exception:Error} if
-    the plist does not represent a valid TextMate grammar. *)
+(** Reads a TextMate grammar from a PLIST file. Raises {!exception:Error} if the
+    plist does not represent a valid TextMate grammar. *)
 
 val of_ezjsonm_exn : ezjsonm -> grammar
 (** Reads a TextMate grammar from a JSON file. Raises {!exception:Error} if the
@@ -84,8 +84,8 @@ val ending : token -> int
 (** One past the index of the last character of the token.
 
     If [tok] is the first token of the line, [tok] spans the substring within
-    interval \[[0], [ending tok]). If [tok] succeeds a token [prev], [tok]
-    spans the substring within interval \[[ending prev], [ending tok]). *)
+    interval \[[0], [ending tok]). If [tok] succeeds a token [prev], [tok] spans
+    the substring within interval \[[ending prev], [ending tok]). *)
 
 val scopes : token -> string list
 (** The token's stack of TextMate grammar scopes. *)
@@ -104,8 +104,7 @@ val tokenize_exn : t -> grammar -> stack -> string -> token list * stack
 
     - [tokens] is nonempty.
     - The ending positions of [tokens] are strictly increasing.
-    - The [ending] of the last token in [tokens] is always
-      [String.length line].
+    - The [ending] of the last token in [tokens] is always [String.length line].
 
     Raises {!exception:Error} if it tries to match a malformed [end] or [while]
     regex.

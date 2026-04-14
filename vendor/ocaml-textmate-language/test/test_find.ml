@@ -9,14 +9,13 @@ let check_find grammar scope_name filetypes () =
     List.iter
       (fun filetype ->
         Alcotest.check Alcotest.bool filetype true
-          (p (TmLanguage.find_by_filetype t filetype)))
+          (p (TmLanguage.find_by_filetype t filetype))
+      )
       filetypes
   in
   check (( = ) None);
   add_grammar t grammar;
-  check (function
-    | None -> false
-    | Some grammar' -> grammar == grammar')
+  check (function None -> false | Some grammar' -> grammar == grammar')
 
 let test_find filename scope_name filetypes =
   ( filename,
@@ -25,7 +24,8 @@ let test_find filename scope_name filetypes =
         (check_find (read_yojson_basic filename) scope_name filetypes);
       Alcotest.test_case "Ezjsonm" `Quick
         (check_find (read_ezjsonm filename) scope_name filetypes);
-    ] )
+    ]
+  )
 
 let () =
   Alcotest.run "Finding"

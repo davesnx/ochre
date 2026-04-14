@@ -30,10 +30,7 @@ and delim = {
 and rule =
   | Match of match_
   | Delim of delim
-  | Scope_patterns of {
-      scope_name : string option;
-      child_patterns : rule list;
-    }
+  | Scope_patterns of { scope_name : string option; child_patterns : rule list }
   | Include_local of string
   | Include_scope of string
   | Include_self
@@ -116,14 +113,17 @@ let compile_regex ?error_context re =
     Oniguruma.create re Oniguruma.Options.none Oniguruma.Encoding.utf8
       Oniguruma.Syntax.default
   with
-  | Ok re -> re
+  | Ok re ->
+      re
   | Error msg ->
-    let prefix =
-      match error_context with
-      | None -> re
-      | Some context -> context ^ ": " ^ re
-    in
-    raise (Error (prefix ^ ": " ^ msg))
+      let prefix =
+        match error_context with
+        | None ->
+            re
+        | Some context ->
+            context ^ ": " ^ re
+      in
+      raise (Error (prefix ^ ": " ^ msg))
 
 let create () =
   {
@@ -133,10 +133,12 @@ let create () =
   }
 
 let add_grammar t grammar =
-  (match grammar.name with
+  ( match grammar.name with
   | Some name ->
-    Hashtbl.replace t.by_name (String.lowercase_ascii name) grammar
-  | None -> ());
+      Hashtbl.replace t.by_name (String.lowercase_ascii name) grammar
+  | None ->
+      ()
+  );
   Hashtbl.replace t.by_scope_name grammar.scope_name grammar;
   List.iter
     (fun filetype -> Hashtbl.replace t.by_filetype filetype grammar)

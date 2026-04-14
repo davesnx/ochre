@@ -5,13 +5,15 @@ let read_file filename =
       let buf = Buffer.create 256 in
       let rec loop () =
         match input_line chan with
-        | exception End_of_file -> Buffer.contents buf
+        | exception End_of_file ->
+            Buffer.contents buf
         | line ->
-          Buffer.add_string buf line;
-          Buffer.add_char buf '\n';
-          loop ()
+            Buffer.add_string buf line;
+            Buffer.add_char buf '\n';
+            loop ()
       in
-      loop ())
+      loop ()
+    )
     ~finally:(fun () -> close_in chan)
 
 let read_plist filename =
@@ -46,14 +48,13 @@ let check_find grammar scope_name filetypes () =
     List.iter
       (fun filetype ->
         Alcotest.check Alcotest.bool filetype true
-          (p (TmLanguage.find_by_filetype t filetype)))
+          (p (TmLanguage.find_by_filetype t filetype))
+      )
       filetypes
   in
   check (( = ) None);
   add_grammar t grammar;
-  check (function
-    | None -> false
-    | Some grammar' -> grammar == grammar')
+  check (function None -> false | Some grammar' -> grammar == grammar')
 
 let test_find filename scope_name filetypes =
   ( filename,
@@ -62,7 +63,8 @@ let test_find filename scope_name filetypes =
         (check_find (read_yojson_basic filename) scope_name filetypes);
       Alcotest.test_case "Ezjsonm" `Quick
         (check_find (read_ezjsonm filename) scope_name filetypes);
-    ] )
+    ]
+  )
 
 let check_tokenize grammar name cases () =
   let open TmLanguage in
@@ -78,8 +80,10 @@ let check_tokenize grammar name cases () =
            in
            let toks = List.map (fun tok -> (ending tok, scopes tok)) toks in
            Alcotest.check tested_type line expected toks;
-           stack)
-         empty lines)
+           stack
+         )
+         empty lines
+      )
   in
   List.iter check cases
 
@@ -90,11 +94,13 @@ let test_tokenize_json filename scope_name cases =
         (check_tokenize (read_yojson_basic filename) scope_name cases);
       Alcotest.test_case "Ezjsonm" `Quick
         (check_tokenize (read_ezjsonm filename) scope_name cases);
-    ] )
+    ]
+  )
 
 let test_tokenize_plist filename scope_name cases =
   ( filename,
     [
       Alcotest.test_case "Plist" `Quick
         (check_tokenize (read_plist filename) scope_name cases);
-    ] )
+    ]
+  )
