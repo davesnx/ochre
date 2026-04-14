@@ -194,13 +194,13 @@ module Region : sig
   (** [capture_beg region idx] gets the string position of the capture at the
       index. The capture at index 0 is the entire match. The string position is
       an offset in bytes. Returns -1 if the capture group wasn't found. Raises
-      {!exception:Invalid_argument} if the index is out of bounds. *)
+      [Invalid_argument] if the index is out of bounds. *)
 
   external capture_end : t -> int -> int = "ocaml_onig_capture_end"
   (** [capture_end region idx] gets the string position of the capture at the
       index. The capture at index 0 is the entire match. The string position is
       an offset in bytes. Returns -1 if the capture group wasn't found. Raises
-      {!exception:Invalid_argument} if the index is out of bounds. *)
+      [Invalid_argument] if the index is out of bounds. *)
 end
 
 (** Per-call match parameters. *)

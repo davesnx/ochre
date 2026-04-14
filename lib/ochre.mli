@@ -140,8 +140,8 @@ module Theme : sig
       Parse a theme from a raw JSON string.
 
       When [~base_dir] is provided, ["include"] paths in the JSON are resolved
-      relative to that directory (same as {!load} does with the file's parent
-      directory). When omitted, ["include"] fields are silently ignored.
+      relative to that directory (same as {!val:load} does with the file's
+      parent directory). When omitted, ["include"] fields are silently ignored.
 
       {[
         let theme =
