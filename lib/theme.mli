@@ -59,9 +59,9 @@ val load : ?base_dir:string -> string -> (theme, string) result
     Returns [Error msg] when the JSON is malformed.
 
     {[
-      let theme =
-        Theme.load
-          {|{
+    let theme =
+      Theme.load
+        {|{
         "name": "my-theme",
         "colors": {
           "editor.foreground": "#d4d4d4",
@@ -89,11 +89,11 @@ val load_from_file : string -> (theme, string) result
     JSON.
 
     {[
-      match Theme.load_from_file "/path/to/theme.json" with
-      | Ok theme ->
-          theme
-      | Error msg ->
-          failwith msg
+    match Theme.load_from_file "/path/to/theme.json" with
+    | Ok theme ->
+        theme
+    | Error msg ->
+        failwith msg
     ]} *)
 
 val load_from_file_exn : string -> theme
@@ -102,7 +102,7 @@ val load_from_file_exn : string -> theme
     Like {!val-load_from_file} but raises on failure.
 
     {[
-      let theme = Theme.load_from_file_exn "/path/to/theme.json"
+    let theme = Theme.load_from_file_exn "/path/to/theme.json"
     ]} *)
 
 val make :
@@ -116,18 +116,16 @@ val make :
     Make a new TextMate-style theme from ordered token rules.
 
     {[
-      let theme =
-        Theme.make ~name:"my-theme"
-          ~colors:
-            [
-              ("editor.foreground", "#d4d4d4"); ("editor.background", "#1e1e1e");
-            ]
-          ~token_colors:
-            [
-              Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955" ();
-              Theme.rule ~scope:[ "keyword" ] ~foreground:"#569cd6" ();
-            ]
-          ()
+    let theme =
+      Theme.make ~name:"my-theme"
+        ~colors:
+          [ ("editor.foreground", "#d4d4d4"); ("editor.background", "#1e1e1e") ]
+        ~token_colors:
+          [
+            Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955" ();
+            Theme.rule ~scope:[ "keyword" ] ~foreground:"#569cd6" ();
+          ]
+        ()
     ]} *)
 
 val rule :
@@ -147,8 +145,8 @@ val rule :
     passing [[]] clears inherited font styles.
 
     {[
-      Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955"
-        ~font_style:[ Italic ] ()
+    Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955" ~font_style:[ Italic ]
+      ()
     ]} *)
 
 val available_names : string list

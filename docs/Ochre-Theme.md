@@ -70,9 +70,9 @@ When `~base_dir` is provided, `"include"` paths in the JSON are resolved relativ
 Returns `Error msg` when the JSON is malformed.
 
 ```ocaml
-  let theme =
-    Ochre.Theme.load
-      {|{
+let theme =
+  Ochre.Theme.load
+    {|{
     "name": "my-theme",
     "colors": {
       "editor.foreground": "#d4d4d4",
@@ -92,22 +92,24 @@ val load_exn : ?base_dir:string -> string -> theme
 ```
 Like [`load`](./#val-load) but raises on failure.
 
+Raises `Failure msg` when the JSON is malformed.
+
 
 ### load\_from\_file
 
 ```ocaml
 val load_from_file : string -> (theme, string) Stdlib.result
 ```
-Load a theme from a VS Code theme JSON file.
+Load a theme from a VSCode theme JSON file on disk
 
 Falls back to the filename as the theme name when none is specified in the JSON. Returns `Error msg` when the file cannot be read or contains invalid JSON.
 
 ```ocaml
-  match Ochre.Theme.load_from_file "/path/to/theme.json" with
-  | Ok theme ->
-      theme
-  | Error msg ->
-      failwith msg
+match Ochre.Theme.load_from_file "/path/to/theme.json" with
+| Ok theme ->
+    theme
+| Error msg ->
+    failwith msg
 ```
 
 ### load\_from\_file\_exn
@@ -118,7 +120,7 @@ val load_from_file_exn : string -> theme
 Like [`load_from_file`](./#val-load_from_file) but raises on failure.
 
 ```ocaml
-  let theme = Ochre.Theme.load_from_file_exn "/path/to/theme.json"
+let theme = Ochre.Theme.load_from_file_exn "/path/to/theme.json"
 ```
 
 ### make
@@ -134,19 +136,18 @@ val make :
 Make a new TextMate-style theme from ordered token rules.
 
 ```ocaml
-  let theme =
-    Ochre.Theme.make ~name:"my-theme"
-      ~colors:
-        [
-          ("editor.foreground", "#d4d4d4");
-          ("editor.background", "#1e1e1e");
-        ]
-      ~token_colors:
-        [
-          Ochre.Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955" ();
-          Ochre.Theme.rule ~scope:[ "keyword" ] ~foreground:"#569cd6" ();
-        ]
-      ()
+let theme =
+  Ochre.Theme.make ~name:"my-theme"
+    ~colors:
+      [
+        ("editor.foreground", "#d4d4d4"); ("editor.background", "#1e1e1e");
+      ]
+    ~token_colors:
+      [
+        Ochre.Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955" ();
+        Ochre.Theme.rule ~scope:[ "keyword" ] ~foreground:"#569cd6" ();
+      ]
+    ()
 ```
 
 ### rule
@@ -179,6 +180,9 @@ val find : string -> theme option
 ```
 Look up a built-in theme by name. Returns `None` when the name is not recognised.
 
+```ocaml
+let theme = Ochre.Theme.find "nord" in
+```
 
 ### Built-in themes
 

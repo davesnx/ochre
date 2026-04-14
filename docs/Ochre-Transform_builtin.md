@@ -12,9 +12,9 @@ Highlights the given line indices (0-based) by setting every token's background 
 Default background: `"#ffffff22"`.
 
 ```ocaml
-  Ochre.to_html hl
-    ~transforms:[ Ochre.Transform_builtin.line_highlight [ 0; 2 ] ]
-    ~theme ~lang:"ocaml" code
+Ochre.to_html hl
+  ~transforms:[ Ochre.Transform_builtin.line_highlight [ 0; 2 ] ]
+  ~theme ~lang:"ocaml" code
 ```
 
 ### word\_highlight
@@ -31,9 +31,9 @@ Highlights tokens whose text matches one of the given words.
 Default foreground: `"#ffff00"`. Default font style: `[Bold]`.
 
 ```ocaml
-  Ochre.to_html hl
-    ~transforms:[ Ochre.Transform_builtin.word_highlight [ "x"; "y" ] ]
-    ~theme ~lang:"ocaml" code
+Ochre.to_html hl
+  ~transforms:[ Ochre.Transform_builtin.word_highlight [ "x"; "y" ] ]
+  ~theme ~lang:"ocaml" code
 ```
 
 ### diff\_markers
@@ -64,9 +64,9 @@ Notation-based line highlight. Scans token text for `[!code highlight]` comments
 Default background: `"#ffffff22"`.
 
 ```ocaml
-  let code = "let x = 42 // [!code highlight]\nlet y = 10" in
-  let transforms = [ Ochre.Transform_builtin.notation_highlight () ] in
-  Ochre.to_html hl ~transforms ~theme ~lang:"test" code
+let code = "let x = 42 // [!code highlight]\nlet y = 10" in
+let transforms = [ Ochre.Transform_builtin.notation_highlight () ] in
+Ochre.to_html hl ~transforms ~theme ~lang:"test" code
 ```
 
 ### notation\_diff
@@ -83,9 +83,9 @@ Notation-based diff markers. Scans token text for `[!code ++]` and `[!code --]` 
 Default add background: `"#22883322"`. Default remove background: `"#88222222"`.
 
 ```ocaml
-  let code = "let x = 42 // [!code ++]\nlet y = 10 // [!code --]" in
-  let transforms = [ Ochre.Transform_builtin.notation_diff () ] in
-  Ochre.to_html hl ~transforms ~theme ~lang:"test" code
+let code = "let x = 42 // [!code ++]\nlet y = 10 // [!code --]" in
+let transforms = [ Ochre.Transform_builtin.notation_diff () ] in
+Ochre.to_html hl ~transforms ~theme ~lang:"test" code
 ```
 
 ### notation\_word\_highlight
@@ -102,9 +102,7 @@ Notation-based word highlight. Scans token text for `[!code word:xxx]` comments,
 Default foreground: `"#ffff00"`. Default font style: `[Bold]`.
 
 ```ocaml
-  let code = "let x = 42 // [!code word:x]" in
-  let transforms =
-    [ Ochre.Transform_builtin.notation_word_highlight () ]
-  in
-  Ochre.to_html hl ~transforms ~theme ~lang:"test" code
+let code = "let x = 42 // [!code word:x]" in
+let transforms = [ Ochre.Transform_builtin.notation_word_highlight () ] in
+Ochre.to_html hl ~transforms ~theme ~lang:"test" code
 ```

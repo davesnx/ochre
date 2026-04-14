@@ -45,17 +45,17 @@ val make :
     [make name] creates a transform with the given hooks.
 
     {[
-      let bold_keywords =
-        Transform.make "bold-keywords" ~after_line:(fun ~line_index:_ line ->
-            List.map
-              (fun (tok : Token.styled_token) ->
-                if tok.text = "let" || tok.text = "in" then
-                  { tok with font_style = Token.Bold :: tok.font_style }
-                else
-                  tok
-              )
-              line
-        )
+    let bold_keywords =
+      Transform.make "bold-keywords" ~after_line:(fun ~line_index:_ line ->
+          List.map
+            (fun (tok : Token.styled_token) ->
+              if tok.text = "let" || tok.text = "in" then
+                { tok with font_style = Token.Bold :: tok.font_style }
+              else
+                tok
+            )
+            line
+      )
     ]} *)
 
 val run : t list -> document -> document

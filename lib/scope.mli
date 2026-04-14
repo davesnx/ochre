@@ -16,12 +16,12 @@ val match_selector : string list -> string -> int option
     matched greedily against the scope stack.
 
     {[
-      let scopes = [ "source.ocaml"; "meta.let"; "variable.name" ] in
-      match Scope.match_selector scopes "variable.name" with
-      | Some specificity ->
-          Printf.printf "matched with specificity %d\n" specificity
-      | None ->
-          print_endline "no match"
+    let scopes = [ "source.ocaml"; "meta.let"; "variable.name" ] in
+    match Scope.match_selector scopes "variable.name" with
+    | Some specificity ->
+        Printf.printf "matched with specificity %d\n" specificity
+    | None ->
+        print_endline "no match"
     ]} *)
 
 val find_best_match :
@@ -36,10 +36,10 @@ val find_best_match :
     rule matches.
 
     {[
-      let scopes = [ "source.ocaml"; "comment.line" ] in
-      match Scope.find_best_match scopes theme.token_colors with
-      | Some settings ->
-          settings.foreground
-      | None ->
-          Some theme.fg
+    let scopes = [ "source.ocaml"; "comment.line" ] in
+    match Scope.find_best_match scopes theme.token_colors with
+    | Some settings ->
+        settings.foreground
+    | None ->
+        Some theme.fg
     ]} *)

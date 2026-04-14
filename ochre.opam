@@ -27,7 +27,7 @@ depends: [
   "ocaml-lsp-server" {with-dev-setup}
   "ocamlmerlin-mlx" {with-dev-setup}
   "ocamlformat-mlx" {with-dev-setup}
-  "ocamlformat" {= "0.28.1" & with-dev-setup}
+  "ocamlformat" {= "0.29.0" & with-dev-setup}
 ]
 build: [
   ["dune" "subst"] {dev}

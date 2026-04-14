@@ -19,7 +19,9 @@ The highlighter holds loaded grammars and drives tokenization. Load one with [`l
 ```ocaml
 type t
 ```
-Highlighter instance. Holds loaded grammars and tokenization state.
+Highlighter instance
+
+Holds loaded grammars and tokenization state
 
 
 ### load
@@ -34,11 +36,11 @@ Each pair is `(lang_id, json_content)` where `lang_id` is the language identifie
 Returns `Error msg` when a grammar fails to parse.
 
 ```ocaml
-  match Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ] with
-  | Ok hl ->
-      Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
-  | Error msg ->
-      failwith msg
+match Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ] with
+| Ok hl ->
+    Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+| Error msg ->
+    failwith msg
 ```
 
 ### load\_exn
@@ -49,7 +51,7 @@ val load_exn : (string * string) list -> t
 Like [`load`](./#val-load) but raises on failure.
 
 ```ocaml
-  let hl = Ochre.load_exn [ ("ocaml", Tm_grammar_ocaml.json) ]
+let hl = Ochre.load_exn [ ("ocaml", Tm_grammar_ocaml.json) ]
 ```
 
 ### load\_from\_files
@@ -64,13 +66,13 @@ Each grammar is a path to a `.tmLanguage.json` file. The language identifier is 
 Returns `Error msg` when a file cannot be read or a grammar fails to parse.
 
 ```ocaml
-  match
-    Ochre.load_from_files [ "/usr/share/grammars/ocaml.tmLanguage.json" ]
-  with
-  | Ok hl ->
-      Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
-  | Error msg ->
-      failwith msg
+match
+  Ochre.load_from_files [ "/usr/share/grammars/ocaml.tmLanguage.json" ]
+with
+| Ok hl ->
+    Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+| Error msg ->
+    failwith msg
 ```
 
 ### load\_from\_files\_exn
@@ -81,9 +83,8 @@ val load_from_files_exn : string list -> t
 Like [`load_from_files`](./#val-load_from_files) but raises on failure.
 
 ```ocaml
-  let hl =
-    Ochre.load_from_files_exn
-      [ "/usr/share/grammars/ocaml.tmLanguage.json" ]
+let hl =
+  Ochre.load_from_files_exn [ "/usr/share/grammars/ocaml.tmLanguage.json" ]
 ```
 
 ## Tokens
@@ -132,14 +133,14 @@ When `~decorations` or `~transforms` are provided, decorations are applied after
 Raises `Failure` if the grammar for `lang` cannot be found.
 
 ```ocaml
-  let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
-  List.iter
-    (fun line ->
-      List.iter
-        (fun (tok : Ochre.Token.styled_token) -> Printf.printf "%s" tok.text)
-        line
-    )
-    tokens
+let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
+List.iter
+  (fun line ->
+    List.iter
+      (fun (tok : Ochre.Token.styled_token) -> Printf.printf "%s" tok.text)
+      line
+  )
+  tokens
 ```
 
 ### HTML options
@@ -162,34 +163,34 @@ val to_html :
   string ->
   string
 ```
-Highlight source code to HTML.
+Highlight source code to HTML
 
 Single theme
 
 Pass `~theme` for a self-contained block with inline styles:
 
 ```ocaml
-  Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" "let x = 42"
+Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" "let x = 42"
 ```
 Multiple themes
 
 Pass `~extra_themes` with labelled extra themes. Each label becomes a CSS custom property prefix (`--ochre-<label>`). The default theme is emitted as base fallback variables (`var(--ochre-bg,<bg>)`, `var(--ochre,<fg>)`), while extra themes are emitted as label-scoped variables.
 
 ```ocaml
-  Ochre.to_html hl ~theme:Ochre.Theme.light
-    ~extra_themes:[ ("dark", Ochre.Theme.nord) ]
-    ~lang:"ocaml" "let x = 42"
+Ochre.to_html hl ~theme:Ochre.Theme.light
+  ~extra_themes:[ ("dark", Ochre.Theme.nord) ]
+  ~lang:"ocaml" "let x = 42"
 ```
 Options
 
 Pass `~options` to control rendering behaviour:
 
 ```ocaml
-  let opts =
-    Ochre.Html_options.make ~line_numbers:true
-      ~default_color:No_default_color ()
-  in
-  Ochre.to_html hl ~options:opts ~theme ~lang:"ocaml" code
+let opts =
+  Ochre.Html_options.make ~line_numbers:true ~default_color:No_default_color
+    ()
+in
+Ochre.to_html hl ~options:opts ~theme ~lang:"ocaml" code
 ```
 When `~theme` is omitted but `~extra_themes` is provided, the first entry becomes the default. When neither `~theme` nor `~extra_themes` is provided, [`Theme.dark`](./Ochre-Theme.md#val-dark) is used as the default.
 
@@ -206,7 +207,7 @@ val html_theme_css : string -> string
 Wrap this in your own selector (a media query, a `.dark` class, a `data-theme` attribute selector, etc.) to control when the theme activates.
 
 ```ocaml
-  Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
+Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
 ```
 
 ### html\_render\_theme\_css
@@ -221,9 +222,9 @@ val html_render_theme_css :
 `html_render_theme_css ~class_prefix theme code` generates a complete CSS stylesheet for the given theme and highlighted code when using [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode. Walks all tokens to discover unique styles and maps each to a deterministic class name prefixed with `class_prefix`.
 
 ```ocaml
-  let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
-  let css = Ochre.html_render_theme_css ~class_prefix:"oc-" theme tokens in
-  Printf.printf "<style>%s</style>" css
+let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
+let css = Ochre.html_render_theme_css ~class_prefix:"oc-" theme tokens in
+Printf.printf "<style>%s</style>" css
 ```
 
 ### to\_ansi
@@ -243,8 +244,8 @@ Highlight source code to ANSI terminal escape sequences.
 Produces text with embedded 24-bit ANSI color codes for terminal display. Raises `Failure` if the grammar for `lang` cannot be found.
 
 ```ocaml
-  let ansi = Ochre.to_ansi hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code in
-  print_string ansi
+let ansi = Ochre.to_ansi hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code in
+print_string ansi
 ```
 
 ### to\_latex
@@ -264,10 +265,8 @@ Highlight source code to LaTeX with `\textcolor` commands.
 Produces a block wrapped in an `ochrehighlight` environment. Requires the `xcolor` and `soul` LaTeX packages. Raises `Failure` if the grammar for `lang` cannot be found.
 
 ```ocaml
-  let latex =
-    Ochre.to_latex hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
-  in
-  Printf.printf "\\begin{document}\n%s\n\\end{document}" latex
+let latex = Ochre.to_latex hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code in
+Printf.printf "\\begin{document}\n%s\n\\end{document}" latex
 ```
 
 ### to\_svg
@@ -287,7 +286,7 @@ Highlight source code to a self-contained SVG element.
 Produces an `<svg>` with monospace `<text>` elements and per-token `<tspan>` styling. Suitable for embedding in documents or rendering as an image. Raises `Failure` if the grammar for `lang` cannot be found.
 
 ```ocaml
-  let svg = Ochre.to_svg hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+let svg = Ochre.to_svg hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
 ```
 
 ### to\_debug\_tokens
@@ -306,6 +305,12 @@ Highlight source code and render each token as `{text}[scope1,scope2,...]`.
 
 Useful for debugging grammar and scope matching. Raises `Failure` if the grammar for `lang` cannot be found.
 
+```ocaml
+let debug_tokens =
+  Ochre.to_debug_tokens hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+in
+Printf.printf "%s" debug_tokens
+```
 
 ### output\_format
 
@@ -358,7 +363,7 @@ val to_string :
 Highlight source code to one of the supported output formats.
 
 ```ocaml
-  let output = Ochre.to_string hl ~format:Html ~theme ~lang:"ocaml" code
+let output = Ochre.to_string hl ~format:Html ~theme ~lang:"ocaml" code
 ```
 
 ## Transforms

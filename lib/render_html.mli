@@ -55,7 +55,7 @@ val theme_css : string -> string
     CSS custom properties with the given label.
 
     {[
-      theme_css "dark"
+    theme_css "dark"
     ]}
 
     produces:

@@ -53,9 +53,9 @@ val make :
     Create a decoration with the given properties and range.
 
     {[
-      let d =
-        Decoration.make ~class_:"highlighted" ~start:(Decoration.pos 0 0)
-          ~end_:(Decoration.pos 0 11) ()
+    let d =
+      Decoration.make ~class_:"highlighted" ~start:(Decoration.pos 0 0)
+        ~end_:(Decoration.pos 0 11) ()
     ]} *)
 
 val apply :

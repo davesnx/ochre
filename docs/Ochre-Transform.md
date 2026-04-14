@@ -51,18 +51,18 @@ val make :
 `make name` creates a transform with the given hooks.
 
 ```ocaml
-  let bold_keywords =
-    Ochre.Transform.make "bold-keywords"
-      ~after_line:(fun ~line_index:_ line ->
-        List.map
-          (fun (tok : Ochre.Token.styled_token) ->
-            if tok.text = "let" || tok.text = "in" then
-              { tok with font_style = Bold :: tok.font_style }
-            else
-              tok
-          )
-          line
-    )
+let bold_keywords =
+  Ochre.Transform.make "bold-keywords"
+    ~after_line:(fun ~line_index:_ line ->
+      List.map
+        (fun (tok : Ochre.Token.styled_token) ->
+          if tok.text = "let" || tok.text = "in" then
+            { tok with font_style = Bold :: tok.font_style }
+          else
+            tok
+        )
+        line
+  )
 ```
 
 ### run
@@ -73,3 +73,7 @@ val run : t list -> document -> document
 `run transforms document` applies all transforms to the document.
 
 Transforms are applied in list order. An empty list returns the document unchanged.
+
+```ocaml
+let transformed = Ochre.Transform.run transforms document in
+```

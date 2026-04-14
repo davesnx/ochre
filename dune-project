@@ -53,7 +53,7 @@
     (ocamlformat-mlx :with-dev-setup)
   (ocamlformat
    (and
-    (= 0.28.1)
+    (= 0.29.0)
     :with-dev-setup))))
 
 (package
