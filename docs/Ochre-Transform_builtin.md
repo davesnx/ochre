@@ -12,7 +12,7 @@ Highlights the given line indices (0-based) by setting every token's background 
 Default background: `"#ffffff22"`.
 
 ```ocaml
-  Ochre.to_html_with hl
+  Ochre.to_html hl
     ~transforms:[ Ochre.Transform_builtin.line_highlight [ 0; 2 ] ]
     ~theme ~lang:"ocaml" code
 ```
@@ -31,7 +31,7 @@ Highlights tokens whose text matches one of the given words.
 Default foreground: `"#ffff00"`. Default font style: `[Bold]`.
 
 ```ocaml
-  Ochre.to_html_with hl
+  Ochre.to_html hl
     ~transforms:[ Ochre.Transform_builtin.word_highlight [ "x"; "y" ] ]
     ~theme ~lang:"ocaml" code
 ```
@@ -66,7 +66,7 @@ Default background: `"#ffffff22"`.
 ```ocaml
   let code = "let x = 42 // [!code highlight]\nlet y = 10" in
   let transforms = [ Ochre.Transform_builtin.notation_highlight () ] in
-  Ochre.to_html_with hl ~transforms ~theme ~lang:"test" code
+  Ochre.to_html hl ~transforms ~theme ~lang:"test" code
 ```
 
 ### notation\_diff
@@ -85,7 +85,7 @@ Default add background: `"#22883322"`. Default remove background: `"#88222222"`.
 ```ocaml
   let code = "let x = 42 // [!code ++]\nlet y = 10 // [!code --]" in
   let transforms = [ Ochre.Transform_builtin.notation_diff () ] in
-  Ochre.to_html_with hl ~transforms ~theme ~lang:"test" code
+  Ochre.to_html hl ~transforms ~theme ~lang:"test" code
 ```
 
 ### notation\_word\_highlight
@@ -106,5 +106,5 @@ Default foreground: `"#ffff00"`. Default font style: `[Bold]`.
   let transforms =
     [ Ochre.Transform_builtin.notation_word_highlight () ]
   in
-  Ochre.to_html_with hl ~transforms ~theme ~lang:"test" code
+  Ochre.to_html hl ~transforms ~theme ~lang:"test" code
 ```

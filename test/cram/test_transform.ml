@@ -67,39 +67,39 @@ let () =
   match Sys.argv.(1) with
   | "no-transforms" ->
       let tokens =
-        Ochre.to_tokens_with hl ~transforms:[] ~theme ~lang:"test" "let x = 42"
+        Ochre.to_tokens hl ~transforms:[] ~theme ~lang:"test" "let x = 42"
       in
       List.iter (fun line -> List.iter print_token line) tokens
   | "line-highlight" ->
       let transforms = [ Ochre.Transform_builtin.line_highlight [ 0 ] ] in
       let tokens =
-        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test"
+        Ochre.to_tokens hl ~transforms ~theme ~lang:"test"
           "let x = 42\nlet y = 10"
       in
       List.iter (fun line -> List.iter print_token line) tokens
   | "word-highlight" ->
       let transforms = [ Ochre.Transform_builtin.word_highlight [ "let" ] ] in
       let tokens =
-        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test" "let x = 42"
+        Ochre.to_tokens hl ~transforms ~theme ~lang:"test" "let x = 42"
       in
       List.iter (fun line -> List.iter print_token line) tokens
   | "diff-markers" ->
       let transforms = [ Ochre.Transform_builtin.diff_markers ] in
       let tokens =
-        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test"
+        Ochre.to_tokens hl ~transforms ~theme ~lang:"test"
           "+let x = 42\n-let y = 10\n let z = 0"
       in
       List.iter (fun line -> List.iter print_token line) tokens
   | "scope-marker" ->
       let transforms = [ Ochre.Transform_builtin.scope_marker "keyword" ] in
       let tokens =
-        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test" "let x = 42"
+        Ochre.to_tokens hl ~transforms ~theme ~lang:"test" "let x = 42"
       in
       List.iter (fun line -> List.iter print_token line) tokens
   | "html-with-transform" ->
       let transforms = [ Ochre.Transform_builtin.line_highlight [ 0 ] ] in
       let html =
-        Ochre.to_html_with hl ~transforms ~theme ~lang:"test"
+        Ochre.to_html hl ~transforms ~theme ~lang:"test"
           "let x = 42\nlet y = 10"
       in
       print_endline html
@@ -111,42 +111,42 @@ let () =
         ]
       in
       let tokens =
-        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test"
+        Ochre.to_tokens hl ~transforms ~theme ~lang:"test"
           "let x = 42\nlet y = 10"
       in
       List.iter (fun line -> List.iter print_token line) tokens
   | "notation-highlight" ->
       let transforms = [ Ochre.Transform_builtin.notation_highlight () ] in
       let tokens =
-        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test"
+        Ochre.to_tokens hl ~transforms ~theme ~lang:"test"
           "let x = 42 # [!code highlight]\nlet y = 10"
       in
       List.iter (fun line -> List.iter print_token line) tokens
   | "notation-diff" ->
       let transforms = [ Ochre.Transform_builtin.notation_diff () ] in
       let tokens =
-        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test"
+        Ochre.to_tokens hl ~transforms ~theme ~lang:"test"
           "let x = 42 # [!code ++]\nlet y = 10 # [!code --]\nlet z = 0"
       in
       List.iter (fun line -> List.iter print_token line) tokens
   | "notation-word-highlight" ->
       let transforms = [ Ochre.Transform_builtin.notation_word_highlight () ] in
       let tokens =
-        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test"
+        Ochre.to_tokens hl ~transforms ~theme ~lang:"test"
           "let x = 42 # [!code word:x]"
       in
       List.iter (fun line -> List.iter print_token line) tokens
   | "notation-highlight-no-match" ->
       let transforms = [ Ochre.Transform_builtin.notation_highlight () ] in
       let tokens =
-        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test"
+        Ochre.to_tokens hl ~transforms ~theme ~lang:"test"
           "let x = 42\nlet y = 10"
       in
       List.iter (fun line -> List.iter print_token line) tokens
   | "notation-diff-mixed" ->
       let transforms = [ Ochre.Transform_builtin.notation_diff () ] in
       let tokens =
-        Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test"
+        Ochre.to_tokens hl ~transforms ~theme ~lang:"test"
           "let x = 42 # [!code ++]\nlet y = 10\nlet z = 0 # [!code --]"
       in
       List.iter (fun line -> List.iter print_token line) tokens

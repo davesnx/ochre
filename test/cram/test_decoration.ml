@@ -48,9 +48,7 @@ let () =
         ]
       in
       print_endline
-        (Ochre.to_html_with hl ~decorations ~transforms:[] ~theme ~lang:"test"
-           source
-        )
+        (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
   | "html-class-and-style" ->
       let source = "let x = 42" in
       let decorations =
@@ -63,9 +61,7 @@ let () =
         ]
       in
       print_endline
-        (Ochre.to_html_with hl ~decorations ~transforms:[] ~theme ~lang:"test"
-           source
-        )
+        (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
   | "html-data-attrs" ->
       let source = "let x = 42" in
       let decorations =
@@ -77,9 +73,7 @@ let () =
         ]
       in
       print_endline
-        (Ochre.to_html_with hl ~decorations ~transforms:[] ~theme ~lang:"test"
-           source
-        )
+        (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
   | "html-split" ->
       (* Decorate "x =" which spans mid-token *)
       let source = "let x = 42" in
@@ -91,9 +85,7 @@ let () =
         ]
       in
       print_endline
-        (Ochre.to_html_with hl ~decorations ~transforms:[] ~theme ~lang:"test"
-           source
-        )
+        (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
   | "debug-tokens" ->
       let source = "let x = 42" in
       let decorations =
@@ -103,7 +95,7 @@ let () =
         ]
       in
       print_endline
-        (Ochre.to_debug_tokens_with hl ~decorations ~transforms:[] ~theme
+        (Ochre.to_debug_tokens hl ~decorations ~transforms:[] ~theme
            ~lang:"test" source
         )
   | "multiline-html" ->
@@ -115,9 +107,7 @@ let () =
         ]
       in
       print_endline
-        (Ochre.to_html_with hl ~decorations ~transforms:[] ~theme ~lang:"test"
-           source
-        )
+        (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1

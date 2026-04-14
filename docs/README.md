@@ -21,11 +21,12 @@ type t
 ```
 Highlighter instance. Holds loaded grammars and tokenization state.
 
+
+### load
+
 ```ocaml
 val load : (string * string) list -> (t, string) Stdlib.result
 ```
-load
-
 Load a highlighter from grammar JSON strings.
 
 Each pair is `(lang_id, json_content)` where `lang_id` is the language identifier and `json_content` is the raw TextMate grammar JSON.
@@ -39,21 +40,23 @@ Returns `Error msg` when a grammar fails to parse.
   | Error msg ->
       failwith msg
 ```
+
+### load\_exn
+
 ```ocaml
 val load_exn : (string * string) list -> t
 ```
-load\_exn
-
 Like [`load`](./#val-load) but raises on failure.
 
 ```ocaml
   let hl = Ochre.load_exn [ ("ocaml", Tm_grammar_ocaml.json) ]
 ```
+
+### load\_from\_files
+
 ```ocaml
 val load_from_files : string list -> (t, string) Stdlib.result
 ```
-load\_from\_files
-
 Load a highlighter from grammar files on disk.
 
 Each grammar is a path to a `.tmLanguage.json` file. The language identifier is derived from the filename (e.g. `"ocaml.tmLanguage.json"` registers as `"ocaml"`).
@@ -69,11 +72,12 @@ Returns `Error msg` when a file cannot be read or a grammar fails to parse.
   | Error msg ->
       failwith msg
 ```
+
+### load\_from\_files\_exn
+
 ```ocaml
 val load_from_files_exn : string list -> t
 ```
-load\_from\_files\_exn
-
 Like [`load_from_files`](./#val-load_from_files) but raises on failure.
 
 ```ocaml
@@ -114,12 +118,16 @@ Ochre can render highlighted code to several output formats. All backends share 
 ```ocaml
 val to_tokens : 
   t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
   theme:Theme.theme ->
   lang:string ->
   string ->
   Token.highlighted_code
 ```
 Highlight source code and return structured tokens. Use this when you need full control over rendering.
+
+When `~decorations` or `~transforms` are provided, decorations are applied after tokenization and transforms run after decorations.
 
 Raises `Failure` if the grammar for `lang` cannot be found.
 
@@ -145,6 +153,8 @@ module Html_options : sig ... end
 ```ocaml
 val to_html : 
   t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
   ?options:Html_options.t ->
   ?theme:Theme.theme ->
   ?extra_themes:(string * Theme.theme) list ->
@@ -219,7 +229,14 @@ val html_render_theme_css :
 ### to\_ansi
 
 ```ocaml
-val to_ansi : t -> theme:Theme.theme -> lang:string -> string -> string
+val to_ansi : 
+  t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
 ```
 Highlight source code to ANSI terminal escape sequences.
 
@@ -233,7 +250,14 @@ Produces text with embedded 24-bit ANSI color codes for terminal display. Raises
 ### to\_latex
 
 ```ocaml
-val to_latex : t -> theme:Theme.theme -> lang:string -> string -> string
+val to_latex : 
+  t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
 ```
 Highlight source code to LaTeX with `\textcolor` commands.
 
@@ -249,7 +273,14 @@ Produces a block wrapped in an `ochrehighlight` environment. Requires the `xcolo
 ### to\_svg
 
 ```ocaml
-val to_svg : t -> theme:Theme.theme -> lang:string -> string -> string
+val to_svg : 
+  t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
 ```
 Highlight source code to a self-contained SVG element.
 
@@ -262,7 +293,14 @@ Produces an `<svg>` with monospace `<text>` elements and per-token `<tspan>` sty
 ### to\_debug\_tokens
 
 ```ocaml
-val to_debug_tokens : t -> theme:Theme.theme -> lang:string -> string -> string
+val to_debug_tokens : 
+  t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
 ```
 Highlight source code and render each token as `{text}[scope1,scope2,...]`.
 
@@ -309,6 +347,8 @@ Parse a format name into a variant. Returns `None` for unrecognised names.
 ```ocaml
 val to_string : 
   t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
   format:output_format ->
   theme:Theme.theme ->
   lang:string ->
@@ -320,65 +360,6 @@ Highlight source code to one of the supported output formats.
 ```ocaml
   let output = Ochre.to_string hl ~format:Html ~theme ~lang:"ocaml" code
 ```
-
-### Result-returning variants
-
-These wrap the corresponding exception-raising functions and return `(string, string) result` instead of raising. `Failure`, `TmLanguage.Error`, and `Oniguruma.Error` are caught and returned as `Error msg`.
-
-
-### to\_html\_result
-
-```ocaml
-val to_html_result : 
-  t ->
-  ?options:Html_options.t ->
-  ?theme:Theme.theme ->
-  ?extra_themes:(string * Theme.theme) list ->
-  lang:string ->
-  string ->
-  (string, string) Stdlib.result
-```
-Like [`to_html`](./#val-to_html) but returns a `result` instead of raising.
-
-
-### to\_ansi\_result
-
-```ocaml
-val to_ansi_result : 
-  t ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  (string, string) Stdlib.result
-```
-Like [`to_ansi`](./#val-to_ansi) but returns a `result` instead of raising.
-
-
-### to\_latex\_result
-
-```ocaml
-val to_latex_result : 
-  t ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  (string, string) Stdlib.result
-```
-Like [`to_latex`](./#val-to_latex) but returns a `result` instead of raising.
-
-
-### to\_svg\_result
-
-```ocaml
-val to_svg_result : 
-  t ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  (string, string) Stdlib.result
-```
-Like [`to_svg`](./#val-to_svg) but returns a `result` instead of raising.
-
 
 ## Transforms
 
@@ -403,128 +384,3 @@ Decorations attach format-agnostic properties (CSS class, inline style, data att
 ```ocaml
 module Decoration : sig ... end
 ```
-
-## Highlighting with transforms and decorations
-
-These functions combine backends with optional decorations and transforms. Decorations are applied after tokenization/theming but before transforms.
-
-```ocaml
-  let code = "let x = 42\nlet y = 10" in
-  let decorations =
-    [
-      Ochre.Decoration.make ~class_:"hl"
-        ~start:(Ochre.Decoration.pos 0 4)
-        ~end_:(Ochre.Decoration.pos 0 5)
-        ();
-    ]
-  in
-  let transforms = [ Ochre.Transform_builtin.line_highlight [ 1 ] ] in
-  Ochre.to_html_with hl ~decorations ~transforms ~theme ~lang:"ocaml" code
-```
-
-### to\_tokens\_with
-
-```ocaml
-val to_tokens_with : 
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  Token.highlighted_code
-```
-Like [`to_tokens`](./#val-to_tokens) but applies decorations and transforms before returning.
-
-
-### to\_html\_with
-
-```ocaml
-val to_html_with : 
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  ?options:Html_options.t ->
-  ?theme:Theme.theme ->
-  ?extra_themes:(string * Theme.theme) list ->
-  lang:string ->
-  string ->
-  string
-```
-Like [`to_html`](./#val-to_html) but applies decorations and transforms before rendering. Accepts the same `~theme` / `~extra_themes` / `~options` parameters as [`to_html`](./#val-to_html).
-
-
-### to\_ansi\_with
-
-```ocaml
-val to_ansi_with : 
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-```
-Like [`to_ansi`](./#val-to_ansi) but applies decorations and transforms before rendering.
-
-
-### to\_latex\_with
-
-```ocaml
-val to_latex_with : 
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-```
-Like [`to_latex`](./#val-to_latex) but applies decorations and transforms before rendering.
-
-
-### to\_svg\_with
-
-```ocaml
-val to_svg_with : 
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-```
-Like [`to_svg`](./#val-to_svg) but applies decorations and transforms before rendering.
-
-
-### to\_debug\_tokens\_with
-
-```ocaml
-val to_debug_tokens_with : 
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-```
-Like [`to_debug_tokens`](./#val-to_debug_tokens) but applies decorations and transforms before rendering.
-
-
-### to\_string\_with
-
-```ocaml
-val to_string_with : 
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  format:output_format ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-```
-Like [`to_string`](./#val-to_string) but applies decorations and transforms before rendering.

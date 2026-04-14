@@ -125,31 +125,17 @@ let apply_theme theme tokens_per_line =
     )
     tokens_per_line
 
-let to_tokens t ~theme ~lang source =
+let tokenize t ~theme ~lang source =
   let grammar = Grammar_loader.find_grammar t.grammar_loader lang in
   let tm_collection = Grammar_loader.tm_collection t.grammar_loader in
   let tokens = tokenize_with_grammar tm_collection grammar source in
   apply_theme theme tokens
 
-let to_tokens_with t ?(decorations = []) ~transforms ~theme ~lang source =
-  let tokens = to_tokens t ~theme ~lang source in
+let to_tokens t ?(decorations = []) ?(transforms = []) ~theme ~lang source =
+  let tokens = tokenize t ~theme ~lang source in
   let tokens = Decoration.apply ~source decorations tokens in
   Transform.run transforms tokens
 
-let render_to_string t ~theme ~lang render source =
-  let tokens = to_tokens t ~theme ~lang source in
-  render theme tokens
-
-let render_to_string_with t ?(decorations = []) ~transforms ~theme ~lang render
-    source =
-  let tokens = to_tokens_with t ~decorations ~transforms ~theme ~lang source in
-  render theme tokens
-
-(** Resolve the default theme and extra themes from the optional arguments.
-    - [~theme] alone: single-theme render.
-    - [~theme ~extra_themes]: theme is default, themes are extras.
-    - [~extra_themes] alone: first entry becomes the default, rest are extras.
-    - Neither: falls back to [Theme.dark]. *)
 let resolve_themes ?theme ?(extra_themes = []) () =
   match (theme, extra_themes) with
   | Some t, _ ->
@@ -159,50 +145,28 @@ let resolve_themes ?theme ?(extra_themes = []) () =
   | None, [] ->
       (Theme.dark, [])
 
-let to_html t ?options ?theme ?extra_themes ~lang source =
-  let default_theme, extras = resolve_themes ?theme ?extra_themes () in
-  match extras with
-  | [] ->
-      let tokens = to_tokens t ~theme:default_theme ~lang source in
-      Render_html.render ?options default_theme tokens
-  | _ ->
-      let grammar = Grammar_loader.find_grammar t.grammar_loader lang in
-      let tm_collection = Grammar_loader.tm_collection t.grammar_loader in
-      let raw_tokens = tokenize_with_grammar tm_collection grammar source in
-      let default_code = apply_theme default_theme raw_tokens in
-      let themed_extras =
-        List.map
-          (fun (label, theme) -> (label, theme, apply_theme theme raw_tokens))
-          extras
-      in
-      Render_html.render ?options default_theme ~extra_themes:themed_extras
-        default_code
-
-let to_html_with t ?(decorations = []) ~transforms ?options ?theme ?extra_themes
-    ~lang source =
+let to_html t ?(decorations = []) ?(transforms = []) ?options ?theme
+    ?extra_themes ~lang source =
   let default_theme, extras = resolve_themes ?theme ?extra_themes () in
   match extras with
   | [] ->
       let tokens =
-        to_tokens_with t ~decorations ~transforms ~theme:default_theme ~lang
-          source
+        to_tokens t ~decorations ~transforms ~theme:default_theme ~lang source
       in
       Render_html.render ?options default_theme tokens
   | _ ->
       let grammar = Grammar_loader.find_grammar t.grammar_loader lang in
       let tm_collection = Grammar_loader.tm_collection t.grammar_loader in
       let raw_tokens = tokenize_with_grammar tm_collection grammar source in
-      let default_code = apply_theme default_theme raw_tokens in
-      let default_code = Decoration.apply ~source decorations default_code in
-      let default_code = Transform.run transforms default_code in
+      let apply_pipeline theme_val =
+        let code = apply_theme theme_val raw_tokens in
+        let code = Decoration.apply ~source decorations code in
+        Transform.run transforms code
+      in
+      let default_code = apply_pipeline default_theme in
       let themed_extras =
         List.map
-          (fun (label, theme) ->
-            let code = apply_theme theme raw_tokens in
-            let code = Decoration.apply ~source decorations code in
-            let code = Transform.run transforms code in
-            (label, theme, code)
-          )
+          (fun (label, theme) -> (label, theme, apply_pipeline theme))
           extras
       in
       Render_html.render ?options default_theme ~extra_themes:themed_extras
@@ -210,65 +174,37 @@ let to_html_with t ?(decorations = []) ~transforms ?options ?theme ?extra_themes
 
 let html_theme_css = Render_html.theme_css
 let html_render_theme_css = Render_html.render_theme_css
-let to_ansi t = render_to_string t Render_ansi.render
-let to_latex t = render_to_string t Render_latex.render
-let to_svg t = render_to_string t Render_svg.render
 
-let wrap_result f =
-  try Ok (f ())
-  with Failure msg | TmLanguage.Error msg | Oniguruma.Error msg -> Error msg
+let render_backend t ?(decorations = []) ?(transforms = []) ~theme ~lang render
+    source =
+  let tokens = to_tokens t ~decorations ~transforms ~theme ~lang source in
+  render theme tokens
 
-let to_html_result t ?options ?theme ?extra_themes ~lang source =
-  wrap_result (fun () -> to_html t ?options ?theme ?extra_themes ~lang source)
+let to_ansi t ?decorations ?transforms =
+  render_backend t ?decorations ?transforms Render_ansi.render
 
-let to_ansi_result t ~theme ~lang source =
-  wrap_result (fun () -> to_ansi t ~theme ~lang source)
+let to_latex t ?decorations ?transforms =
+  render_backend t ?decorations ?transforms Render_latex.render
 
-let to_latex_result t ~theme ~lang source =
-  wrap_result (fun () -> to_latex t ~theme ~lang source)
+let to_svg t ?decorations ?transforms =
+  render_backend t ?decorations ?transforms Render_svg.render
 
-let to_svg_result t ~theme ~lang source =
-  wrap_result (fun () -> to_svg t ~theme ~lang source)
+let to_debug_tokens t ?decorations ?transforms =
+  render_backend t ?decorations ?transforms Render_tokens.render
 
-let to_debug_tokens t = render_to_string t Render_tokens.render
-
-let to_ansi_with t ?decorations =
-  render_to_string_with t ?decorations Render_ansi.render
-
-let to_latex_with t ?decorations =
-  render_to_string_with t ?decorations Render_latex.render
-
-let to_svg_with t ?decorations =
-  render_to_string_with t ?decorations Render_svg.render
-
-let to_debug_tokens_with t ?decorations =
-  render_to_string_with t ?decorations Render_tokens.render
-
-let to_string t ~format ~theme ~lang source =
+let to_string t ?(decorations = []) ?(transforms = []) ~format ~theme ~lang
+    source =
   match format with
   | Html ->
-      to_html t ~theme ~lang source
+      to_html t ~decorations ~transforms ~theme ~lang source
   | Ansi ->
-      to_ansi t ~theme ~lang source
+      to_ansi t ~decorations ~transforms ~theme ~lang source
   | Latex ->
-      to_latex t ~theme ~lang source
+      to_latex t ~decorations ~transforms ~theme ~lang source
   | Svg ->
-      to_svg t ~theme ~lang source
+      to_svg t ~decorations ~transforms ~theme ~lang source
   | Tokens ->
-      to_debug_tokens t ~theme ~lang source
-
-let to_string_with t ?decorations ~transforms ~format ~theme ~lang source =
-  match format with
-  | Html ->
-      to_html_with t ?decorations ~transforms ~theme ~lang source
-  | Ansi ->
-      to_ansi_with t ?decorations ~transforms ~theme ~lang source
-  | Latex ->
-      to_latex_with t ?decorations ~transforms ~theme ~lang source
-  | Svg ->
-      to_svg_with t ?decorations ~transforms ~theme ~lang source
-  | Tokens ->
-      to_debug_tokens_with t ?decorations ~transforms ~theme ~lang source
+      to_debug_tokens t ~decorations ~transforms ~theme ~lang source
 
 module Token = Token
 module Theme = Theme

@@ -153,7 +153,7 @@ let test_transform_empty_passthrough () =
   in
   let tokens = Ochre.to_tokens hl ~theme ~lang:"test" "let x = 42" in
   let tokens_with =
-    Ochre.to_tokens_with hl ~transforms:[] ~theme ~lang:"test" "let x = 42"
+    Ochre.to_tokens hl ~transforms:[] ~theme ~lang:"test" "let x = 42"
   in
   Alcotest.(check int)
     "same number of lines" (List.length tokens) (List.length tokens_with);
@@ -628,8 +628,7 @@ let test_decoration_with_highlighter () =
     ]
   in
   let tokens =
-    Ochre.to_tokens_with hl ~decorations ~transforms:[] ~theme ~lang:"test"
-      source
+    Ochre.to_tokens hl ~decorations ~transforms:[] ~theme ~lang:"test" source
   in
   match tokens with
   | [ first :: _ ] -> (
@@ -854,7 +853,7 @@ let test_notation_highlight_with_highlighter () =
   in
   let source = "let x = 42 # [!code highlight]\nlet y = 10" in
   let transforms = [ Ochre.Transform_builtin.notation_highlight () ] in
-  let tokens = Ochre.to_tokens_with hl ~transforms ~theme ~lang:"test" source in
+  let tokens = Ochre.to_tokens hl ~transforms ~theme ~lang:"test" source in
   match tokens with
   | [ line0; line1 ] ->
       (* Line 0: highlighted *)

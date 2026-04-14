@@ -20,10 +20,10 @@
 type t
 (** Highlighter instance. Holds loaded grammars and tokenization state. *)
 
-val load : (string * string) list -> (t, string) result
-(** {2 load}
+(** {2 load} *)
 
-    Load a highlighter from grammar JSON strings.
+val load : (string * string) list -> (t, string) result
+(** Load a highlighter from grammar JSON strings.
 
     Each pair is [(lang_id, json_content)] where [lang_id] is the language
     identifier and [json_content] is the raw TextMate grammar JSON.
@@ -38,19 +38,19 @@ val load : (string * string) list -> (t, string) result
           failwith msg
     ]} *)
 
-val load_exn : (string * string) list -> t
-(** {2 load_exn}
+(** {2 load_exn} *)
 
-    Like {!val-load} but raises on failure.
+val load_exn : (string * string) list -> t
+(** Like {!val-load} but raises on failure.
 
     {[
       let hl = Ochre.load_exn [ ("ocaml", Tm_grammar_ocaml.json) ]
     ]} *)
 
-val load_from_files : string list -> (t, string) result
-(** {2 load_from_files}
+(** {2 load_from_files} *)
 
-    Load a highlighter from grammar files on disk.
+val load_from_files : string list -> (t, string) result
+(** Load a highlighter from grammar files on disk.
 
     Each grammar is a path to a [.tmLanguage.json] file. The language identifier
     is derived from the filename (e.g. ["ocaml.tmLanguage.json"] registers as
@@ -68,10 +68,10 @@ val load_from_files : string list -> (t, string) result
           failwith msg
     ]} *)
 
-val load_from_files_exn : string list -> t
-(** {2 load_from_files_exn}
+(** {2 load_from_files_exn} *)
 
-    Like {!val-load_from_files} but raises on failure.
+val load_from_files_exn : string list -> t
+(** Like {!val-load_from_files} but raises on failure.
 
     {[
       let hl =
@@ -189,10 +189,10 @@ module Theme : sig
   (** A loaded theme with default foreground/background colors and a list of
       token coloring rules. *)
 
-  val load : ?base_dir:string -> string -> (theme, string) result
-  (** {2 load}
+  (** {2 load} *)
 
-      Load a theme from a raw JSON string.
+  val load : ?base_dir:string -> string -> (theme, string) result
+  (** Load a theme from a raw JSON string.
 
       When [~base_dir] is provided, ["include"] paths in the JSON are resolved
       relative to that directory (same as {!val-load_from_file} does with the
@@ -217,15 +217,15 @@ module Theme : sig
         }|}
       ]} *)
 
-  val load_exn : ?base_dir:string -> string -> theme
-  (** {2 load_exn}
+  (** {2 load_exn} *)
 
-      Like {!val-load} but raises on failure. *)
+  val load_exn : ?base_dir:string -> string -> theme
+  (** Like {!val-load} but raises on failure. *)
+
+  (** {2 load_from_file} *)
 
   val load_from_file : string -> (theme, string) result
-  (** {2 load_from_file}
-
-      Load a theme from a VS Code theme JSON file.
+  (** Load a theme from a VS Code theme JSON file.
 
       Falls back to the filename as the theme name when none is specified in the
       JSON. Returns [Error msg] when the file cannot be read or contains invalid
@@ -239,10 +239,10 @@ module Theme : sig
             failwith msg
       ]} *)
 
-  val load_from_file_exn : string -> theme
-  (** {2 load_from_file_exn}
+  (** {2 load_from_file_exn} *)
 
-      Like {!val-load_from_file} but raises on failure.
+  val load_from_file_exn : string -> theme
+  (** Like {!val-load_from_file} but raises on failure.
 
       {[
         let theme = Ochre.Theme.load_from_file_exn "/path/to/theme.json"
@@ -334,9 +334,18 @@ end
 (** {2 to_tokens} *)
 
 val to_tokens :
-  t -> theme:Theme.theme -> lang:string -> string -> Token.highlighted_code
+  t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  Token.highlighted_code
 (** Highlight source code and return structured tokens. Use this when you need
     full control over rendering.
+
+    When [~decorations] or [~transforms] are provided, decorations are applied
+    after tokenization and transforms run after decorations.
 
     Raises [Failure] if the grammar for [lang] cannot be found.
 
@@ -414,6 +423,8 @@ end
 
 val to_html :
   t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
   ?options:Html_options.t ->
   ?theme:Theme.theme ->
   ?extra_themes:(string * Theme.theme) list ->
@@ -491,7 +502,14 @@ val html_render_theme_css :
 
 (** {2 to_ansi} *)
 
-val to_ansi : t -> theme:Theme.theme -> lang:string -> string -> string
+val to_ansi :
+  t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
 (** Highlight source code to ANSI terminal escape sequences.
 
     Produces text with embedded 24-bit ANSI color codes for terminal display.
@@ -504,7 +522,14 @@ val to_ansi : t -> theme:Theme.theme -> lang:string -> string -> string
 
 (** {2 to_latex} *)
 
-val to_latex : t -> theme:Theme.theme -> lang:string -> string -> string
+val to_latex :
+  t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
 (** Highlight source code to LaTeX with [\textcolor] commands.
 
     Produces a block wrapped in an [ochrehighlight] environment. Requires the
@@ -520,7 +545,14 @@ val to_latex : t -> theme:Theme.theme -> lang:string -> string -> string
 
 (** {2 to_svg} *)
 
-val to_svg : t -> theme:Theme.theme -> lang:string -> string -> string
+val to_svg :
+  t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
 (** Highlight source code to a self-contained SVG element.
 
     Produces an [<svg>] with monospace [<text>] elements and per-token [<tspan>]
@@ -533,7 +565,14 @@ val to_svg : t -> theme:Theme.theme -> lang:string -> string -> string
 
 (** {2 to_debug_tokens} *)
 
-val to_debug_tokens : t -> theme:Theme.theme -> lang:string -> string -> string
+val to_debug_tokens :
+  t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
+  theme:Theme.theme ->
+  lang:string ->
+  string ->
+  string
 (** Highlight source code and render each token as [{text}[scope1,scope2,...]].
 
     Useful for debugging grammar and scope matching. Raises [Failure] if the
@@ -570,6 +609,8 @@ val output_format_of_string : string -> output_format option
 
 val to_string :
   t ->
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
   format:output_format ->
   theme:Theme.theme ->
   lang:string ->
@@ -580,42 +621,6 @@ val to_string :
     {[
       let output = Ochre.to_string hl ~format:Html ~theme ~lang:"ocaml" code
     ]} *)
-
-(** {2 Result-returning variants}
-
-    These wrap the corresponding exception-raising functions and return
-    [(string, string) result] instead of raising. [Failure], [TmLanguage.Error],
-    and [Oniguruma.Error] are caught and returned as [Error msg]. *)
-
-(** {2 to_html_result} *)
-
-val to_html_result :
-  t ->
-  ?options:Html_options.t ->
-  ?theme:Theme.theme ->
-  ?extra_themes:(string * Theme.theme) list ->
-  lang:string ->
-  string ->
-  (string, string) result
-(** Like {!val-to_html} but returns a [result] instead of raising. *)
-
-(** {2 to_ansi_result} *)
-
-val to_ansi_result :
-  t -> theme:Theme.theme -> lang:string -> string -> (string, string) result
-(** Like {!val-to_ansi} but returns a [result] instead of raising. *)
-
-(** {2 to_latex_result} *)
-
-val to_latex_result :
-  t -> theme:Theme.theme -> lang:string -> string -> (string, string) result
-(** Like {!val-to_latex} but returns a [result] instead of raising. *)
-
-(** {2 to_svg_result} *)
-
-val to_svg_result :
-  t -> theme:Theme.theme -> lang:string -> string -> (string, string) result
-(** Like {!val-to_svg} but returns a [result] instead of raising. *)
 
 (** {1 Transforms}
 
@@ -701,7 +706,7 @@ module Transform_builtin : sig
       Default background: ["#ffffff22"].
 
       {[
-        Ochre.to_html_with hl
+        Ochre.to_html hl
           ~transforms:[ Ochre.Transform_builtin.line_highlight [ 0; 2 ] ]
           ~theme ~lang:"ocaml" code
       ]} *)
@@ -718,7 +723,7 @@ module Transform_builtin : sig
       Default foreground: ["#ffff00"]. Default font style: [[Bold]].
 
       {[
-        Ochre.to_html_with hl
+        Ochre.to_html hl
           ~transforms:[ Ochre.Transform_builtin.word_highlight [ "x"; "y" ] ]
           ~theme ~lang:"ocaml" code
       ]} *)
@@ -748,7 +753,7 @@ module Transform_builtin : sig
       {[
         let code = "let x = 42 // [!code highlight]\nlet y = 10" in
         let transforms = [ Ochre.Transform_builtin.notation_highlight () ] in
-        Ochre.to_html_with hl ~transforms ~theme ~lang:"test" code
+        Ochre.to_html hl ~transforms ~theme ~lang:"test" code
       ]} *)
 
   (** {2 notation_diff} *)
@@ -765,7 +770,7 @@ module Transform_builtin : sig
       {[
         let code = "let x = 42 // [!code ++]\nlet y = 10 // [!code --]" in
         let transforms = [ Ochre.Transform_builtin.notation_diff () ] in
-        Ochre.to_html_with hl ~transforms ~theme ~lang:"test" code
+        Ochre.to_html hl ~transforms ~theme ~lang:"test" code
       ]} *)
 
   (** {2 notation_word_highlight} *)
@@ -786,7 +791,7 @@ module Transform_builtin : sig
         let transforms =
           [ Ochre.Transform_builtin.notation_word_highlight () ]
         in
-        Ochre.to_html_with hl ~transforms ~theme ~lang:"test" code
+        Ochre.to_html hl ~transforms ~theme ~lang:"test" code
       ]} *)
 end
 
@@ -859,117 +864,3 @@ module Decoration : sig
       Overlapping decorations are merged: classes are space-concatenated, styles
       are semicolon-concatenated, data attributes are merged (later wins). *)
 end
-
-(** {1 Highlighting with transforms and decorations}
-
-    These functions combine backends with optional decorations and transforms.
-    Decorations are applied after tokenization/theming but before transforms.
-
-    {[
-      let code = "let x = 42\nlet y = 10" in
-      let decorations =
-        [
-          Ochre.Decoration.make ~class_:"hl"
-            ~start:(Ochre.Decoration.pos 0 4)
-            ~end_:(Ochre.Decoration.pos 0 5)
-            ();
-        ]
-      in
-      let transforms = [ Ochre.Transform_builtin.line_highlight [ 1 ] ] in
-      Ochre.to_html_with hl ~decorations ~transforms ~theme ~lang:"ocaml" code
-    ]} *)
-
-(** {2 to_tokens_with} *)
-
-val to_tokens_with :
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  Token.highlighted_code
-(** Like {!val-to_tokens} but applies decorations and transforms before
-    returning. *)
-
-(** {2 to_html_with} *)
-
-val to_html_with :
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  ?options:Html_options.t ->
-  ?theme:Theme.theme ->
-  ?extra_themes:(string * Theme.theme) list ->
-  lang:string ->
-  string ->
-  string
-(** Like {!val-to_html} but applies decorations and transforms before rendering.
-    Accepts the same [~theme] / [~extra_themes] / [~options] parameters as
-    {!val-to_html}. *)
-
-(** {2 to_ansi_with} *)
-
-val to_ansi_with :
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-(** Like {!val-to_ansi} but applies decorations and transforms before rendering.
-*)
-
-(** {2 to_latex_with} *)
-
-val to_latex_with :
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-(** Like {!val-to_latex} but applies decorations and transforms before
-    rendering. *)
-
-(** {2 to_svg_with} *)
-
-val to_svg_with :
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-(** Like {!val-to_svg} but applies decorations and transforms before rendering.
-*)
-
-(** {2 to_debug_tokens_with} *)
-
-val to_debug_tokens_with :
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-(** Like {!val-to_debug_tokens} but applies decorations and transforms before
-    rendering. *)
-
-(** {2 to_string_with} *)
-
-val to_string_with :
-  t ->
-  ?decorations:Decoration.t list ->
-  transforms:Transform.t list ->
-  format:output_format ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-(** Like {!val-to_string} but applies decorations and transforms before
-    rendering. *)

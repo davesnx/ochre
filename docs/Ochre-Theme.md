@@ -57,11 +57,12 @@ type theme = {
 ```
 A loaded theme with default foreground/background colors and a list of token coloring rules.
 
+
+### load
+
 ```ocaml
 val load : ?base_dir:string -> string -> (theme, string) Stdlib.result
 ```
-load
-
 Load a theme from a raw JSON string.
 
 When `~base_dir` is provided, `"include"` paths in the JSON are resolved relative to that directory (same as [`load_from_file`](./#val-load_from_file) does with the file's parent directory). When omitted, `"include"` fields are silently ignored.
@@ -83,18 +84,20 @@ Returns `Error msg` when the JSON is malformed.
     ]
   }|}
 ```
+
+### load\_exn
+
 ```ocaml
 val load_exn : ?base_dir:string -> string -> theme
 ```
-load\_exn
-
 Like [`load`](./#val-load) but raises on failure.
+
+
+### load\_from\_file
 
 ```ocaml
 val load_from_file : string -> (theme, string) Stdlib.result
 ```
-load\_from\_file
-
 Load a theme from a VS Code theme JSON file.
 
 Falls back to the filename as the theme name when none is specified in the JSON. Returns `Error msg` when the file cannot be read or contains invalid JSON.
@@ -106,11 +109,12 @@ Falls back to the filename as the theme name when none is specified in the JSON.
   | Error msg ->
       failwith msg
 ```
+
+### load\_from\_file\_exn
+
 ```ocaml
 val load_from_file_exn : string -> theme
 ```
-load\_from\_file\_exn
-
 Like [`load_from_file`](./#val-load_from_file) but raises on failure.
 
 ```ocaml
