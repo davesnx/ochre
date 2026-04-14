@@ -54,9 +54,7 @@ let preamble =
 let trailer = "\\end{document}\n"
 
 let () =
-  let highlighter =
-    Ochre.create_from_json ~grammars:[ ("ocaml", grammar_json) ] ()
-  in
+  let highlighter = Ochre.load_exn [ ("ocaml", grammar_json) ] in
   let source =
     "let answer = 42\n(* LaTeX preview *)\nlet greet = \"hello from ochre\""
   in

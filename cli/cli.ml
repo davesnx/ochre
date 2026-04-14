@@ -89,7 +89,7 @@ let resolve_theme_name_or_path name_or_path =
   | Some theme ->
       theme
   | None ->
-      Ochre.Theme.load name_or_path
+      Ochre.Theme.load_from_file_exn name_or_path
 
 let error msg = `Error (false, msg)
 
@@ -232,19 +232,11 @@ let highlight lang theme_path theme_dark theme_light grammars includes format
                 let file_grammars =
                   List.map grammar_json_of_path grammars_arg
                 in
-                Ok
-                  (Ochre.create_from_json
-                     ~grammars:(file_grammars @ include_grammars)
-                     ()
-                  )
+                Ochre.load (file_grammars @ include_grammars)
             | [] -> (
                 match Tm_grammars.find lang with
                 | Some json ->
-                    Ok
-                      (Ochre.create_from_json
-                         ~grammars:([ (lang, json) ] @ include_grammars)
-                         ()
-                      )
+                    Ochre.load ([ (lang, json) ] @ include_grammars)
                 | None ->
                     Error
                       (Printf.sprintf

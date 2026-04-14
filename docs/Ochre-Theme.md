@@ -1,12 +1,16 @@
 
 # Module `Ochre.Theme`
 
+
+### color
+
 ```ocaml
 type color = string
 ```
-color
-
 Hex color string (e.g. `"#569cd6"`).
+
+
+### font\_style
 
 ```ocaml
 type font_style = Token.font_style = 
@@ -15,7 +19,8 @@ type font_style = Token.font_style =
   | Underline
   | Strikethrough (* Font style variants. *)
 ```
-font\_style
+
+### token\_color\_settings
 
 ```ocaml
 type token_color_settings = {
@@ -24,9 +29,10 @@ type token_color_settings = {
   font_style : font_style list option;
 }
 ```
-token\_color\_settings
-
 Color and style settings resolved from a theme rule.
+
+
+### token\_color\_rule
 
 ```ocaml
 type token_color_rule = {
@@ -35,9 +41,10 @@ type token_color_rule = {
   settings : token_color_settings;
 }
 ```
-token\_color\_rule
-
 A rule mapping TextMate scopes to visual settings. Each rule contains a list of scope selectors and the styling to apply when a token matches one of those selectors.
+
+
+### theme
 
 ```ocaml
 type theme = {
@@ -48,34 +55,22 @@ type theme = {
   token_colors : token_color_rule list;
 }
 ```
-theme
-
 A loaded theme with default foreground/background colors and a list of token coloring rules.
 
 ```ocaml
-val load : string -> theme
+val load : ?base_dir:string -> string -> (theme, string) Stdlib.result
 ```
 load
 
-Load a theme from a VS Code theme JSON file.
+Load a theme from a raw JSON string.
 
-Falls back to the filename as the theme name when none is specified in the JSON. Raises an exception if the file contains invalid JSON.
+When `~base_dir` is provided, `"include"` paths in the JSON are resolved relative to that directory (same as [`load_from_file`](./#val-load_from_file) does with the file's parent directory). When omitted, `"include"` fields are silently ignored.
 
-```ocaml
-  let theme = Ochre.Theme.load "/path/to/theme.json"
-```
-```ocaml
-val load_from_string : ?base_dir:string -> string -> theme
-```
-load\_from\_string
-
-Parse a theme from a raw JSON string.
-
-When `~base_dir` is provided, `"include"` paths in the JSON are resolved relative to that directory (same as [`load`](./#val-load) does with the file's parent directory). When omitted, `"include"` fields are silently ignored.
+Returns `Error msg` when the JSON is malformed.
 
 ```ocaml
   let theme =
-    Ochre.Theme.load_from_string
+    Ochre.Theme.load
       {|{
     "name": "my-theme",
     "colors": {
@@ -89,6 +84,42 @@ When `~base_dir` is provided, `"include"` paths in the JSON are resolved relativ
   }|}
 ```
 ```ocaml
+val load_exn : ?base_dir:string -> string -> theme
+```
+load\_exn
+
+Like [`load`](./#val-load) but raises on failure.
+
+```ocaml
+val load_from_file : string -> (theme, string) Stdlib.result
+```
+load\_from\_file
+
+Load a theme from a VS Code theme JSON file.
+
+Falls back to the filename as the theme name when none is specified in the JSON. Returns `Error msg` when the file cannot be read or contains invalid JSON.
+
+```ocaml
+  match Ochre.Theme.load_from_file "/path/to/theme.json" with
+  | Ok theme ->
+      theme
+  | Error msg ->
+      failwith msg
+```
+```ocaml
+val load_from_file_exn : string -> theme
+```
+load\_from\_file\_exn
+
+Like [`load_from_file`](./#val-load_from_file) but raises on failure.
+
+```ocaml
+  let theme = Ochre.Theme.load_from_file_exn "/path/to/theme.json"
+```
+
+### make
+
+```ocaml
 val make : 
   name:string ->
   ?colors:(string * color) list ->
@@ -96,8 +127,6 @@ val make :
   unit ->
   theme
 ```
-make
-
 Make a new TextMate-style theme from ordered token rules.
 
 ```ocaml
@@ -115,6 +144,9 @@ Make a new TextMate-style theme from ordered token rules.
         ]
       ()
 ```
+
+### rule
+
 ```ocaml
 val rule : 
   ?name:string ->
@@ -125,22 +157,22 @@ val rule :
   unit ->
   token_color_rule
 ```
-rule
-
 Construct a token color rule.
+
+
+### available\_names
 
 ```ocaml
 val available_names : string list
 ```
-available\_names
-
 Names of all built-in themes.
+
+
+### find
 
 ```ocaml
 val find : string -> theme option
 ```
-find
-
 Look up a built-in theme by name. Returns `None` when the name is not recognised.
 
 

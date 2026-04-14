@@ -1,6 +1,9 @@
 
 # Module `Ochre.Html_options`
 
+
+### style\_mode
+
 ```ocaml
 type style_mode = 
   | Inline_styles (* Emit style="color:..." on each <span>. Default. *)
@@ -8,18 +11,20 @@ type style_mode =
     class_prefix : string;
   } (* Replace inline styles with deterministic CSS class names. *)
 ```
-style\_mode
-
 How token colors are expressed in the output.
+
+
+### default\_color
 
 ```ocaml
 type default_color = 
   | Default_color (* Emit inline color: and background-color:. Default. *)
   | No_default_color (* Suppress inline colors. All colors from CSS custom properties. *)
 ```
-default\_color
-
 Whether the primary theme's colors are emitted inline.
+
+
+### t
 
 ```ocaml
 type t = {
@@ -32,16 +37,18 @@ type t = {
   scopes_as_data_attrs : bool;
 }
 ```
-t
-
 The full set of HTML rendering options.
+
+
+### default
 
 ```ocaml
 val default : t
 ```
-default
-
 Default options (backward compatible with legacy output).
+
+
+### make
 
 ```ocaml
 val make : 
@@ -55,8 +62,6 @@ val make :
   unit ->
   t
 ```
-make
-
 Construct options with defaults for any unspecified fields.
 
 ```ocaml

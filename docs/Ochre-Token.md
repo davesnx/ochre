@@ -1,12 +1,16 @@
 
 # Module `Ochre.Token`
 
+
+### color
+
 ```ocaml
 type color = string
 ```
-color
-
 Hex color string (e.g. `"#ff0000"`).
+
+
+### font\_style
 
 ```ocaml
 type font_style = 
@@ -15,7 +19,8 @@ type font_style =
   | Underline
   | Strikethrough (* Font style that can be applied to a token. *)
 ```
-font\_style
+
+### decoration\_properties
 
 ```ocaml
 type decoration_properties = {
@@ -24,9 +29,10 @@ type decoration_properties = {
   data : (string * string) list;
 }
 ```
-decoration\_properties
-
 Format-agnostic properties attached by a decoration. Renderers map them to HTML attributes, ANSI codes, LaTeX commands, or SVG attributes as appropriate.
+
+
+### styled\_token
 
 ```ocaml
 type styled_token = {
@@ -38,20 +44,20 @@ type styled_token = {
   decoration : decoration_properties option;
 }
 ```
-styled\_token
-
 A token with resolved styling from a theme. Each token represents a fragment of source code with its associated colors and font styles, as determined by TextMate scope matching. When a decoration targets this token, the `decoration` field carries the associated properties.
+
+
+### line
 
 ```ocaml
 type line = styled_token list
 ```
-line
-
 A line of styled tokens.
+
+
+### highlighted\_code
 
 ```ocaml
 type highlighted_code = line list
 ```
-highlighted\_code
-
 Complete highlighted code: a list of lines, each containing styled tokens.

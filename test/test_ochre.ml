@@ -15,7 +15,7 @@ let highlight () =
   let oc = open_out path in
   output_string oc grammar_json;
   close_out oc;
-  let hl = Ochre.create ~grammars:[ path ] () in
+  let hl = Ochre.load_from_files_exn [ path ] in
   Sys.remove path;
   hl
 
@@ -40,7 +40,7 @@ let test_theme_loading () =
     }
   |}
   in
-  let theme = Ochre.Theme.load_from_string theme_json in
+  let theme = Ochre.Theme.load_exn theme_json in
   Alcotest.(check string) "theme name" "test-theme" theme.name;
   Alcotest.(check string) "theme fg" "#000000" theme.fg;
   Alcotest.(check string) "theme bg" "#ffffff" theme.bg;
@@ -67,7 +67,7 @@ let test_theme_make_raw () =
 let test_scope_matching () =
   let hl = highlight () in
   let theme =
-    Ochre.Theme.load_from_string
+    Ochre.Theme.load_exn
       {|{
       "name": "test",
       "colors": { "editor.foreground": "#d4d4d4", "editor.background": "#1e1e1e" },
@@ -87,7 +87,7 @@ let test_scope_matching () =
 let test_scope_property_merge () =
   let hl = highlight () in
   let theme =
-    Ochre.Theme.load_from_string
+    Ochre.Theme.load_exn
       {|{
       "name": "merge-test",
       "colors": { "editor.foreground": "#d4d4d4", "editor.background": "#1e1e1e" },
@@ -124,13 +124,9 @@ let test_capture_arrays_in_grammar () =
     ]
   }|}
   in
-  let hl =
-    Ochre.create_from_json
-      ~grammars:[ ("capture-array", grammar_with_capture_array) ]
-      ()
-  in
+  let hl = Ochre.load_exn [ ("capture-array", grammar_with_capture_array) ] in
   let theme =
-    Ochre.Theme.load_from_string
+    Ochre.Theme.load_exn
       {|{
       "name": "test",
       "colors": {
@@ -146,7 +142,7 @@ let test_capture_arrays_in_grammar () =
 let test_transform_empty_passthrough () =
   let hl = highlight () in
   let theme =
-    Ochre.Theme.load_from_string
+    Ochre.Theme.load_exn
       {|{
       "name": "test",
       "colors": { "editor.foreground": "#d4d4d4", "editor.background": "#1e1e1e" },
@@ -615,7 +611,7 @@ let test_decoration_multiline () =
 let test_decoration_with_highlighter () =
   let hl = highlight () in
   let theme =
-    Ochre.Theme.load_from_string
+    Ochre.Theme.load_exn
       {|{
       "name": "test",
       "colors": { "editor.foreground": "#d4d4d4", "editor.background": "#1e1e1e" },
@@ -845,7 +841,7 @@ let test_notation_word_highlight_no_match () =
 let test_notation_highlight_with_highlighter () =
   let hl = highlight () in
   let theme =
-    Ochre.Theme.load_from_string
+    Ochre.Theme.load_exn
       {|{
       "name": "test",
       "colors": { "editor.foreground": "#d4d4d4", "editor.background": "#1e1e1e" },

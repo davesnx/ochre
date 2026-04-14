@@ -39,7 +39,7 @@ let print_theme_summary (theme : Ochre.Theme.theme) =
   Printf.printf "rules: %d\n" (List.length theme.token_colors)
 
 let test_load () =
-  Ochre.Theme.load_from_string
+  Ochre.Theme.load_exn
     {|{
     "name": "test-theme",
     "colors": {
@@ -65,10 +65,10 @@ let test_load () =
   }|}
   |> print_theme
 
-let test_defaults () = Ochre.Theme.load_from_string {|{}|} |> print_theme
+let test_defaults () = Ochre.Theme.load_exn {|{}|} |> print_theme
 
 let test_multiple_styles () =
-  Ochre.Theme.load_from_string
+  Ochre.Theme.load_exn
     {|{
     "name": "multi-style",
     "tokenColors": [
@@ -83,7 +83,7 @@ let test_multiple_styles () =
   |> print_theme
 
 let test_no_settings () =
-  Ochre.Theme.load_from_string
+  Ochre.Theme.load_exn
     {|{
     "name": "no-settings",
     "tokenColors": [
@@ -93,7 +93,7 @@ let test_no_settings () =
   |> print_theme
 
 let test_array_scope () =
-  Ochre.Theme.load_from_string
+  Ochre.Theme.load_exn
     {|{
     "name": "array-scope",
     "tokenColors": [
@@ -106,7 +106,7 @@ let test_array_scope () =
   |> print_theme
 
 let test_alt_keys () =
-  Ochre.Theme.load_from_string
+  Ochre.Theme.load_exn
     {|{
     "name": "alt-keys",
     "fg": "#aabbcc",

@@ -37,13 +37,29 @@ let configure_oniguruma_limits () =
   Oniguruma.set_retry_limit_in_match 1_000_000;
   Oniguruma.set_match_stack_limit_size 100_000
 
-let create ~grammars () =
+let load_exn grammars =
   configure_oniguruma_limits ();
-  { grammar_loader = Grammar_loader.create ~grammars () }
+  { grammar_loader = Grammar_loader.load_exn grammars }
 
-let create_from_json ~grammars () =
+let load grammars =
   configure_oniguruma_limits ();
-  { grammar_loader = Grammar_loader.create_from_json ~grammars () }
+  match Grammar_loader.load grammars with
+  | Ok loader ->
+      Ok { grammar_loader = loader }
+  | Error _ as err ->
+      err
+
+let load_from_files_exn grammars =
+  configure_oniguruma_limits ();
+  { grammar_loader = Grammar_loader.load_from_files_exn grammars }
+
+let load_from_files grammars =
+  configure_oniguruma_limits ();
+  match Grammar_loader.load_from_files grammars with
+  | Ok loader ->
+      Ok { grammar_loader = loader }
+  | Error _ as err ->
+      err
 
 let tokenize_with_grammar tm_collection grammar source =
   let lines = String.split_on_char '\n' source in

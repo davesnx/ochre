@@ -6,15 +6,15 @@ Syntax highlighter using TextMate grammars and themes.
 Ochre turns source code into highlighted output using TextMate grammars (the same tokenizer that powers VS Code) and TextMate/VS Code themes. It supports HTML, ANSI terminal colors, LaTeX, and SVG output formats.
 
 ```ocaml
-  let highlighter = Ochre.create_exn [ ("ocaml", ocaml_grammar_json) ] in
+  let highlighter = Ochre.load_exn [ ("ocaml", ocaml_grammar_json) ] in
   let html =
     Ochre.to_html highlighter ~theme:Ochre.Theme.nord ~lang:"ocaml"
       "let x = 42"
 ```
 
-## Create a highlighter
+## Highlighter
 
-The highlighter holds loaded grammars and drives tokenization. Create one with [`create`](./#val-create) or [`create_from_files`](./#val-create_from_files), then pass it to any backend function.
+The highlighter holds loaded grammars and drives tokenization. Load one with [`load`](./#val-load) or [`load_from_files`](./#val-load_from_files), then pass it to any backend function.
 
 ```ocaml
 type t
@@ -22,41 +22,39 @@ type t
 Highlighter instance. Holds loaded grammars and tokenization state.
 
 ```ocaml
-val create : (string * string) list -> (t, string) Stdlib.result
+val load : (string * string) list -> (t, string) Stdlib.result
 ```
-create
+load
 
-Create a highlighter from grammar JSON strings.
+Load a highlighter from grammar JSON strings.
 
 Each pair is `(lang_id, json_content)` where `lang_id` is the language identifier and `json_content` is the raw TextMate grammar JSON.
 
 Returns `Error msg` when a grammar fails to parse.
 
 ```ocaml
-  match Ochre.create [ ("ocaml", Tm_grammar_ocaml.json) ] with
+  match Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ] with
   | Ok hl ->
       Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
   | Error msg ->
       failwith msg
 ```
 ```ocaml
-val create_exn : (string * string) list -> t
+val load_exn : (string * string) list -> t
 ```
-create\_exn
+load\_exn
 
-Create a highlighter from grammar JSON strings and raise on failure.
-
-Like [`create`](./#val-create) but raises on failure.
+Like [`load`](./#val-load) but raises on failure.
 
 ```ocaml
-  let hl = Ochre.create_exn [ ("ocaml", Tm_grammar_ocaml.json) ]
+  let hl = Ochre.load_exn [ ("ocaml", Tm_grammar_ocaml.json) ]
 ```
 ```ocaml
-val create_from_files : string list -> (t, string) Stdlib.result
+val load_from_files : string list -> (t, string) Stdlib.result
 ```
-create\_from\_files
+load\_from\_files
 
-Create a new highlighter from grammar files on disk.
+Load a highlighter from grammar files on disk.
 
 Each grammar is a path to a `.tmLanguage.json` file. The language identifier is derived from the filename (e.g. `"ocaml.tmLanguage.json"` registers as `"ocaml"`).
 
@@ -64,7 +62,7 @@ Returns `Error msg` when a file cannot be read or a grammar fails to parse.
 
 ```ocaml
   match
-    Ochre.create_from_files [ "/usr/share/grammars/ocaml.tmLanguage.json" ]
+    Ochre.load_from_files [ "/usr/share/grammars/ocaml.tmLanguage.json" ]
   with
   | Ok hl ->
       Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
@@ -72,15 +70,15 @@ Returns `Error msg` when a file cannot be read or a grammar fails to parse.
       failwith msg
 ```
 ```ocaml
-val create_from_files_exn : string list -> t
+val load_from_files_exn : string list -> t
 ```
-create\_from\_files\_exn
+load\_from\_files\_exn
 
-Like [`create_from_files`](./#val-create_from_files) but raises on failure.
+Like [`load_from_files`](./#val-load_from_files) but raises on failure.
 
 ```ocaml
   let hl =
-    Ochre.create_from_files_exn
+    Ochre.load_from_files_exn
       [ "/usr/share/grammars/ocaml.tmLanguage.json" ]
 ```
 
@@ -110,6 +108,9 @@ Ochre can render highlighted code to several output formats. All backends share 
 - **SVG** — Standalone `<svg>` elements with monospace `<text>` and per-token `<tspan>` styling.
 - **Tokens** — Structured token output for full rendering control.
 - **Debug tokens** — Raw token text for debugging grammar and scope matching.
+
+### to\_tokens
+
 ```ocaml
 val to_tokens : 
   t ->
@@ -118,8 +119,6 @@ val to_tokens :
   string ->
   Token.highlighted_code
 ```
-to\_tokens
-
 Highlight source code and return structured tokens. Use this when you need full control over rendering.
 
 Raises `Failure` if the grammar for `lang` cannot be found.
@@ -140,6 +139,9 @@ Raises `Failure` if the grammar for `lang` cannot be found.
 ```ocaml
 module Html_options : sig ... end
 ```
+
+### to\_html
+
 ```ocaml
 val to_html : 
   t ->
@@ -150,8 +152,6 @@ val to_html :
   string ->
   string
 ```
-to\_html
-
 Highlight source code to HTML.
 
 Single theme
@@ -185,11 +185,12 @@ When `~theme` is omitted but `~extra_themes` is provided, the first entry become
 
 Pair with [`html_theme_css`](./#val-html_theme_css) to activate alternate themes via CSS.
 
+
+### html\_theme\_css
+
 ```ocaml
 val html_theme_css : string -> string
 ```
-html\_theme\_css
-
 `html_theme_css label` returns a CSS rule that maps base variables (`--ochre-*`) to the label-scoped variables (`--ochre-<label>-*`).
 
 Wrap this in your own selector (a media query, a `.dark` class, a `data-theme` attribute selector, etc.) to control when the theme activates.
@@ -197,6 +198,9 @@ Wrap this in your own selector (a media query, a `.dark` class, a `data-theme` a
 ```ocaml
   Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
 ```
+
+### html\_render\_theme\_css
+
 ```ocaml
 val html_render_theme_css : 
   class_prefix:string ->
@@ -204,8 +208,6 @@ val html_render_theme_css :
   Token.highlighted_code ->
   string
 ```
-html\_render\_theme\_css
-
 `html_render_theme_css ~class_prefix theme code` generates a complete CSS stylesheet for the given theme and highlighted code when using [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode. Walks all tokens to discover unique styles and maps each to a deterministic class name prefixed with `class_prefix`.
 
 ```ocaml
@@ -213,11 +215,12 @@ html\_render\_theme\_css
   let css = Ochre.html_render_theme_css ~class_prefix:"oc-" theme tokens in
   Printf.printf "<style>%s</style>" css
 ```
+
+### to\_ansi
+
 ```ocaml
 val to_ansi : t -> theme:Theme.theme -> lang:string -> string -> string
 ```
-to\_ansi
-
 Highlight source code to ANSI terminal escape sequences.
 
 Produces text with embedded 24-bit ANSI color codes for terminal display. Raises `Failure` if the grammar for `lang` cannot be found.
@@ -226,11 +229,12 @@ Produces text with embedded 24-bit ANSI color codes for terminal display. Raises
   let ansi = Ochre.to_ansi hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code in
   print_string ansi
 ```
+
+### to\_latex
+
 ```ocaml
 val to_latex : t -> theme:Theme.theme -> lang:string -> string -> string
 ```
-to\_latex
-
 Highlight source code to LaTeX with `\textcolor` commands.
 
 Produces a block wrapped in an `ochrehighlight` environment. Requires the `xcolor` and `soul` LaTeX packages. Raises `Failure` if the grammar for `lang` cannot be found.
@@ -241,11 +245,12 @@ Produces a block wrapped in an `ochrehighlight` environment. Requires the `xcolo
   in
   Printf.printf "\\begin{document}\n%s\n\\end{document}" latex
 ```
+
+### to\_svg
+
 ```ocaml
 val to_svg : t -> theme:Theme.theme -> lang:string -> string -> string
 ```
-to\_svg
-
 Highlight source code to a self-contained SVG element.
 
 Produces an `<svg>` with monospace `<text>` elements and per-token `<tspan>` styling. Suitable for embedding in documents or rendering as an image. Raises `Failure` if the grammar for `lang` cannot be found.
@@ -253,14 +258,18 @@ Produces an `<svg>` with monospace `<text>` elements and per-token `<tspan>` sty
 ```ocaml
   let svg = Ochre.to_svg hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
 ```
+
+### to\_debug\_tokens
+
 ```ocaml
 val to_debug_tokens : t -> theme:Theme.theme -> lang:string -> string -> string
 ```
-to\_debug\_tokens
-
 Highlight source code and render each token as `{text}[scope1,scope2,...]`.
 
 Useful for debugging grammar and scope matching. Raises `Failure` if the grammar for `lang` cannot be found.
+
+
+### output\_format
 
 ```ocaml
 type output_format = 
@@ -270,28 +279,32 @@ type output_format =
   | Svg
   | Tokens (* Supported output formats. Use with to_string to select a backend at runtime. *)
 ```
-output\_format
+
+### output\_formats
 
 ```ocaml
 val output_formats : (string * output_format) list
 ```
-output\_formats
-
 Mapping of format names to typed variants.
+
+
+### string\_of\_output\_format
 
 ```ocaml
 val string_of_output_format : output_format -> string
 ```
-string\_of\_output\_format
-
 Convert a format variant to its canonical lowercase name.
+
+
+### output\_format\_of\_string
 
 ```ocaml
 val output_format_of_string : string -> output_format option
 ```
-output\_format\_of\_string
-
 Parse a format name into a variant. Returns `None` for unrecognised names.
+
+
+### to\_string
 
 ```ocaml
 val to_string : 
@@ -302,8 +315,6 @@ val to_string :
   string ->
   string
 ```
-to\_string
-
 Highlight source code to one of the supported output formats.
 
 ```ocaml
@@ -313,6 +324,9 @@ Highlight source code to one of the supported output formats.
 ### Result-returning variants
 
 These wrap the corresponding exception-raising functions and return `(string, string) result` instead of raising. `Failure`, `TmLanguage.Error`, and `Oniguruma.Error` are caught and returned as `Error msg`.
+
+
+### to\_html\_result
 
 ```ocaml
 val to_html_result : 
@@ -324,9 +338,10 @@ val to_html_result :
   string ->
   (string, string) Stdlib.result
 ```
-to\_html\_result
-
 Like [`to_html`](./#val-to_html) but returns a `result` instead of raising.
+
+
+### to\_ansi\_result
 
 ```ocaml
 val to_ansi_result : 
@@ -336,9 +351,10 @@ val to_ansi_result :
   string ->
   (string, string) Stdlib.result
 ```
-to\_ansi\_result
-
 Like [`to_ansi`](./#val-to_ansi) but returns a `result` instead of raising.
+
+
+### to\_latex\_result
 
 ```ocaml
 val to_latex_result : 
@@ -348,9 +364,10 @@ val to_latex_result :
   string ->
   (string, string) Stdlib.result
 ```
-to\_latex\_result
-
 Like [`to_latex`](./#val-to_latex) but returns a `result` instead of raising.
+
+
+### to\_svg\_result
 
 ```ocaml
 val to_svg_result : 
@@ -360,8 +377,6 @@ val to_svg_result :
   string ->
   (string, string) Stdlib.result
 ```
-to\_svg\_result
-
 Like [`to_svg`](./#val-to_svg) but returns a `result` instead of raising.
 
 
@@ -406,6 +421,9 @@ These functions combine backends with optional decorations and transforms. Decor
   let transforms = [ Ochre.Transform_builtin.line_highlight [ 1 ] ] in
   Ochre.to_html_with hl ~decorations ~transforms ~theme ~lang:"ocaml" code
 ```
+
+### to\_tokens\_with
+
 ```ocaml
 val to_tokens_with : 
   t ->
@@ -416,9 +434,10 @@ val to_tokens_with :
   string ->
   Token.highlighted_code
 ```
-to\_tokens\_with
-
 Like [`to_tokens`](./#val-to_tokens) but applies decorations and transforms before returning.
+
+
+### to\_html\_with
 
 ```ocaml
 val to_html_with : 
@@ -432,9 +451,10 @@ val to_html_with :
   string ->
   string
 ```
-to\_html\_with
-
 Like [`to_html`](./#val-to_html) but applies decorations and transforms before rendering. Accepts the same `~theme` / `~extra_themes` / `~options` parameters as [`to_html`](./#val-to_html).
+
+
+### to\_ansi\_with
 
 ```ocaml
 val to_ansi_with : 
@@ -446,9 +466,10 @@ val to_ansi_with :
   string ->
   string
 ```
-to\_ansi\_with
-
 Like [`to_ansi`](./#val-to_ansi) but applies decorations and transforms before rendering.
+
+
+### to\_latex\_with
 
 ```ocaml
 val to_latex_with : 
@@ -460,9 +481,10 @@ val to_latex_with :
   string ->
   string
 ```
-to\_latex\_with
-
 Like [`to_latex`](./#val-to_latex) but applies decorations and transforms before rendering.
+
+
+### to\_svg\_with
 
 ```ocaml
 val to_svg_with : 
@@ -474,9 +496,10 @@ val to_svg_with :
   string ->
   string
 ```
-to\_svg\_with
-
 Like [`to_svg`](./#val-to_svg) but applies decorations and transforms before rendering.
+
+
+### to\_debug\_tokens\_with
 
 ```ocaml
 val to_debug_tokens_with : 
@@ -488,9 +511,10 @@ val to_debug_tokens_with :
   string ->
   string
 ```
-to\_debug\_tokens\_with
-
 Like [`to_debug_tokens`](./#val-to_debug_tokens) but applies decorations and transforms before rendering.
+
+
+### to\_string\_with
 
 ```ocaml
 val to_string_with : 
@@ -503,6 +527,4 @@ val to_string_with :
   string ->
   string
 ```
-to\_string\_with
-
 Like [`to_string`](./#val-to_string) but applies decorations and transforms before rendering.

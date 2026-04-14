@@ -8,15 +8,17 @@ let () = hello "World"
 |}
   in
 
-  let _highlighter = Ochre.create ~grammars:[] () in
+  let _highlighter = Ochre.load_from_files_exn [] in
 
   Printf.printf "Source code:\n%s\n" source_code;
   Printf.printf
     "\nNote: To highlight, you need to provide .tmLanguage.json grammar files\n";
-  Printf.printf "via ~grammars when calling Ochre.create.\n"
+  Printf.printf "when calling Ochre.load_from_files.\n"
 
 let demo_theme_loading () =
-  let theme = Ochre.Theme.load "examples/themes/simple-dark.json" in
+  let theme =
+    Ochre.Theme.load_from_file_exn "examples/themes/simple-dark.json"
+  in
   Printf.printf "Theme: %s\n" theme.name;
   Printf.printf "Foreground: %s\n" theme.fg;
   Printf.printf "Background: %s\n" theme.bg;

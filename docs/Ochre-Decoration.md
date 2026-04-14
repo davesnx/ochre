@@ -1,17 +1,21 @@
 
 # Module `Ochre.Decoration`
 
+
+### position
+
 ```ocaml
 type position = {
   line : int;
   character : int;
 }
 ```
-position
-
 0-indexed position in source code.
 
 Negative `character` values count from the end of the line: `-1` means the line end, `-2` means one character before the end, etc.
+
+
+### properties
 
 ```ocaml
 type properties = {
@@ -20,9 +24,10 @@ type properties = {
   data : (string * string) list;
 }
 ```
-properties
-
 Properties to attach to a decorated range.
+
+
+### t
 
 ```ocaml
 type t = {
@@ -31,16 +36,18 @@ type t = {
   properties : properties;
 }
 ```
-t
-
 A decoration targeting a range from `start` (inclusive) to `end_` (exclusive).
+
+
+### pos
 
 ```ocaml
 val pos : int -> int -> position
 ```
-pos
-
 `pos line character` creates a position.
+
+
+### make
 
 ```ocaml
 val make : 
@@ -52,8 +59,6 @@ val make :
   unit ->
   t
 ```
-make
-
 Create a decoration.
 
 ```ocaml
@@ -63,6 +68,9 @@ Create a decoration.
       ~end_:(Ochre.Decoration.pos 0 11)
       ()
 ```
+
+### apply
+
 ```ocaml
 val apply : 
   source:string ->
@@ -70,8 +78,6 @@ val apply :
   Token.highlighted_code ->
   Token.highlighted_code
 ```
-apply
-
 `apply ~source decorations tokens` maps decoration ranges onto tokens, splitting tokens at boundaries and attaching properties.
 
 Overlapping decorations are merged: classes are space-concatenated, styles are semicolon-concatenated, data attributes are merged (later wins).

@@ -80,9 +80,7 @@ let render_page ~highlighter ~source =
 
 let () =
   let highlighter =
-    Ochre.create_from_json
-      ~grammars:[ ("ocaml", Test_html_common.grammar_json) ]
-      ()
+    Ochre.load_exn [ ("ocaml", Test_html_common.grammar_json) ]
   in
   let source =
     "let answer = 42\n\

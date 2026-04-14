@@ -31,9 +31,9 @@ let setup () =
   let oc = open_out path in
   output_string oc grammar_json;
   close_out oc;
-  let hl = Ochre.create ~grammars:[ path ] () in
+  let hl = Ochre.load_from_files_exn [ path ] in
   Sys.remove path;
-  let theme = Ochre.Theme.load_from_string theme_json in
+  let theme = Ochre.Theme.load_exn theme_json in
   (hl, theme)
 
 let print_escaped s =
@@ -70,9 +70,9 @@ let () =
         ]
       }|}
       in
-      let hl = Ochre.create_from_json ~grammars:[ ("compound", grammar) ] () in
+      let hl = Ochre.load_exn [ ("compound", grammar) ] in
       let theme =
-        Ochre.Theme.load_from_string
+        Ochre.Theme.load_exn
           {|{
           "name": "test-theme",
           "colors": {
@@ -88,7 +88,7 @@ let () =
       print_escaped (Ochre.to_ansi hl ~theme ~lang:"compound" "x")
   | "invalid-fg-dark-bg" ->
       let theme =
-        Ochre.Theme.load_from_string
+        Ochre.Theme.load_exn
           {|{
           "name": "invalid-dark",
           "colors": {
@@ -103,7 +103,7 @@ let () =
       print_escaped (Ochre.to_ansi hl ~theme ~lang:"test" "let")
   | "invalid-fg-light-bg" ->
       let theme =
-        Ochre.Theme.load_from_string
+        Ochre.Theme.load_exn
           {|{
           "name": "invalid-light",
           "colors": {

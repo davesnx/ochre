@@ -336,23 +336,35 @@ and load_theme_data_from_path ~visited path =
 let make ~name ?(colors = []) ~token_colors () =
   finalize_theme ~name ~colors ~fg_legacy:None ~bg_legacy:None ~token_colors
 
-let load path =
+let load_from_file_exn path =
   let data = load_theme_data_from_path ~visited:[ path ] path in
   let name = Option.value data.name_opt ~default:(Filename.basename path) in
   finalize_theme ~name ~colors:data.colors ~fg_legacy:data.fg_legacy
     ~bg_legacy:data.bg_legacy ~token_colors:data.token_colors
 
-let load_from_string ?base_dir str =
+let load_from_file path =
+  try Ok (load_from_file_exn path) with
+  | Failure msg ->
+      Error msg
+  | exn ->
+      Error (Printexc.to_string exn)
+
+let load_exn ?base_dir str =
   let json = Yojson.Basic.from_string str in
-  (* Without base_dir, any "include" field in the JSON is silently ignored
-     because we have no directory to resolve relative paths against. *)
   let data = load_theme_data_from_json ?base_dir ~visited:[] json in
   let name = Option.value data.name_opt ~default:"unnamed" in
   finalize_theme ~name ~colors:data.colors ~fg_legacy:data.fg_legacy
     ~bg_legacy:data.bg_legacy ~token_colors:data.token_colors
 
+let load ?base_dir str =
+  try Ok (load_exn ?base_dir str) with
+  | Failure msg ->
+      Error msg
+  | exn ->
+      Error (Printexc.to_string exn)
+
 let load_builtin json ~name =
-  let theme = load_from_string json in
+  let theme = load_exn json in
   { theme with name }
 
 let lazy_builtin json ~name = lazy (load_builtin json ~name)

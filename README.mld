@@ -14,7 +14,7 @@ opam install ochre -y
 
 {@ocaml[
 let theme = Ochre.Theme.nord in
-let highlighter = Ochre.create_from_files_exn ["path/to/ocaml.tmLanguage.json"] in
+let highlighter = Ochre.load_from_files_exn ["path/to/ocaml.tmLanguage.json"] in
 let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" source_code
 ]}
 
@@ -32,7 +32,7 @@ Then load a grammar from OCaml and create a highlighter:
 
 {[
 let theme = Ochre.Theme.nord in
-let highlighter = Ochre.create_exn [ ("ocaml", Tm_grammars.ocaml) ] in
+let highlighter = Ochre.load_exn [ ("ocaml", Tm_grammars.ocaml) ] in
 let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" "let x = 42"
 ]}
 
@@ -51,8 +51,8 @@ All backends share the same interface: create a highlighter, pick a theme, and c
 {1 Documentation}
 
 {ul
-{- {{:docs/README.md} Library API} — [Ochre] module reference}
-{- {{:docs/cli.md} CLI reference} — command-line usage}
+{- {{:docs/README.md} Library API}}
+{- {{:docs/cli.md} Command-line reference}}
 }
 
 {1 Contribute}

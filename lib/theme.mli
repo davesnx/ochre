@@ -46,30 +46,21 @@ type theme = {
     A loaded theme with default foreground/background colors and a list of token
     coloring rules. *)
 
-val load : string -> theme
+val load : ?base_dir:string -> string -> (theme, string) result
 (** {2 load}
 
-    Load a theme from a VS Code theme JSON file.
-
-    Falls back to the filename as the theme name when none is specified in the
-    JSON. Raises an exception if the file contains invalid JSON.
-
-    {[
-      let theme = Theme.load "/path/to/theme.json"
-    ]} *)
-
-val load_from_string : ?base_dir:string -> string -> theme
-(** {2 load_from_string}
-
-    Parse a theme from a raw JSON string.
+    Load a theme from a raw JSON string.
 
     When [~base_dir] is provided, ["include"] paths in the JSON are resolved
-    relative to that directory (same as {!load} does with the file's parent
-    directory). When omitted, ["include"] fields are silently ignored.
+    relative to that directory (same as {!val-load_from_file} does with the
+    file's parent directory). When omitted, ["include"] fields are silently
+    ignored.
+
+    Returns [Error msg] when the JSON is malformed.
 
     {[
       let theme =
-        Theme.load_from_string
+        Theme.load
           {|{
         "name": "my-theme",
         "colors": {
@@ -81,6 +72,37 @@ val load_from_string : ?base_dir:string -> string -> theme
             "settings": { "foreground": "#6a9955", "fontStyle": "italic" } }
         ]
       }|}
+    ]} *)
+
+val load_exn : ?base_dir:string -> string -> theme
+(** {2 load_exn}
+
+    Like {!val-load} but raises on failure. *)
+
+val load_from_file : string -> (theme, string) result
+(** {2 load_from_file}
+
+    Load a theme from a VS Code theme JSON file.
+
+    Falls back to the filename as the theme name when none is specified in the
+    JSON. Returns [Error msg] when the file cannot be read or contains invalid
+    JSON.
+
+    {[
+      match Theme.load_from_file "/path/to/theme.json" with
+      | Ok theme ->
+          theme
+      | Error msg ->
+          failwith msg
+    ]} *)
+
+val load_from_file_exn : string -> theme
+(** {2 load_from_file_exn}
+
+    Like {!val-load_from_file} but raises on failure.
+
+    {[
+      let theme = Theme.load_from_file_exn "/path/to/theme.json"
     ]} *)
 
 val make :

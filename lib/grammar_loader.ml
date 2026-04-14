@@ -83,7 +83,27 @@ let load_grammar_from_string json_string =
   let json = Yojson.Basic.from_string json_string in
   TmLanguage.of_yojson_exn (normalize_grammar_json json)
 
-let create ~grammars () =
+let load_exn grammars =
+  let tm_collection = TmLanguage.create () in
+  let loaded =
+    List.map
+      (fun (lang_id, json_string) ->
+        let grammar = load_grammar_from_string json_string in
+        TmLanguage.add_grammar tm_collection grammar;
+        (lang_id, grammar)
+      )
+      grammars
+  in
+  { tm_collection; grammars = loaded }
+
+let load grammars =
+  try Ok (load_exn grammars) with
+  | Failure msg ->
+      Error msg
+  | exn ->
+      Error (Printexc.to_string exn)
+
+let load_from_files_exn grammars =
   let tm_collection = TmLanguage.create () in
   let loaded =
     List.map
@@ -96,18 +116,12 @@ let create ~grammars () =
   in
   { tm_collection; grammars = loaded }
 
-let create_from_json ~grammars () =
-  let tm_collection = TmLanguage.create () in
-  let loaded =
-    List.map
-      (fun (lang_id, json_string) ->
-        let grammar = load_grammar_from_string json_string in
-        TmLanguage.add_grammar tm_collection grammar;
-        (lang_id, grammar)
-      )
-      grammars
-  in
-  { tm_collection; grammars = loaded }
+let load_from_files grammars =
+  try Ok (load_from_files_exn grammars) with
+  | Failure msg ->
+      Error msg
+  | exn ->
+      Error (Printexc.to_string exn)
 
 let find_grammar t lang_id =
   match List.assoc_opt lang_id t.grammars with

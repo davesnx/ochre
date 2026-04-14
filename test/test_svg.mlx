@@ -43,12 +43,11 @@ let find_grammar name =
   | None ->
       failwith (Printf.sprintf "grammar %s not found in tm-grammars" name)
 
-let ocaml_highlighter =
-  Ochre.create_from_json ~grammars:[ find_grammar "ocaml" ] ()
+let ocaml_highlighter = Ochre.load_exn [ find_grammar "ocaml" ]
 
 let html_highlighter =
   let grammars = List.map find_grammar [ "html"; "css"; "javascript" ] in
-  Ochre.create_from_json ~grammars ()
+  Ochre.load_exn grammars
 
 let fmt0 value = Printf.sprintf "%.0f" value
 

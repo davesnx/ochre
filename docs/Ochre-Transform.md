@@ -16,6 +16,9 @@ type document = line list
 ```
 The full highlighted document (list of lines).
 
+
+### t
+
 ```ocaml
 type t = {
   name : string;
@@ -25,8 +28,6 @@ type t = {
   after_render : (document -> document) option;
 }
 ```
-t
-
 A transform with named hooks. Each hook is optional. The pipeline calls them in this order:
 
 1. `before_render` on the full document
@@ -34,6 +35,9 @@ A transform with named hooks. Each hook is optional. The pipeline calls them in 
 3. `after_line` for each line (by index)
 4. `after_render` on the full document
 When multiple transforms are provided, each hook phase folds over all transforms in list order before moving to the next phase.
+
+
+### make
 
 ```ocaml
 val make : 
@@ -44,8 +48,6 @@ val make :
   string ->
   t
 ```
-make
-
 `make name` creates a transform with the given hooks.
 
 ```ocaml
@@ -62,11 +64,12 @@ make
           line
     )
 ```
+
+### run
+
 ```ocaml
 val run : t list -> document -> document
 ```
-run
-
 `run transforms document` applies all transforms to the document.
 
 Transforms are applied in list order. An empty list returns the document unchanged.

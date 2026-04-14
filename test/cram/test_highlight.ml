@@ -31,9 +31,9 @@ let setup () =
   let oc = open_out path in
   output_string oc grammar_json;
   close_out oc;
-  let hl = Ochre.create ~grammars:[ path ] () in
+  let hl = Ochre.load_from_files_exn [ path ] in
   Sys.remove path;
-  let theme = Ochre.Theme.load_from_string theme_json in
+  let theme = Ochre.Theme.load_exn theme_json in
   (hl, theme)
 
 let style_to_string = function
