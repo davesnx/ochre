@@ -36,7 +36,10 @@
   (plist-xml
    (>= 0.5.0))
   (ezjsonm :with-test)
-  (html_of_jsx :with-test)
+   (html_of_jsx
+    (and
+     (>= 0.0.9)
+     :with-test))
   (tiny_httpd :with-test)
   (odoc
    (and

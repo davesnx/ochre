@@ -18,7 +18,7 @@ depends: [
   "dune-configurator" {>= "2.9" & build}
   "plist-xml" {>= "0.5.0"}
   "ezjsonm" {with-test}
-  "html_of_jsx" {with-test}
+  "html_of_jsx" {>= "0.0.9" & with-test}
   "tiny_httpd" {with-test}
   "odoc" {>= "3.1.0" & with-doc}
   "tm-grammars" {>= "1.1.0" & with-test}
