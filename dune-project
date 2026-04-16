@@ -36,10 +36,10 @@
   (plist-xml
    (>= 0.5.0))
   (ezjsonm :with-test)
-   (html_of_jsx
-    (and
-     (>= 0.0.9)
-     :with-test))
+  (html_of_jsx
+   (and
+    (>= 0.0.9)
+    :with-test))
   (tiny_httpd :with-test)
   (odoc
    (and
@@ -47,13 +47,13 @@
     :with-doc))
   (tm-grammars
    (and
-    (>= 1.1.0)
+    (>= 2.0.0)
     :with-test))
-    (alcotest :with-test)
-    (mlx :with-test)
-    (ocaml-lsp-server :with-dev-setup)
-    (ocamlmerlin-mlx :with-dev-setup)
-    (ocamlformat-mlx :with-dev-setup)
+  (alcotest :with-test)
+  (mlx :with-test)
+  (ocaml-lsp-server :with-dev-setup)
+  (ocamlmerlin-mlx :with-dev-setup)
+  (ocamlformat-mlx :with-dev-setup)
   (ocamlformat
    (and
     (= 0.29.0)
@@ -69,7 +69,7 @@
    (>= 4.14.0))
   ochre
   (tm-grammars
-   (>= 1.1.0))
+   (>= 2.0.0))
   (cmdliner
    (>= 1.1.0))
   (ezjsonm :with-test)
