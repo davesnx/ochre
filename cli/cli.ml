@@ -1,25 +1,7 @@
 open Cmdliner
 
-let read_file path =
-  In_channel.with_open_text path (fun ic ->
-      let rec read_lines acc =
-        match input_line ic with
-        | line ->
-            read_lines (line :: acc)
-        | exception End_of_file ->
-            List.rev acc
-      in
-      String.concat "\n" (read_lines [])
-  )
-
-let read_stdin () =
-  let rec read_lines acc =
-    try
-      let line = input_line stdin in
-      read_lines (line :: acc)
-    with End_of_file -> List.rev acc
-  in
-  String.concat "\n" (read_lines [])
+let read_file path = In_channel.with_open_bin path In_channel.input_all
+let read_stdin () = In_channel.input_all stdin
 
 let stdin_has_data () = not (Unix.isatty Unix.stdin)
 

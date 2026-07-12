@@ -271,10 +271,6 @@ let dedupe_preserving_order items =
 let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
   let has_extras = extra_themes <> [] in
   let prefix = options.css_variable_prefix in
-  let extras_codes =
-    List.map (fun (label, _theme, tokens) -> (label, tokens)) extra_themes
-  in
-  (* Create class registry if using CSS classes mode *)
   let registry =
     match options.style_mode with
     | Html_options.Css_classes { class_prefix } ->
@@ -289,9 +285,10 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
     | Html_options.No_default_color ->
         false
   in
-  let emit_default_token_styles = emit_default in
   let extras_arrays =
-    List.map (fun (label, codes) -> (label, Array.of_list codes)) extras_codes
+    List.map
+      (fun (label, _theme, tokens) -> (label, Array.of_list tokens))
+      extra_themes
   in
   let lines =
     List.mapi
@@ -300,8 +297,7 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
           List.map (fun (label, arr) -> (label, Array.get arr i)) extras_arrays
         in
         let content =
-          render_line ~options ~registry ~extras_line
-            ~emit_default:emit_default_token_styles line
+          render_line ~options ~registry ~extras_line ~emit_default line
         in
         if options.line_numbers then
           Printf.sprintf "<span class=\"line\" data-line=\"%d\">%s</span>"
@@ -311,8 +307,7 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
       )
       code
   in
-  let code_content = String.concat "\n" lines in
-  (* Build <pre> classes *)
+  let code_content = String.concat "" lines in
   let pre_classes =
     let classes =
       [ "ochre" ]
@@ -334,11 +329,6 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
     dedupe_preserving_order classes
   in
   let pre_class_attr = String.concat " " pre_classes in
-  (* Build <code> class *)
-  let code_class_attr =
-    match options.code_class with Some c -> Some c | None -> None
-  in
-  (* Build <pre> style *)
   let pre_style_parts =
     ( if emit_default then
         [
@@ -372,7 +362,7 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
       ""
   in
   let code_attrs =
-    match code_class_attr with
+    match options.code_class with
     | Some c ->
         Printf.sprintf " class=\"%s\"" c
     | None ->
@@ -402,8 +392,6 @@ let theme_css label =
     base_fg themed_fg base_bg themed_prefix base_font_style themed_prefix
     base_font_weight themed_prefix base_text_decoration themed_prefix
 
-(** Generate a CSS stylesheet from a class registry (for Css_classes mode).
-    Returns a string of CSS rules mapping each class to its style properties. *)
 let collect_classes registry =
   let buf = Buffer.create 256 in
   List.iter
@@ -413,11 +401,8 @@ let collect_classes registry =
     (List.rev registry.map);
   Buffer.contents buf
 
-(** Generate a complete CSS stylesheet for a theme (for class-based mode). Maps
-    each unique token style to a deterministic class name. *)
 let render_theme_css ~class_prefix (theme : Theme.theme) code =
   let reg = create_registry class_prefix in
-  (* Walk all tokens to register their styles *)
   List.iter
     (fun line ->
       List.iter
@@ -430,7 +415,6 @@ let render_theme_css ~class_prefix (theme : Theme.theme) code =
         line
     )
     code;
-  (* Add the pre/code base styles *)
   let buf = Buffer.create 512 in
   Buffer.add_string buf
     (Printf.sprintf ".ochre { background-color:%s; color:%s }\n" theme.bg

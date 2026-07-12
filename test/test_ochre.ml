@@ -46,6 +46,20 @@ let test_theme_loading () =
   Alcotest.(check string) "theme bg" "#ffffff" theme.bg;
   Alcotest.(check int) "token_colors length" 1 (List.length theme.token_colors)
 
+let test_source_text_is_preserved () =
+  let highlighter = highlight () in
+  let rendered_source source =
+    Ochre.to_tokens highlighter ~theme:Ochre.Theme.dark ~lang:"test" source
+    |> List.concat
+    |> List.map (fun (token : Ochre.Token.styled_token) -> token.text)
+    |> String.concat ""
+  in
+  List.iter
+    (fun source ->
+      Alcotest.(check string) "source text" source (rendered_source source)
+    )
+    [ ""; "let x = 1"; "let x = 1\n"; "let x = 1\nlet y = 2" ]
+
 let test_theme_make_raw () =
   let theme =
     Ochre.Theme.make ~name:"raw-theme"
@@ -907,6 +921,12 @@ let () =
         [
           test_case "Load theme from string" `Quick test_theme_loading;
           test_case "Make raw theme" `Quick test_theme_make_raw;
+        ]
+      );
+      ( "source",
+        [
+          test_case "Preserves source text and line endings" `Quick
+            test_source_text_is_preserved;
         ]
       );
       ( "scope",

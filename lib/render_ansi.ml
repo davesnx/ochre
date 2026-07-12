@@ -57,4 +57,4 @@ let render_line ~theme_bg (line : Token.line) =
 
 let render (theme : Theme.theme) (code : Token.highlighted_code) =
   let lines = List.map (render_line ~theme_bg:theme.bg) code in
-  String.concat "\n" lines
+  String.concat "" lines

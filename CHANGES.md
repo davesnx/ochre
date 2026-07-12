@@ -1,3 +1,8 @@
+## Unreleased
+
+- Preserve source line endings across tokenization, CLI input, and rendered output.
+- Reject multi-theme transforms that produce incompatible token structures.
+
 ## 1.0.0
 
 - Initial release of ochre, a syntax highlighter inspired by Shiki, using TextMate grammars and themes to produce accurate, beautiful syntax highlighting. It supports HTML output with inline styles, ANSI terminal colors, and raw token output

@@ -62,14 +62,35 @@ let load_from_files grammars =
       err
 
 let tokenize_with_grammar tm_collection grammar source =
-  let lines = String.split_on_char '\n' source in
+  let lines =
+    let parts = String.split_on_char '\n' source in
+    let ends_with_newline = String.ends_with ~suffix:"\n" source in
+    let parts =
+      if ends_with_newline then
+        List.rev parts |> List.tl |> List.rev
+      else
+        parts
+    in
+    match parts with
+    | [ "" ] when source = "" ->
+        []
+    | _ ->
+        let last_index = List.length parts - 1 in
+        List.mapi
+          (fun index line ->
+            if index < last_index || ends_with_newline then
+              line ^ "\n"
+            else
+              line
+          )
+          parts
+  in
   let stack = ref TmLanguage.empty in
   let tokenized_lines =
     List.map
       (fun line ->
-        let line_with_newline = line ^ "\n" in
         let tokens, new_stack =
-          TmLanguage.tokenize_exn tm_collection grammar !stack line_with_newline
+          TmLanguage.tokenize_exn tm_collection grammar !stack line
         in
         stack := new_stack;
         let rec extract_tokens prev_end = function
@@ -78,7 +99,7 @@ let tokenize_with_grammar tm_collection grammar source =
           | tok :: rest ->
               let start = prev_end in
               let ending = TmLanguage.ending tok in
-              let text = String.sub line_with_newline start (ending - start) in
+              let text = String.sub line start (ending - start) in
               let scopes = TmLanguage.scopes tok in
               (text, scopes) :: extract_tokens ending rest
         in
@@ -169,6 +190,23 @@ let to_html t ?(decorations = []) ?(transforms = []) ?options ?theme
           (fun (label, theme) -> (label, theme, apply_pipeline theme))
           extras
       in
+      let same_shape =
+        List.equal
+          (List.equal
+             (fun
+               (left_token : Token.styled_token)
+               (right_token : Token.styled_token)
+             -> left_token.text = right_token.text
+           )
+          )
+      in
+      if
+        List.exists
+          (fun (_, _, code) -> not (same_shape default_code code))
+          themed_extras
+      then
+        invalid_arg
+          "Ochre.to_html: multi-theme transforms must preserve token structure";
       Render_html.render ?options default_theme ~extra_themes:themed_extras
         default_code
 
