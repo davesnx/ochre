@@ -1,0 +1,83 @@
+line 1:
+  "(*"  comment.block.ocaml, source.ocaml
+  " fibonacci "  comment.block.ocaml, source.ocaml
+  "*)"  comment.block.ocaml, comment.block.ocaml, source.ocaml
+  "\n"  source.ocaml
+line 2:
+  "let"  keyword.ocaml, source.ocaml
+  " "  source.ocaml
+  "rec "  keyword.ocaml, source.ocaml
+  "fib"  entity.name.function.binding.ocaml, source.ocaml
+  " "  source.ocaml
+  "n"  source.ocaml, source.ocaml
+  " "  source.ocaml
+  "="  keyword.operator.ocaml, source.ocaml
+  "\n"  source.ocaml
+line 3:
+  "  "  source.ocaml
+  "match"  keyword.other.ocaml, source.ocaml
+  " "  source.ocaml
+  "n"  source.ocaml, source.ocaml
+  " "  source.ocaml
+  "with"  keyword.other.ocaml, source.ocaml
+  "\n"  source.ocaml
+line 4:
+  "  "  source.ocaml
+  "|"  keyword.other.ocaml, source.ocaml
+  " "  source.ocaml
+  "0"  constant.numeric.decimal.integer.ocaml, source.ocaml
+  " "  source.ocaml
+  "|"  keyword.other.ocaml, source.ocaml
+  " "  source.ocaml
+  "1"  constant.numeric.decimal.integer.ocaml, source.ocaml
+  " "  source.ocaml
+  "->"  keyword.operator.ocaml, source.ocaml
+  " "  source.ocaml
+  "n"  source.ocaml, source.ocaml
+  "\n"  source.ocaml
+line 5:
+  "  "  source.ocaml
+  "|"  keyword.other.ocaml, source.ocaml
+  " "  source.ocaml
+  "n"  source.ocaml, source.ocaml
+  " "  source.ocaml
+  "->"  keyword.operator.ocaml, source.ocaml
+  " "  source.ocaml
+  "fib"  source.ocaml, source.ocaml
+  " "  source.ocaml
+  "("  source.ocaml
+  "n"  source.ocaml, source.ocaml
+  " "  source.ocaml
+  "-"  keyword.operator.ocaml, source.ocaml
+  " "  source.ocaml
+  "1"  constant.numeric.decimal.integer.ocaml, source.ocaml
+  ")"  source.ocaml
+  " "  source.ocaml
+  "+"  keyword.operator.ocaml, source.ocaml
+  " "  source.ocaml
+  "fib"  source.ocaml, source.ocaml
+  " "  source.ocaml
+  "("  source.ocaml
+  "n"  source.ocaml, source.ocaml
+  " "  source.ocaml
+  "-"  keyword.operator.ocaml, source.ocaml
+  " "  source.ocaml
+  "2"  constant.numeric.decimal.integer.ocaml, source.ocaml
+  ")"  source.ocaml
+  "\n"  source.ocaml
+line 6:
+  "\n"  source.ocaml
+line 7:
+  "let"  keyword.other.ocaml, source.ocaml
+  " "  source.ocaml
+  "()"  constant.language.unit.ocaml, source.ocaml
+  " "  source.ocaml
+  "="  keyword.operator.ocaml, source.ocaml
+  " "  source.ocaml
+  "print_int"  source.ocaml, source.ocaml
+  " "  source.ocaml
+  "("  source.ocaml
+  "fib"  source.ocaml, source.ocaml
+  " "  source.ocaml
+  "10"  constant.numeric.decimal.integer.ocaml, source.ocaml
+  ")"  source.ocaml

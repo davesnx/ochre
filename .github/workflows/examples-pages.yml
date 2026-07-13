@@ -6,9 +6,17 @@ on:
     branches:
       - main
     paths:
+      - lib/**
+      - cli/**
+      - docs/**
+      - README.mld
+      - dune-project
       - test/html-preview.html
+      - test/html-dual-theme-preview.html
       - test/latex-preview.tex
       - test/svg-preview.svg
+      - test/ansi-preview.txt
+      - test/tokens-preview.txt
       - .github/workflows/examples-pages.yml
 
 permissions:
@@ -32,8 +40,24 @@ jobs:
         with:
           enablement: true
 
-      - name: Install LaTeX packages
-        run: sudo apt-get update && sudo apt-get install -y texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended
+      - name: Use OCaml
+        uses: ocaml/setup-ocaml@v3.4.5
+        with:
+          ocaml-compiler: 5.4.0
+          dune-cache: true
+          opam-disable-sandboxing: true
+
+      - name: Pin dependencies
+        run: make pin
+
+      - name: Install opam deps
+        run: make install
+
+      - name: Build API documentation
+        run: opam exec -- dune build @doc
+
+      - name: Install LaTeX packages and aha
+        run: sudo apt-get update && sudo apt-get install -y texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended aha
 
       - name: Build LaTeX PDF
         run: |
@@ -41,8 +65,13 @@ jobs:
           cp test/latex-preview.tex _site/examples/latex-preview.tex
           pdflatex -interaction=nonstopmode -halt-on-error -output-directory _site/examples _site/examples/latex-preview.tex
 
-      - name: Copy HTML and SVG previews
-        run: cp test/html-preview.html test/svg-preview.svg _site/examples/
+      - name: Copy previews
+        run: |
+          cp test/html-preview.html test/html-dual-theme-preview.html test/svg-preview.svg test/tokens-preview.txt _site/examples/
+          aha --black --title "ochre ANSI preview" < test/ansi-preview.txt > _site/examples/ansi-preview.html
+
+      - name: Copy API documentation
+        run: cp -r _build/default/_doc/_html _site/odoc
 
       - name: Create examples index page
         run: |
@@ -78,6 +107,10 @@ jobs:
                 margin: 0 0 8px;
                 font-size: 1.4rem;
               }
+              h2 {
+                margin: 16px 0 8px;
+                font-size: 1rem;
+              }
               p {
                 margin: 0 0 16px;
                 line-height: 1.5;
@@ -95,12 +128,21 @@ jobs:
           </head>
           <body>
             <main>
-              <h1>ochre rendered examples</h1>
-              <p>GitHub Pages host for preview files that GitHub does not render inline from repository links.</p>
+              <h1>ochre</h1>
+              <p>Syntax highlighter for OCaml using TextMate grammars and themes.</p>
+              <h2>Documentation</h2>
+              <ul>
+                <li><a href="odoc/ochre/Ochre/index.html">Library API (odoc)</a></li>
+                <li><a href="odoc/ochre-cli/index.html">CLI reference</a></li>
+              </ul>
+              <h2>Rendered examples</h2>
               <ul>
                 <li><a href="examples/html-preview.html">HTML preview</a></li>
+                <li><a href="examples/html-dual-theme-preview.html">Dual-theme HTML preview</a></li>
+                <li><a href="examples/ansi-preview.html">ANSI terminal preview</a></li>
                 <li><a href="examples/latex-preview.pdf">LaTeX PDF preview</a> (<a href="examples/latex-preview.tex">source</a>)</li>
                 <li><a href="examples/svg-preview.svg">SVG preview</a></li>
+                <li><a href="examples/tokens-preview.txt">Tokens output</a></li>
               </ul>
             </main>
           </body>
