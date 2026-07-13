@@ -308,15 +308,51 @@ let merge_loaded parent child =
     token_colors = parent.token_colors @ child.token_colors;
   }
 
+(* Lexical normalization so that cycle detection compares equal paths even when
+   includes are written with "." or ".." segments (e.g. "./a.json"). *)
+let normalize_path path =
+  let absolute = not (Filename.is_relative path) in
+  let resolved =
+    List.fold_left
+      (fun acc segment ->
+        match segment with
+        | "" | "." ->
+            acc
+        | ".." -> (
+            match acc with
+            | head :: rest when head <> ".." ->
+                rest
+            | _ ->
+                if absolute then
+                  acc
+                else
+                  ".." :: acc
+          )
+        | segment ->
+            segment :: acc
+      )
+      []
+      (String.split_on_char '/' path)
+  in
+  let body = String.concat "/" (List.rev resolved) in
+  if absolute then
+    "/" ^ body
+  else if body = "" then
+    "."
+  else
+    body
+
 let rec load_theme_data_from_json ?base_dir ~visited json =
   let local, include_path = parse_theme_fields ?base_dir json in
   match (include_path, base_dir) with
   | Some include_path, Some dir ->
       let resolved =
-        if Filename.is_relative include_path then
-          Filename.concat dir include_path
-        else
-          include_path
+        normalize_path
+          ( if Filename.is_relative include_path then
+              Filename.concat dir include_path
+            else
+              include_path
+          )
       in
       if List.mem resolved visited then
         failwith ("Theme include cycle detected at: " ^ resolved)
@@ -337,7 +373,7 @@ let make ~name ?(colors = []) ~token_colors () =
   finalize_theme ~name ~colors ~fg_legacy:None ~bg_legacy:None ~token_colors
 
 let load_from_file_exn path =
-  let data = load_theme_data_from_path ~visited:[ path ] path in
+  let data = load_theme_data_from_path ~visited:[ normalize_path path ] path in
   let name = Option.value data.name_opt ~default:(Filename.basename path) in
   finalize_theme ~name ~colors:data.colors ~fg_legacy:data.fg_legacy
     ~bg_legacy:data.bg_legacy ~token_colors:data.token_colors

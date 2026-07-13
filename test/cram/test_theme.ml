@@ -132,6 +132,14 @@ let test_builtin_alias name =
 
 let test_available () = List.iter print_endline Ochre.Theme.available_names
 
+let test_load_file path =
+  match Ochre.Theme.load_from_file path with
+  | Ok theme ->
+      print_theme theme
+  | Error msg ->
+      Printf.printf "error: %s\n" msg;
+      exit 1
+
 let () =
   match Sys.argv.(1) with
   | "load" ->
@@ -156,6 +164,8 @@ let () =
       test_builtin_alias "dark"
   | "available" ->
       test_available ()
+  | "load-file" ->
+      test_load_file Sys.argv.(2)
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1
