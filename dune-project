@@ -2,12 +2,14 @@
 
 (name ochre)
 
-(version 1.0.0)
+(version 1.1.0)
 
 (generate_opam_files true)
 
 (source
  (github davesnx/ochre))
+
+(documentation "https://davesnx.github.io/ochre/odoc/")
 
 (authors "David Sancho")
 
@@ -19,7 +21,7 @@
  (name ochre)
  (synopsis "Syntax highlighter using TextMate grammars and themes")
  (description
-  "ochre is a syntax highlighter inspired by Shiki, using TextMate grammars and themes to produce accurate, beautiful syntax highlighting. It supports HTML output with inline styles, ANSI terminal colors, and raw token output.")
+  "ochre is a syntax highlighter inspired by Shiki, using TextMate grammars and themes. It supports HTML output (inline styles or CSS classes), ANSI terminal colors, LaTeX, SVG, and raw token output.")
  (depends
   (ocaml
    (>= 4.14.0))
@@ -72,6 +74,7 @@
    (>= 2.0.0))
   (cmdliner
    (>= 1.1.0))
+  dune-build-info
   (ezjsonm :with-test)
   (alcotest :with-test)
   (odoc
