@@ -2,6 +2,8 @@
 
 - Preserve source line endings across tokenization, CLI input, and rendered output.
 - Reject multi-theme transforms that produce incompatible token structures.
+- Count decoration positions as Unicode scalar values instead of UTF-8 bytes.
+- Report CLI input and theme loading failures without uncaught exceptions.
 
 ## 1.0.0
 

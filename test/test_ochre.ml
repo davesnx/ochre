@@ -530,6 +530,65 @@ let test_decoration_negative_character () =
   | _ ->
       Alcotest.fail "expected 2 lines"
 
+let test_decoration_unicode_scalar_positions () =
+  let source = "a\195\169\240\159\153\130z" in
+  let tokens = [ [ make_tok source ] ] in
+  let decoration =
+    Ochre.Decoration.make ~class_:"unicode" ~start:(Ochre.Decoration.pos 0 1)
+      ~end_:(Ochre.Decoration.pos 0 3) ()
+  in
+  let result = Ochre.Decoration.apply ~source [ decoration ] tokens in
+  match result with
+  | [ [ before; highlighted; after ] ] ->
+      Alcotest.(check string) "before scalar" "a" before.text;
+      Alcotest.(check string)
+        "highlighted scalars" "\195\169\240\159\153\130" highlighted.text;
+      Alcotest.(check string) "after scalar" "z" after.text;
+      Alcotest.(check bool)
+        "before not decorated" true (before.decoration = None);
+      ( match highlighted.decoration with
+      | Some decoration ->
+          Alcotest.(check (option string))
+            "highlighted decorated" (Some "unicode") decoration.class_
+      | None ->
+          Alcotest.fail "highlighted scalars should be decorated"
+      );
+      Alcotest.(check bool) "after not decorated" true (after.decoration = None)
+  | _ ->
+      Alcotest.fail "expected 1 line with 3 tokens"
+
+let test_decoration_unicode_negative_character () =
+  let source = "\195\169\240\159\153\130" in
+  let tokens = [ [ make_tok source ] ] in
+  let decoration =
+    Ochre.Decoration.make ~class_:"last-scalar"
+      ~start:(Ochre.Decoration.pos 0 (-2))
+      ~end_:(Ochre.Decoration.pos 0 (-1))
+      ()
+  in
+  let result = Ochre.Decoration.apply ~source [ decoration ] tokens in
+  match result with
+  | [ [ before; highlighted ] ] -> (
+      Alcotest.(check string) "before final scalar" "\195\169" before.text;
+      Alcotest.(check string) "final scalar" "\240\159\153\130" highlighted.text;
+      match highlighted.decoration with
+      | Some decoration ->
+          Alcotest.(check (option string))
+            "final scalar decorated" (Some "last-scalar") decoration.class_
+      | None ->
+          Alcotest.fail "final scalar should be decorated"
+    )
+  | _ ->
+      Alcotest.fail "expected 1 line with 2 tokens"
+
+let test_decoration_invalid_utf8 () =
+  let source = "\195\040" in
+  let tokens = [ [ make_tok source ] ] in
+  try
+    ignore (Ochre.Decoration.apply ~source [] tokens);
+    Alcotest.fail "invalid UTF-8 should raise Invalid_argument"
+  with Invalid_argument _ -> ()
+
 let test_decoration_overlapping () =
   (* Source: "abcd". Two decorations overlap on "bc" *)
   let tokens = [ [ make_tok "abcd" ] ] in
@@ -983,6 +1042,11 @@ let () =
           test_case "Multi-token decoration" `Quick test_decoration_multi_token;
           test_case "Negative character position" `Quick
             test_decoration_negative_character;
+          test_case "Unicode scalar positions" `Quick
+            test_decoration_unicode_scalar_positions;
+          test_case "Unicode scalar negative positions" `Quick
+            test_decoration_unicode_negative_character;
+          test_case "Invalid UTF-8" `Quick test_decoration_invalid_utf8;
           test_case "Overlapping decorations" `Quick test_decoration_overlapping;
           test_case "Multiline decoration" `Quick test_decoration_multiline;
           test_case "Decoration with highlighter" `Quick

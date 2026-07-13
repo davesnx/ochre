@@ -10,9 +10,9 @@ type position = {
   character : int;
 }
 ```
-0-indexed position in source code.
+0-indexed position in source code. `character` counts Unicode scalar values, not UTF-8 bytes.
 
-Negative `character` values count from the end of the line: `-1` means the line end, `-2` means one character before the end, etc.
+Negative `character` values count Unicode scalar values from the end of the line: `-1` means the line end, `-2` means one scalar before the end, etc.
 
 
 ### properties
@@ -81,6 +81,8 @@ val apply :
 `apply ~source decorations tokens` maps decoration ranges onto tokens, splitting tokens at boundaries and attaching properties.
 
 Overlapping decorations are merged: classes are space-concatenated, styles are semicolon-concatenated, data attributes are merged (later wins).
+
+Character positions are Unicode scalar positions; token offsets remain UTF-8 byte-based. Raises `Invalid_argument` if `source` is not valid UTF-8.
 
 ```ocaml
   let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in

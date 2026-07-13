@@ -364,4 +364,8 @@ let cmd =
         )
     )
 
-let () = exit (Cmd.eval cmd)
+let () =
+  try exit (Cmd.eval ~catch:false cmd)
+  with Sys_error msg | Failure msg | Invalid_argument msg ->
+    prerr_endline ("ochre: " ^ msg);
+    exit 1

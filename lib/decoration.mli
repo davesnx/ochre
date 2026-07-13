@@ -8,11 +8,12 @@
 type position = { line : int; character : int }
 (** {2 position}
 
-    0-indexed position in source code.
+    0-indexed position in source code. [character] counts Unicode scalar values,
+    not UTF-8 bytes.
 
-    Negative [character] values count from the end of the line: [-1] means the
-    line end (after the last character), [-2] means one character before the
-    end, etc. *)
+    Negative [character] values count Unicode scalar values from the end of the
+    line: [-1] means the line end (after the last scalar), [-2] means one scalar
+    before the end, etc. *)
 
 type properties = {
   class_ : string option;
@@ -70,9 +71,13 @@ val apply :
     semicolon-concatenated, and data attributes are merged (later decorations
     override earlier ones for duplicate keys).
 
-    Negative character positions are resolved relative to line lengths.
+    Character positions, including negative positions, are resolved in Unicode
+    scalar values. Token offsets and splitting remain UTF-8 byte-based.
 
-    An empty decoration list returns the tokens unchanged.
+    Raises [Invalid_argument] if [source] is not valid UTF-8.
+
+    For valid UTF-8 source, an empty decoration list returns the tokens
+    unchanged.
 
     {[
       let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
