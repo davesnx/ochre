@@ -219,6 +219,8 @@ let highlight lang theme_path theme_dark theme_light grammars includes format
                 match Tm_grammars.find lang with
                 | Some json ->
                     Ochre.load ([ (lang, json) ] @ include_grammars)
+                | None when List.mem lang [ "plaintext"; "text"; "txt" ] ->
+                    Ochre.load include_grammars
                 | None ->
                     Error
                       (Printf.sprintf
@@ -352,9 +354,16 @@ let scopes_data =
   in
   Arg.(value & flag & info [ "scopes-data" ] ~doc)
 
+let version =
+  match Build_info.V1.version () with
+  | None ->
+      "dev"
+  | Some v ->
+      Build_info.V1.Version.to_string v
+
 let cmd =
   let doc = "Syntax highlighter using TextMate grammars and themes" in
-  let info = Cmd.info "ochre" ~version:"1.0.0" ~doc in
+  let info = Cmd.info "ochre" ~version ~doc in
   Cmd.v info
     Term.(
       ret
