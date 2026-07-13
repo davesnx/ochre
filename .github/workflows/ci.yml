@@ -79,3 +79,24 @@ jobs:
           changelog: './CHANGES.md'
           github-token: ${{ secrets.GH_TOKEN }}
 
+  lower-bound:
+    name: Build packages on OCaml 4.14 (lower bound)
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Use OCaml 4.14.2
+        uses: ocaml/setup-ocaml@v3.4.5
+        with:
+          ocaml-compiler: 4.14.2
+          dune-cache: true
+          opam-disable-sandboxing: true
+
+      - name: Install opam deps
+        run: opam install . --deps-only -y
+
+      - name: Build packages
+        run: opam exec -- dune build -p ochre,ochre-cli
+
