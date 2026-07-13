@@ -16,6 +16,8 @@ Ochre turns source code into highlighted output using TextMate grammars (the sam
 
 The highlighter holds loaded grammars and drives tokenization. Load one with [`load`](./#val-load) or [`load_from_files`](./#val-load_from_files), then pass it to any backend function.
 
+The language identifiers `"plaintext"`, `"text"`, and `"txt"` are always available, even with no grammar loaded: they produce unstyled tokens using the theme's default colors.
+
 ```ocaml
 type t
 ```
@@ -128,7 +130,7 @@ Highlight source code and return structured tokens. Use this when you need full 
 
 When `~decorations` or `~transforms` are provided, decorations are applied after tokenization and transforms run after decorations.
 
-Raises `Failure` if the grammar for `lang` cannot be found.
+Raises `Failure` if the grammar for `lang` cannot be found. The languages `"plaintext"`, `"text"`, and `"txt"` never raise: they yield unstyled tokens.
 
 ```ocaml
 let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
@@ -352,6 +354,8 @@ val to_string :
   t ->
   ?decorations:Decoration.t list ->
   ?transforms:Transform.t list ->
+  ?options:Html_options.t ->
+  ?extra_themes:(string * Theme.theme) list ->
   format:output_format ->
   theme:Theme.theme ->
   lang:string ->
@@ -360,13 +364,15 @@ val to_string :
 ```
 Highlight source code to one of the supported output formats.
 
+`~options` and `~extra_themes` apply only when `format` is [`Html`](./#type-output_format.Html); the other formats ignore them. See [`to_html`](./#val-to_html) for their meaning.
+
 ```ocaml
 let output = Ochre.to_string hl ~format:Html ~theme ~lang:"ocaml" code
 ```
 
 ## Transforms
 
-Transforms run after tokenization and theming, but before rendering. They can modify tokens, lines, or the entire document in a composable way.
+Transforms run after tokenization and theming, but before rendering. They can modify tokens, lines, or the entire document.
 
 ```ocaml
 module Transform : sig ... end

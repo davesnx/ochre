@@ -77,14 +77,12 @@ let scope_marker ?(background = "#ffff0033") scope_prefix =
         line
   )
 
-(* --- Notation-based transforms ---
-
-   These transforms scan token text for magic comment patterns like
+(* Notation-based transforms scan token text for magic comment patterns like
    [// [!code highlight]], remove the comment, and apply styling to the line.
    They mirror Shiki's transformerNotationHighlight, transformerNotationDiff,
    and transformerNotationWordHighlight. *)
 
-(** Helper: check if a string contains a substring, returning the index. *)
+(** Check if a string contains a substring, returning the index. *)
 let string_find_opt ~pattern s =
   let plen = String.length pattern in
   let slen = String.length s in
@@ -99,7 +97,7 @@ let string_find_opt ~pattern s =
     done;
     !found
 
-(** Helper: trim trailing whitespace from a string. *)
+(** Trim trailing whitespace from a string. *)
 let rtrim s =
   let len = String.length s in
   let i = ref (len - 1) in
@@ -111,7 +109,7 @@ let rtrim s =
   else
     s
 
-(** Helper: check if a string consists only of whitespace. *)
+(** Check if a string consists only of whitespace. *)
 let is_whitespace_only s =
   let len = String.length s in
   let rec check i =
@@ -122,8 +120,8 @@ let is_whitespace_only s =
   in
   check 0
 
-(** Helper: scan a line of tokens for a notation pattern. Returns
-    [Some token_index] or [None]. *)
+(** Scan a line of tokens for a notation pattern. Returns [Some token_index] or
+    [None]. *)
 let find_notation_in_line ~pattern line =
   let rec scan i = function
     | [] ->
@@ -138,7 +136,7 @@ let find_notation_in_line ~pattern line =
   in
   scan 0 line
 
-(** Helper: remove the notation comment from a line of tokens.
+(** Remove the notation comment from a line of tokens.
 
     When a token contains the magic comment pattern (e.g.
     [// [!code highlight]]), the entire token is removed (since it's typically a
@@ -250,7 +248,7 @@ let notation_diff ?(add_background = "#22883322")
         doc
   )
 
-(** Helper: extract the word from a [!code word:xxx] pattern in a token. Returns
+(** Extract the word from a [!code word:xxx] pattern in a token. Returns
     [Some word] if found. *)
 let extract_word_from_token (tok : Token.styled_token) =
   let pattern = "[!code word:" in
@@ -272,7 +270,7 @@ let extract_word_from_token (tok : Token.styled_token) =
       in
       find_close after_pattern
 
-(** Helper: scan a line for [!code word:xxx] and extract the word. *)
+(** Scan a line for [!code word:xxx] and extract the word. *)
 let find_word_notation line =
   let rec scan = function
     | [] ->

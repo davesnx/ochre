@@ -22,7 +22,7 @@ let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" source_code
 
 ## Load any TextMate grammar with tm-grammars
 
-[tm-grammars](https://github.com/davesnx/tm-grammars) provides a curated collection of TextMate grammars packaged for OCaml. It integrates cleanly with `ochre`, so you can use any grammar definitions without managing JSON grammar files manually.
+[tm-grammars](https://github.com/davesnx/tm-grammars) packages a collection of TextMate grammars for OCaml, so you can load grammars in `ochre` without managing JSON files on disk.
 
 Install the bundled grammar package:
 

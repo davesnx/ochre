@@ -1,8 +1,8 @@
 (** Transform pipeline for post-tokenization rewrites.
 
     Transforms run after tokenization and theming, but before rendering. They
-    can modify tokens, lines, or the entire document in a composable and
-    deterministic way. Transforms are applied in list order. *)
+    can modify tokens, lines, or the entire document. Transforms are applied in
+    list order. *)
 
 type token = Token.styled_token
 (** Alias for a styled token. *)
