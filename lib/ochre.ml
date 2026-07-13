@@ -61,30 +61,31 @@ let load_from_files grammars =
   | Error _ as err ->
       err
 
-let tokenize_with_grammar tm_collection grammar source =
-  let lines =
-    let parts = String.split_on_char '\n' source in
-    let ends_with_newline = String.ends_with ~suffix:"\n" source in
-    let parts =
-      if ends_with_newline then
-        List.rev parts |> List.tl |> List.rev
-      else
-        parts
-    in
-    match parts with
-    | [ "" ] when source = "" ->
-        []
-    | _ ->
-        let last_index = List.length parts - 1 in
-        List.mapi
-          (fun index line ->
-            if index < last_index || ends_with_newline then
-              line ^ "\n"
-            else
-              line
-          )
-          parts
+let split_lines source =
+  let parts = String.split_on_char '\n' source in
+  let ends_with_newline = String.ends_with ~suffix:"\n" source in
+  let parts =
+    if ends_with_newline then
+      List.rev parts |> List.tl |> List.rev
+    else
+      parts
   in
+  match parts with
+  | [ "" ] when source = "" ->
+      []
+  | _ ->
+      let last_index = List.length parts - 1 in
+      List.mapi
+        (fun index line ->
+          if index < last_index || ends_with_newline then
+            line ^ "\n"
+          else
+            line
+        )
+        parts
+
+let tokenize_with_grammar tm_collection grammar source =
+  let lines = split_lines source in
   let stack = ref TmLanguage.empty in
   let tokenized_lines =
     List.map
@@ -146,11 +147,20 @@ let apply_theme theme tokens_per_line =
     )
     tokens_per_line
 
+let plaintext_langs = [ "plaintext"; "text"; "txt" ]
+
+let raw_tokenize t ~lang source =
+  match Grammar_loader.find_grammar t.grammar_loader lang with
+  | Some grammar ->
+      let tm_collection = Grammar_loader.tm_collection t.grammar_loader in
+      tokenize_with_grammar tm_collection grammar source
+  | None when List.mem lang plaintext_langs ->
+      List.map (fun line -> [ (line, []) ]) (split_lines source)
+  | None ->
+      failwith (Printf.sprintf "Grammar not found for language: %s" lang)
+
 let tokenize t ~theme ~lang source =
-  let grammar = Grammar_loader.find_grammar t.grammar_loader lang in
-  let tm_collection = Grammar_loader.tm_collection t.grammar_loader in
-  let tokens = tokenize_with_grammar tm_collection grammar source in
-  apply_theme theme tokens
+  apply_theme theme (raw_tokenize t ~lang source)
 
 let to_tokens t ?(decorations = []) ?(transforms = []) ~theme ~lang source =
   let tokens = tokenize t ~theme ~lang source in
@@ -176,9 +186,7 @@ let to_html t ?(decorations = []) ?(transforms = []) ?options ?theme
       in
       Render_html.render ?options default_theme tokens
   | _ ->
-      let grammar = Grammar_loader.find_grammar t.grammar_loader lang in
-      let tm_collection = Grammar_loader.tm_collection t.grammar_loader in
-      let raw_tokens = tokenize_with_grammar tm_collection grammar source in
+      let raw_tokens = raw_tokenize t ~lang source in
       let apply_pipeline theme_val =
         let code = apply_theme theme_val raw_tokens in
         let code = Decoration.apply ~source decorations code in
@@ -230,11 +238,12 @@ let to_svg t ?decorations ?transforms =
 let to_debug_tokens t ?decorations ?transforms =
   render_backend t ?decorations ?transforms Render_tokens.render
 
-let to_string t ?(decorations = []) ?(transforms = []) ~format ~theme ~lang
-    source =
+let to_string t ?(decorations = []) ?(transforms = []) ?options ?extra_themes
+    ~format ~theme ~lang source =
   match format with
   | Html ->
-      to_html t ~decorations ~transforms ~theme ~lang source
+      to_html t ~decorations ~transforms ?options ~theme ?extra_themes ~lang
+        source
   | Ansi ->
       to_ansi t ~decorations ~transforms ~theme ~lang source
   | Latex ->

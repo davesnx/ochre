@@ -972,6 +972,61 @@ let test_notation_highlight_with_highlighter () =
   | _ ->
       Alcotest.fail "expected 2 lines"
 
+let test_plaintext_langs () =
+  let hl = Ochre.load_exn [] in
+  let theme = Ochre.Theme.dark in
+  List.iter
+    (fun lang ->
+      match Ochre.to_tokens hl ~theme ~lang "hello\nworld" with
+      | [ [ first ]; [ second ] ] ->
+          Alcotest.(check string)
+            (lang ^ " first line") "hello\n" first.Ochre.Token.text;
+          Alcotest.(check string)
+            (lang ^ " second line") "world" second.Ochre.Token.text;
+          Alcotest.(check (option string))
+            (lang ^ " default fg") (Some theme.Ochre.Theme.fg)
+            first.Ochre.Token.foreground;
+          Alcotest.(check (list string))
+            (lang ^ " no scopes") [] first.Ochre.Token.scopes
+      | _ ->
+          Alcotest.fail (lang ^ ": expected two lines of one token")
+    )
+    [ "plaintext"; "text"; "txt" ];
+  Alcotest.check_raises "unknown lang still raises"
+    (Failure "Grammar not found for language: nope") (fun () ->
+      ignore (Ochre.to_tokens hl ~theme ~lang:"nope" "x")
+  )
+
+let test_to_string_html_options_extra_themes () =
+  let hl = highlight () in
+  let options = Ochre.Html_options.make ~line_numbers:true () in
+  let extra_themes = [ ("dark", Ochre.Theme.nord) ] in
+  let theme = Ochre.Theme.light in
+  let source = "let x = 42" in
+  let via_to_string =
+    Ochre.to_string hl ~format:Ochre.Html ~options ~extra_themes ~theme
+      ~lang:"test" source
+  in
+  let via_to_html =
+    Ochre.to_html hl ~options ~extra_themes ~theme ~lang:"test" source
+  in
+  let contains ~sub s =
+    let sub_len = String.length sub in
+    let max_start = String.length s - sub_len in
+    let rec scan i =
+      i <= max_start && (String.sub s i sub_len = sub || scan (i + 1))
+    in
+    scan 0
+  in
+  Alcotest.(check string)
+    "to_string Html matches to_html" via_to_html via_to_string;
+  Alcotest.(check bool)
+    "options applied (line numbers)" true
+    (contains ~sub:"data-line=" via_to_string);
+  Alcotest.(check bool)
+    "extra themes applied (dark CSS vars)" true
+    (contains ~sub:"--ochre-dark" via_to_string)
+
 let () =
   let open Alcotest in
   run "Ochre"
@@ -999,6 +1054,14 @@ let () =
         [
           test_case "Accept capture arrays" `Quick
             test_capture_arrays_in_grammar;
+          test_case "Plaintext languages without a grammar" `Quick
+            test_plaintext_langs;
+        ]
+      );
+      ( "backend",
+        [
+          test_case "to_string Html honours options and extra themes" `Quick
+            test_to_string_html_options_extra_themes;
         ]
       );
       ( "transform",

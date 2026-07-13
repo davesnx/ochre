@@ -123,11 +123,6 @@ let load_from_files grammars =
   | exn ->
       Error (Printexc.to_string exn)
 
-let find_grammar t lang_id =
-  match List.assoc_opt lang_id t.grammars with
-  | Some grammar ->
-      grammar
-  | None ->
-      failwith (Printf.sprintf "Grammar not found for language: %s" lang_id)
+let find_grammar t lang_id = List.assoc_opt lang_id t.grammars
 
 let tm_collection t = t.tm_collection

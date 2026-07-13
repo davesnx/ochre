@@ -15,7 +15,10 @@
 
     The highlighter holds loaded grammars and drives tokenization. Load one with
     {!val-load} or {!val-load_from_files}, then pass it to any backend function.
-*)
+
+    The language identifiers ["plaintext"], ["text"], and ["txt"] are always
+    available, even with no grammar loaded: they produce unstyled tokens using
+    the theme's default colors. *)
 
 type t
 (** Highlighter instance. Holds loaded grammars and tokenization state. *)
@@ -349,7 +352,9 @@ val to_tokens :
     When [~decorations] or [~transforms] are provided, decorations are applied
     after tokenization and transforms run after decorations.
 
-    Raises [Failure] if the grammar for [lang] cannot be found.
+    Raises [Failure] if the grammar for [lang] cannot be found. The languages
+    ["plaintext"], ["text"], and ["txt"] never raise: they yield unstyled
+    tokens.
 
     {@ocaml[
     let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
@@ -618,12 +623,17 @@ val to_string :
   t ->
   ?decorations:Decoration.t list ->
   ?transforms:Transform.t list ->
+  ?options:Html_options.t ->
+  ?extra_themes:(string * Theme.theme) list ->
   format:output_format ->
   theme:Theme.theme ->
   lang:string ->
   string ->
   string
 (** Highlight source code to one of the supported output formats.
+
+    [~options] and [~extra_themes] apply only when [format] is {!Html}; the
+    other formats ignore them. See {!val-to_html} for their meaning.
 
     {@ocaml[
     let output = Ochre.to_string hl ~format:Html ~theme ~lang:"ocaml" code
@@ -632,7 +642,7 @@ val to_string :
 (** {1 Transforms}
 
     Transforms run after tokenization and theming, but before rendering. They
-    can modify tokens, lines, or the entire document in a composable way. *)
+    can modify tokens, lines, or the entire document. *)
 
 module Transform : sig
   type token = Token.styled_token
@@ -814,10 +824,12 @@ module Decoration : sig
   (** {2 position} *)
 
   type position = Decoration.position = { line : int; character : int }
-  (** 0-indexed position in source code.
+  (** 0-indexed position in source code. [character] counts Unicode scalar
+      values, not UTF-8 bytes.
 
-      Negative [character] values count from the end of the line: [-1] means the
-      line end, [-2] means one character before the end, etc. *)
+      Negative [character] values count Unicode scalar values from the end of
+      the line: [-1] means the line end, [-2] means one scalar before the end,
+      etc. *)
 
   (** {2 properties} *)
 
@@ -872,6 +884,10 @@ module Decoration : sig
 
       Overlapping decorations are merged: classes are space-concatenated, styles
       are semicolon-concatenated, data attributes are merged (later wins).
+
+      Character positions are Unicode scalar positions; token offsets remain
+      UTF-8 byte-based. Raises [Invalid_argument] if [source] is not valid
+      UTF-8.
 
       {@ocaml[
         let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
