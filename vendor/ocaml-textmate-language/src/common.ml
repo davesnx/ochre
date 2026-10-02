@@ -109,8 +109,15 @@ type yojson =
 exception Error of string
 
 let compile_regex ?error_context re =
+  (* TextMate/Oniguruma grammars routinely mix numbered groups with named
+     groups in the same pattern (e.g. Swift's regex-literal-callout rule
+     uses \g<20> alongside (?<name>...)). Oniguruma's default syntax turns
+     off numbered-group capture once a named group is present in the same
+     pattern ("numbered backref/call is not allowed. (use name)"), unlike
+     vscode-oniguruma, which always compiles with ONIG_OPTION_CAPTURE_GROUP
+     so unnamed groups keep their numbers regardless. Match that. *)
   match
-    Oniguruma.create re Oniguruma.Options.none Oniguruma.Encoding.utf8
+    Oniguruma.create re Oniguruma.Options.capture_group Oniguruma.Encoding.utf8
       Oniguruma.Syntax.default
   with
   | Ok re ->

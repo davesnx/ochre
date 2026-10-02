@@ -1,0 +1,35 @@
+{
+    "name": "lenient",
+    "scopeName": "source.lenient",
+    "patterns": [
+        { "include": "#no-end" },
+        { "include": "#match-wins" },
+        { "include": "#bad-capture" },
+        { "include": "#null-content-name" }
+    ],
+    "repository": {
+        "no-end": {
+            "begin": "BEGIN",
+            "name": "no.end"
+        },
+        "match-wins": {
+            "match": "MATCHWINS",
+            "begin": "unused-begin",
+            "end": "unused-end",
+            "name": "match.wins"
+        },
+        "bad-capture": {
+            "match": "(BADCAP)",
+            "captures": { "1": "scope.from.bare.string" }
+        },
+        "no-patterns-item": {},
+        "bad-repo-entry": [
+            { "match": "NEVERUSED", "name": "dead" }
+        ],
+        "null-content-name": {
+            "begin": "NCSTART",
+            "end": "NCEND",
+            "contentName": null
+        }
+    }
+}

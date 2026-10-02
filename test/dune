@@ -15,7 +15,7 @@
 
 (test
  (name test_ochre)
- (libraries ochre alcotest))
+ (libraries ochre alcotest tm-grammars))
 
 (executables
  (names test_html test_html_dual_theme test_svg)
