@@ -289,6 +289,58 @@ let check_overlapping_begin_captures_opening_quote () =
         false
     )
 
+let check_sibling_simple_then_nested_capture_ordering () =
+  (* A match with three sibling captures: capture 1 has no nested patterns
+     (so it is closed later, via handle_captures' internal stack, once a
+     following capture's start position reaches its end), capture 2 is a
+     sibling (not a child) that has nested patterns and starts right where
+     capture 1 ends, and capture 3 is another simple sibling after capture 2.
+     This is the shape markdown's ATX heading rule uses (a punctuation
+     capture, then a heading-text capture with nested inline patterns,
+     followed by more match content) and is what triggered the crash: the
+     capture-with-patterns branch used to skip closing capture 1's pending
+     stack frame, so it was only closed once capture 3 (or, with no capture
+     3, the trailing pop at the end of handle_captures) finally reached it --
+     by which point capture 2's tokens had already been emitted, producing a
+     token whose [ending] was smaller than ones already emitted before it.
+     Any consumer that reconstructs text with
+     [String.sub line start (ending - start)] (as lib/ochre.ml's
+     extract_tokens does) then gets a negative length and raises
+     Invalid_argument. *)
+  let grammar_json =
+    {|{
+  "scopeName": "source.siborder",
+  "name": "siborder",
+  "patterns": [
+    {
+      "match": "(#)(\\w+)(!)",
+      "captures": {
+        "1": { "name": "punctuation.hash.test" },
+        "2": {
+          "name": "entity.word.test",
+          "patterns": [ { "match": "\\w+", "name": "word.inner.test" } ]
+        },
+        "3": { "name": "punctuation.bang.test" }
+      },
+      "name": "meta.siborder.test"
+    }
+  ]
+}|}
+  in
+  let line = "#Title!" in
+  let spans = tokenize_spans_from_json grammar_json line in
+  Alcotest.(check string)
+    "token texts reassemble the exact source" line
+    (String.concat "" (List.map fst spans));
+  Alcotest.(check bool)
+    "the punctuation capture keeps its own scope" true
+    (List.exists
+       (fun (text, scopes) ->
+         text = "#" && has_scope "punctuation.hash.test" scopes
+       )
+       spans
+    )
+
 let check_injection_right_priority () =
   let t, grammar =
     make_grammar (Yojson.Basic.from_file "data/injection.json")
@@ -526,6 +578,13 @@ let () =
         [
           Alcotest.test_case "Keeps string scope on opening quote" `Quick
             check_overlapping_begin_captures_opening_quote;
+        ]
+      );
+      ( "sibling-capture-ordering",
+        [
+          Alcotest.test_case
+            "Simple capture closes before a later sibling with nested patterns"
+            `Quick check_sibling_simple_then_nested_capture_ordering;
         ]
       );
       ( "injections",

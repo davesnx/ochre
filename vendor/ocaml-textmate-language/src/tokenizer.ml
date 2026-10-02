@@ -243,6 +243,17 @@ let handle_captures ~t ~grammar ~line scopes default mat_start mat_end region
         let cap_start = max cap_start start in
         let cap_end = min cap_end mat_end in
         if capture.capture_patterns <> [] then
+          (* A sibling capture earlier in this match may still have an open
+             stack frame (pushed by the [else] branch below) if it has not
+             been closed yet. Flush it here so frames are always closed in
+             position order; otherwise a frame closed later by the trailing
+             pop at the end of this fold could emit a token whose [ending] is
+             smaller than ones already emitted for this capture, breaking the
+             monotonic-ending invariant [extract_tokens] relies on. Keep using
+             the ambient [scopes]/[default] (not the popped frame) for this
+             capture's own scope, matching how a capture with nested patterns
+             has always been scoped here. *)
+          let prev_idx, tokens, stack = pop prev_idx cap_start tokens stack in
           let cap_scopes =
             add_scopes scopes [ default; capture.capture_name ]
           in
@@ -296,12 +307,6 @@ type candidate = {
   candidate_grammar : grammar;
   candidate_scope : string option;
 }
-
-let candidate_regex_source = function
-  | { candidate_kind = Candidate_match m; _ } ->
-      m.pattern_source
-  | { candidate_kind = Candidate_delim d; _ } ->
-      d.delim_begin_source
 
 let candidate_regex = function
   | { candidate_kind = Candidate_match m; _ } ->
@@ -447,67 +452,42 @@ let drop n list =
   in
   loop n list
 
-module RegSet_cache : sig
-  val find_or_create : string list -> Oniguruma.RegSet.t
-end = struct
-  let max_size = 256
-
-  let tbl : (string list, Oniguruma.RegSet.t) Hashtbl.t =
-    Hashtbl.create max_size
-
-  let find_or_create sources =
-    match Hashtbl.find_opt tbl sources with
-    | Some regset ->
-        regset
-    | None ->
-        if Hashtbl.length tbl >= max_size then Hashtbl.clear tbl;
-        let regexes =
-          sources
-          |> List.map (fun src ->
-              compile_regex
-                ~error_context:("RegSet scanner pattern: " ^ src)
-                src
-          )
-          |> Array.of_list
-        in
-        let regset = Oniguruma.RegSet.create regexes in
-        Hashtbl.replace tbl sources regset;
-        regset
-end
-
+(* Each candidate is checked with an anchored, single-position
+   [Oniguruma.match_] rather than a ranged [Oniguruma.RegSet.search]: a
+   result is only ever accepted below when it starts exactly at [pos]
+   (anything else would be discarded anyway), and Oniguruma's regset
+   search, when ruling out a candidate that doesn't match anywhere in the
+   searched range, costs time proportional to that range (confirmed by
+   direct benchmarking against the oniguruma binding -- this is not
+   specific to anchored patterns, it's true of any candidate with no match
+   left in the buffer). Narrowing the range instead of dropping RegSet
+   doesn't work either: it also caps how far a *matching* candidate's own
+   content may extend, silently truncating ordinary multi-character
+   matches. [Oniguruma.match_] has neither problem: it only ever looks at
+   [pos] itself, so its cost never depends on line length. *)
 let search_candidates_at_pos ~line ~pos ~anchor candidates =
-  match candidates with
-  | [] ->
-      None
-  | _ -> (
-      let sources = List.map candidate_regex_source candidates in
-      let regset = RegSet_cache.find_or_create sources in
-      match
-        Oniguruma.RegSet.search regset line pos (String.length line)
-          (anchor_options ~anchor ~pos)
-      with
-      | exception Oniguruma.Error _ ->
-          None
-      | None ->
-          None
-      | Some (idx, region) -> (
-          if Oniguruma.Region.capture_beg region 0 <> pos then
-            None
-          else
-            match drop idx candidates with
-            | [] ->
-                None
-            | candidate :: _ ->
-                let end_ = Oniguruma.Region.capture_end region 0 in
-                let matched =
-                  { region; regex = candidate_regex candidate; end_ }
-                in
-                if has_progress pos end_ then
-                  Some (idx, candidate, Nonempty_match matched)
-                else
-                  Some (idx, candidate, Empty_match matched)
-        )
-    )
+  let options = anchor_options ~anchor ~pos in
+  let rec go idx = function
+    | [] ->
+        None
+    | candidate :: rest -> (
+        let regex = candidate_regex candidate in
+        match
+          try Oniguruma.match_ regex line pos options
+          with Oniguruma.Error _ -> None
+        with
+        | None ->
+            go (idx + 1) rest
+        | Some region ->
+            let end_ = Oniguruma.Region.capture_end region 0 in
+            let matched = { region; regex; end_ } in
+            if has_progress pos end_ then
+              Some (idx, candidate, Nonempty_match matched)
+            else
+              Some (idx, candidate, Empty_match matched)
+      )
+  in
+  go 0 candidates
 
 let frame_scopes grammar = function
   | [] ->
