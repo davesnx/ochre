@@ -1,5 +1,11 @@
 (tests
- (names test_find test_tokenize test_cpp test_csharp test_ocaml)
+ (names
+  test_find
+  test_tokenize
+  test_cpp
+  test_csharp
+  test_ocaml
+  test_lenient_grammars)
  (modes native)
  (deps
   (glob_files data/*))

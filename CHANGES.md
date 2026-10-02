@@ -15,6 +15,7 @@
 - Fix a missing theme/grammar file reporting a raw `Sys_error("...")` exception constructor name (including through a theme's `"include"` chain); the message now reads `<path>: No such file or directory`. `Out_of_memory`, `Stack_overflow`, and `Sys.Break` are no longer caught and turned into `Failure`/`Error` by any loader; they propagate as-is.
 - Set Oniguruma's regex engine limits once per process instead of on every `Ochre.load`/`Ochre.load_exn`/`Ochre.load_from_files`/`Ochre.load_from_files_exn` call.
 - Export `Ochre.Theme.themes` and document the "Raises `Failure`" contract on `Ochre.to_html` and all `_exn` loaders.
+- Fix 9 bundled grammars (`blade`, `codeql`, `d`, `move`, `racket`, `stata`, `wikitext`, `xml`, `swift`) that failed to load via `Ochre.load`/`Ochre.load_exn`. Each has a rule shape vscode-textmate tolerates but the vendored TextMate parser rejected outright: a `begin` rule with neither `end` nor `while`, a rule with both `match` and `begin`, a `patterns`-less repository entry, a `patterns`-less grammar, a non-dict capture/repository-entry value (bare string, array, or `null`), and a non-string `name`/`contentName`. The parser now degrades the same way vscode-textmate does instead of failing to load. `swift` additionally needed the vendored Oniguruma binding to compile regexes with `ONIG_OPTION_CAPTURE_GROUP`, matching vscode-oniguruma, so that a numbered regex subroutine call next to a named group doesn't reject compilation.
 
 ## 1.1.0
 

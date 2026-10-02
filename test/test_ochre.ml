@@ -1149,6 +1149,45 @@ let test_load_rejects_duplicate_ids () =
   | Ok _ ->
       Alcotest.fail "expected duplicate language id to be rejected"
 
+(* Nine bundled tm-grammars grammars used to fail to load at all
+   (`Ochre.load` returned `Error`): blade, codeql, d, move, racket, stata,
+   wikitext and xml had a malformed rule that the parser rejected outright,
+   and swift's regex-literal-callout rule used a numbered subroutine call
+   next to named groups, which the vendored Oniguruma binding rejected.
+   vscode-textmate tolerates all of these; see vendor/ocaml-textmate-
+   language/src/reader.ml and src/common.ml for the matching fixes. This
+   locks in that every one of them now loads and tokenizes a small sample
+   without losing or duplicating any source text. *)
+let test_bundled_grammars_that_used_to_fail_to_load () =
+  let theme = Ochre.Theme.dark in
+  List.iter
+    (fun (lang, json, sample) ->
+      match Ochre.load [ (lang, json) ] with
+      | Error msg ->
+          Alcotest.failf "%s: failed to load: %s" lang msg
+      | Ok hl ->
+          let text =
+            Ochre.to_tokens hl ~theme ~lang sample
+            |> List.concat
+            |> List.map (fun (tok : Ochre.Token.styled_token) -> tok.text)
+            |> String.concat ""
+          in
+          Alcotest.(check string)
+            (lang ^ ": tokens cover the source")
+            sample text
+    )
+    [
+      ("blade", Tm_grammars.blade, "<div>{{ $name }}</div>\n@if($x)\n@endif\n");
+      ("codeql", Tm_grammars.codeql, "predicate foo() { any() }\n");
+      ("d", Tm_grammars.d, "void main() {\n  int x = 1;\n}\n");
+      ("move", Tm_grammars.move, "module M {\n    fun f() {}\n}\n");
+      ("racket", Tm_grammars.racket, "#lang racket\n(define x 1)\n");
+      ("stata", Tm_grammars.stata, "display \"hello\"\n");
+      ("wikitext", Tm_grammars.wikitext, "== Heading ==\n'''bold''' text\n");
+      ("xml", Tm_grammars.xml, "<root><a b=\"c\">text</a></root>\n");
+      ("swift", Tm_grammars.swift, "let x = 1\n");
+    ]
+
 let test_to_string_html_options_extra_themes () =
   let hl = highlight () in
   let options = Ochre.Html_options.make ~line_numbers:true () in
@@ -1208,6 +1247,8 @@ let () =
             test_capture_arrays_in_grammar;
           test_case "Plaintext languages without a grammar" `Quick
             test_plaintext_langs;
+          test_case "Bundled grammars that used to fail to load" `Quick
+            test_bundled_grammars_that_used_to_fail_to_load;
         ]
       );
       ( "errors",
