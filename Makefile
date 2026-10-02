@@ -41,14 +41,14 @@ test-browser-dual: ## Serve dual-theme HTML preview on port 5000
 
 .PHONY: test-svg
 test-svg: ## Serve sample highlighted page on port 5000 + promote SVG preview for GitHub rendering
-	$(DUNE) build test/svg-preview.svg --auto-promote
+	$(DUNE) build @test/runtest --auto-promote
 	@echo "Promoted: test/svg-preview.svg"
 	$(DUNE) exec test/test_svg.exe
 
 .PHONY: test-latex
 test-latex: ## Generate and compile LaTeX preview PDF
 	mkdir -p _build/latex-preview
-	$(DUNE) build test/latex-preview.tex --auto-promote
+	$(DUNE) build @test/runtest --auto-promote
 
 .PHONY: test-watch
 test-watch: ## Run the unit tests in watch mode

@@ -738,6 +738,50 @@ let test_decoration_with_highlighter () =
   | _ ->
       Alcotest.fail "expected at least one line with tokens"
 
+let long_arithmetic_line n =
+  "let x = " ^ String.concat " + " (List.init n string_of_int)
+
+let min_time_of trials f =
+  let best = ref Float.infinity in
+  for _ = 1 to trials do
+    let t0 = Unix.gettimeofday () in
+    f ();
+    let dt = Unix.gettimeofday () -. t0 in
+    if dt < !best then best := dt
+  done;
+  !best
+
+let test_long_line_is_not_quadratic () =
+  (* A single long line (e.g. "let x = 0 + 1 + ... + n") used to take
+     quadratic time to tokenize: each doubling of the line's length
+     roughly quadrupled the time, because the tokenizer repeatedly asked
+     Oniguruma to search a wide window for a match at every character
+     position instead of just checking the one position it actually
+     needed. Doubling the input should now roughly double the time; allow
+     up to 3x to stay robust on a noisy/slow CI machine while still
+     failing loudly if the quadratic behavior comes back (which would
+     show roughly 4x). Take the minimum of a few trials per size to avoid
+     a stray GC pause or scheduler hiccup inflating one measurement. *)
+  let hl = Ochre.load_exn [ ("ocaml", Tm_grammars.ocaml) ] in
+  let time_for n =
+    let source = long_arithmetic_line n in
+    min_time_of 3 (fun () ->
+        let (_ : string) =
+          Ochre.to_html hl ~theme:Ochre.Theme.dark ~lang:"ocaml" source
+        in
+        ()
+    )
+  in
+  let t1 = time_for 800 in
+  let t2 = time_for 1600 in
+  Alcotest.(check bool)
+    (Printf.sprintf
+       "doubling the line length takes less than 3x as long (%.4fs -> %.4fs)" t1
+       t2
+    )
+    true
+    (t2 < t1 *. 3.0)
+
 let make_comment text =
   {
     Ochre.Token.text;
@@ -1327,6 +1371,12 @@ let () =
           test_case "Multiline decoration" `Quick test_decoration_multiline;
           test_case "Decoration with highlighter" `Quick
             test_decoration_with_highlighter;
+        ]
+      );
+      ( "performance",
+        [
+          test_case "Long single line tokenizes in near-linear time" `Quick
+            test_long_line_is_not_quadratic;
         ]
       );
     ]

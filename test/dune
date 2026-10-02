@@ -15,7 +15,7 @@
 
 (test
  (name test_ochre)
- (libraries ochre alcotest tm-grammars))
+ (libraries ochre alcotest unix tm-grammars))
 
 (executables
  (names test_html test_html_dual_theme test_svg)
@@ -35,9 +35,14 @@
    %{target}
    (run %{dep:test_latex.exe}))))
 
+; Each preview below is regenerated into a scratch `.gen` file and diffed
+; against the committed preview as part of `@runtest`, so a rendering change
+; that would leave a committed preview stale fails the build instead of
+; passing silently. Run `dune build @runtest --auto-promote` to update a
+; preview after an intentional rendering change.
+
 (rule
- (target latex-preview.tex)
- (mode promote)
+ (target latex-preview.tex.gen)
  (deps test_latex.exe)
  (action
   (with-stdout-to
@@ -45,8 +50,12 @@
    (run %{dep:test_latex.exe}))))
 
 (rule
- (target ansi-preview.txt)
- (mode promote)
+ (alias runtest)
+ (action
+  (diff latex-preview.tex latex-preview.tex.gen)))
+
+(rule
+ (target ansi-preview.txt.gen)
  (deps test_ansi.exe)
  (action
   (with-stdout-to
@@ -54,8 +63,12 @@
    (run %{dep:test_ansi.exe}))))
 
 (rule
- (target tokens-preview.txt)
- (mode promote)
+ (alias runtest)
+ (action
+  (diff ansi-preview.txt ansi-preview.txt.gen)))
+
+(rule
+ (target tokens-preview.txt.gen)
  (deps test_tokens.exe)
  (action
   (with-stdout-to
@@ -63,8 +76,12 @@
    (run %{dep:test_tokens.exe}))))
 
 (rule
- (target svg-preview.svg)
- (mode promote)
+ (alias runtest)
+ (action
+  (diff tokens-preview.txt tokens-preview.txt.gen)))
+
+(rule
+ (target svg-preview.svg.gen)
  (deps test_svg.exe)
  (action
   (with-stdout-to
@@ -72,8 +89,12 @@
    (run %{dep:test_svg.exe} --github-preview))))
 
 (rule
- (target html-preview.html)
- (mode promote)
+ (alias runtest)
+ (action
+  (diff svg-preview.svg svg-preview.svg.gen)))
+
+(rule
+ (target html-preview.html.gen)
  (deps test_html.exe)
  (action
   (with-stdout-to
@@ -81,10 +102,19 @@
    (run %{dep:test_html.exe} --preview))))
 
 (rule
- (target html-dual-theme-preview.html)
- (mode promote)
+ (alias runtest)
+ (action
+  (diff html-preview.html html-preview.html.gen)))
+
+(rule
+ (target html-dual-theme-preview.html.gen)
  (deps test_html_dual_theme.exe)
  (action
   (with-stdout-to
    %{target}
    (run %{dep:test_html_dual_theme.exe} --preview))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff html-dual-theme-preview.html html-dual-theme-preview.html.gen)))

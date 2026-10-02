@@ -289,6 +289,250 @@ let check_overlapping_begin_captures_opening_quote () =
         false
     )
 
+let check_sibling_simple_then_nested_capture_ordering () =
+  (* A match with three sibling captures: capture 1 has no nested patterns
+     (so it is closed later, via handle_captures' internal stack, once a
+     following capture's start position reaches its end), capture 2 is a
+     sibling (not a child) that has nested patterns and starts right where
+     capture 1 ends, and capture 3 is another simple sibling after capture 2.
+     This is the shape markdown's ATX heading rule uses (a punctuation
+     capture, then a heading-text capture with nested inline patterns,
+     followed by more match content) and is what triggered the crash: the
+     capture-with-patterns branch used to skip closing capture 1's pending
+     stack frame, so it was only closed once capture 3 (or, with no capture
+     3, the trailing pop at the end of handle_captures) finally reached it --
+     by which point capture 2's tokens had already been emitted, producing a
+     token whose [ending] was smaller than ones already emitted before it.
+     Any consumer that reconstructs text with
+     [String.sub line start (ending - start)] (as lib/ochre.ml's
+     extract_tokens does) then gets a negative length and raises
+     Invalid_argument. *)
+  let grammar_json =
+    {|{
+  "scopeName": "source.siborder",
+  "name": "siborder",
+  "patterns": [
+    {
+      "match": "(#)(\\w+)(!)",
+      "captures": {
+        "1": { "name": "punctuation.hash.test" },
+        "2": {
+          "name": "entity.word.test",
+          "patterns": [ { "match": "\\w+", "name": "word.inner.test" } ]
+        },
+        "3": { "name": "punctuation.bang.test" }
+      },
+      "name": "meta.siborder.test"
+    }
+  ]
+}|}
+  in
+  let line = "#Title!" in
+  let spans = tokenize_spans_from_json grammar_json line in
+  Alcotest.(check string)
+    "token texts reassemble the exact source" line
+    (String.concat "" (List.map fst spans));
+  Alcotest.(check bool)
+    "the punctuation capture keeps its own scope" true
+    (List.exists
+       (fun (text, scopes) ->
+         text = "#" && has_scope "punctuation.hash.test" scopes
+       )
+       spans
+    )
+
+(* The tests below exercise lib/ochre.ml's First_byte prefilter (in
+   tokenizer.ml's search_candidates_at_pos): a static analysis of a
+   pattern's source text that skips calling into Oniguruma for a candidate
+   when the character at the current position confidently can't start a
+   match for it. Each one matches a pattern via a construct the prefilter
+   must either understand correctly or safely decline to optimize (fall
+   back to always trying); a wrong confident answer would silently change
+   tokenization rather than crash, so these check the actual matched text
+   and scope end-to-end, the same way a real grammar bug would surface. *)
+
+let single_pattern_grammar ~match_ ~name : Yojson.Basic.t =
+  `Assoc
+    [
+      ("scopeName", `String "source.fbtest");
+      ("name", `String "fbtest");
+      ( "patterns",
+        `List [ `Assoc [ ("match", `String match_); ("name", `String name) ] ]
+      );
+    ]
+
+let matches_as ~match_ ~name ~line ~text ~scope =
+  let grammar = single_pattern_grammar ~match_ ~name in
+  let spans = tokenize_spans_from_json (Yojson.Basic.to_string grammar) line in
+  List.exists
+    (fun (span_text, scopes) -> span_text = text && has_scope scope scopes)
+    spans
+
+let check_inline_case_insensitive_flag () =
+  (* "(?i)abc" must still match "ABC": a literal atom under an inline
+     case-insensitive flag isn't just itself, so the prefilter must not
+     narrow it to only its own (lowercase) byte -- confirmed by checking it
+     bails entirely for a pattern containing "(?i", always trying the
+     candidate for real. *)
+  Alcotest.(check bool)
+    "(?i)abc matches ABC" true
+    (matches_as ~match_:"(?i)abc" ~name:"kw.ci.test" ~line:"ABC" ~text:"ABC"
+       ~scope:"kw.ci.test"
+    )
+
+let check_extended_free_spacing_mode () =
+  (* Under "(?x)", unescaped whitespace in the pattern is insignificant,
+     not literal -- "(?x)a b" means "ab", not "a b". If the prefilter
+     treated the space as a required literal byte, it would wrongly
+     exclude the real match. *)
+  Alcotest.(check bool)
+    "(?x)a b matches ab" true
+    (matches_as ~match_:"(?x)a b" ~name:"kw.ext.test" ~line:"ab" ~text:"ab"
+       ~scope:"kw.ext.test"
+    )
+
+let check_unusual_escapes_and_operators_not_misoptimized () =
+  (* Each of these uses a construct the prefilter doesn't try to fully
+     understand (an unrecognized escaped letter, which could be a
+     backreference, a hex/octal/unicode escape, or a shorthand class; or
+     Oniguruma's "absent" operator): it must fall back to always trying
+     the real match rather than guessing wrong. *)
+  let cases =
+    [
+      ("\\Kbar", "constant.k.test", "foobar", "bar");
+      (* \K resets the reported match start *)
+      ("a\\Rb", "constant.r.test", "a\nb", "a\nb");
+      (* \R: any linebreak sequence *)
+      ("\\X+", "constant.x.test", "abc", "abc");
+      (* \X: extended grapheme cluster *)
+      ("(?~abc)", "constant.absent.test", "xyz", "xyz");
+      (* absent operator: text not containing "abc" *)
+      ("\\x{41}", "constant.hex.test", "A", "A");
+      (* \x{..}: hex character escape *)
+      ("\\101", "constant.octal.test", "A", "A")
+      (* octal escape (0o101 = 'A') *);
+    ]
+  in
+  List.iter
+    (fun (match_, name, line, text) ->
+      Alcotest.(check bool)
+        (Printf.sprintf "%S matches %S" match_ line)
+        true
+        (matches_as ~match_ ~name ~line ~text ~scope:name)
+    )
+    cases
+
+let check_h_shorthand_hex_digit () =
+  Alcotest.(check bool)
+    "\\h+ matches hex digits" true
+    (matches_as ~match_:"\\h+" ~name:"constant.hex.digits.test" ~line:"a1F"
+       ~text:"a1F" ~scope:"constant.hex.digits.test"
+    )
+
+let check_named_group_vs_lookbehind () =
+  (* "(?<name>...)" is a named *capturing* group -- its content is real,
+     analyzable pattern text, requiring 'c' here. "(?<=...)" is a
+     lookbehind -- zero-width, so the requirement comes from whatever
+     follows it, 'd' here. Confusing the two (treating a lookbehind as
+     analyzable content, or a named group as zero-width) would silently
+     change which byte is required. *)
+  Alcotest.(check bool)
+    "(?<grp>cat) matches cat" true
+    (matches_as ~match_:"(?<grp>cat)" ~name:"named.group.test" ~line:"cat"
+       ~text:"cat" ~scope:"named.group.test"
+    );
+  Alcotest.(check bool)
+    "(?<=cat)dog matches dog after cat" true
+    (matches_as ~match_:"(?<=cat)dog" ~name:"lookbehind.test" ~line:"catdog"
+       ~text:"dog" ~scope:"lookbehind.test"
+    )
+
+let check_multibyte_utf8_first_byte () =
+  (* "[[:alpha:]]" and other POSIX/shorthand classes are Unicode-category
+     based under this tokenizer's UTF-8 encoding, not ASCII-only (confirmed
+     empirically against the oniguruma binding: they match "e" with an
+     acute accent, a 2-byte UTF-8 character) -- the prefilter must treat
+     any non-ASCII byte as a possible match for a positive class like this,
+     not just ASCII letters. A literal non-ASCII character (here, the same
+     accented "e") must also still match itself. *)
+  let eacute = "\xc3\xa9" in
+  Alcotest.(check bool)
+    "[[:alpha:]]+ matches e-acute" true
+    (matches_as ~match_:"[[:alpha:]]+" ~name:"word.unicode.test" ~line:eacute
+       ~text:eacute ~scope:"word.unicode.test"
+    );
+  Alcotest.(check bool)
+    "a literal e-acute matches itself" true
+    (matches_as ~match_:eacute ~name:"literal.unicode.test" ~line:eacute
+       ~text:eacute ~scope:"literal.unicode.test"
+    )
+
+let check_optional_leading_atom_before_mandatory_byte () =
+  (* "(a*)(b)": the first atom can match zero times, so the pattern's real
+     first byte is 'a' *or* 'b' (if there are no leading a's). This is the
+     general form of "a pattern that can match the empty string must never
+     be skipped" -- here it's an optional leading part rather than the
+     whole pattern, which is the shape that actually recurs in real
+     grammars (see the "(^|\G)( {0,3})(...)" markdown list-marker pattern
+     this was found against). *)
+  Alcotest.(check bool)
+    "(a*)(b) matches b with no leading a" true
+    (matches_as ~match_:"(a*)(b)" ~name:"optional.lead.test" ~line:"b" ~text:"b"
+       ~scope:"optional.lead.test"
+    );
+  Alcotest.(check bool)
+    "(a*)(b) matches aaab" true
+    (matches_as ~match_:"(a*)(b)" ~name:"optional.lead.test" ~line:"aaab"
+       ~text:"aaab" ~scope:"optional.lead.test"
+    )
+
+let check_top_level_alternation_without_group () =
+  (* A whole pattern can itself be a top-level alternation with no
+     enclosing group at all (common for a single rule recognizing several
+     keywords plus a generic identifier fallback, e.g.
+     "\b(is|new)\b|([$_[:alpha:]][$_[:alnum:]]*)"). Found live in
+     typescript's relational-operator pattern ("<=|>=|<>|[<>]") and several
+     other bundled grammars: analyzing only the first alternative would
+     wrongly exclude a candidate whenever the input matches a *later*
+     alternative starting with a different byte. *)
+  Alcotest.(check bool)
+    "<=|>=|<>|[<>] matches a bare >" true
+    (matches_as ~match_:"<=|>=|<>|[<>]" ~name:"relational.test" ~line:">"
+       ~text:">" ~scope:"relational.test"
+    );
+  Alcotest.(check bool)
+    "0|[1-9][0-9]* matches a nonzero digit" true
+    (matches_as ~match_:"0|[1-9][0-9]*" ~name:"decimal.test" ~line:"42"
+       ~text:"42" ~scope:"decimal.test"
+    )
+
+let check_leading_bracket_literal () =
+  (* "[]\[]" (POSIX convention: a ']' right after '[' is a literal member,
+     not the closing bracket) is a class matching ']' or '['. Found live in
+     awk's index-operator pattern. Misreading the first ']' as the
+     terminator would parse this as an empty, never-matching class. *)
+  Alcotest.(check bool)
+    "[]\\[] matches ]" true
+    (matches_as ~match_:"([]\\[])" ~name:"bracket.test" ~line:"]" ~text:"]"
+       ~scope:"bracket.test"
+    );
+  Alcotest.(check bool)
+    "[]\\[] matches [" true
+    (matches_as ~match_:"([]\\[])" ~name:"bracket.test" ~line:"[" ~text:"["
+       ~scope:"bracket.test"
+    )
+
+let check_escaped_range_endpoint () =
+  (* "[ -\[\]-~]" (found live in purescript's "characters" pattern): a
+     class made of two ranges whose endpoints are escaped ("\[" and "\]").
+     Misreading the escaping would corrupt both the computed byte set and
+     where parsing continues afterward. *)
+  Alcotest.(check bool)
+    "[ -\\[\\]-~]+ matches a run of ordinary characters" true
+    (matches_as ~match_:"[ -\\[\\]-~]+" ~name:"chars.test" ~line:"hello"
+       ~text:"hello" ~scope:"chars.test"
+    )
+
 let check_injection_right_priority () =
   let t, grammar =
     make_grammar (Yojson.Basic.from_file "data/injection.json")
@@ -526,6 +770,37 @@ let () =
         [
           Alcotest.test_case "Keeps string scope on opening quote" `Quick
             check_overlapping_begin_captures_opening_quote;
+        ]
+      );
+      ( "sibling-capture-ordering",
+        [
+          Alcotest.test_case
+            "Simple capture closes before a later sibling with nested patterns"
+            `Quick check_sibling_simple_then_nested_capture_ordering;
+        ]
+      );
+      ( "first-byte-prefilter",
+        [
+          Alcotest.test_case "Inline (?i) case-insensitive flag" `Quick
+            check_inline_case_insensitive_flag;
+          Alcotest.test_case "Extended (?x) free-spacing mode" `Quick
+            check_extended_free_spacing_mode;
+          Alcotest.test_case "Unusual escapes and operators" `Quick
+            check_unusual_escapes_and_operators_not_misoptimized;
+          Alcotest.test_case "\\h hex-digit shorthand" `Quick
+            check_h_shorthand_hex_digit;
+          Alcotest.test_case "Named group vs lookbehind" `Quick
+            check_named_group_vs_lookbehind;
+          Alcotest.test_case "Multibyte UTF-8 first byte" `Quick
+            check_multibyte_utf8_first_byte;
+          Alcotest.test_case "Optional leading atom before a mandatory byte"
+            `Quick check_optional_leading_atom_before_mandatory_byte;
+          Alcotest.test_case "Top-level alternation without a group" `Quick
+            check_top_level_alternation_without_group;
+          Alcotest.test_case "Leading ']' is a literal bracket member" `Quick
+            check_leading_bracket_literal;
+          Alcotest.test_case "Escaped range endpoint" `Quick
+            check_escaped_range_endpoint;
         ]
       );
       ( "injections",
