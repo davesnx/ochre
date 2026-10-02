@@ -1,5 +1,8 @@
 ## Unreleased
 
+- Fix an uncaught `Invalid_argument "String.sub / Bytes.sub"` when a grammar has a simple capture followed by a sibling capture with nested patterns, which crashed ordinary Markdown, CSS, Go, dotenv, and shellsession input.
+- Fix quadratic tokenization time on long lines. Tokenizing a line now takes time proportional to its length.
+- Check the committed HTML, SVG, LaTeX, ANSI, and token previews in `dune build @runtest`, so that output changes are visible as test failures.
 - Escape decoration-supplied `class_`, `style`, and `data` values (and grammar scope names) before writing them into HTML/SVG attributes, closing an HTML/SVG injection hole for decorations built from untrusted strings.
 - Reject `Decoration.make ~data` keys that are not valid `data-*` attribute-name characters, instead of writing them unescaped into the attribute name.
 - Normalize `Html_options.make ~css_variable_prefix` to always end with `-`.
