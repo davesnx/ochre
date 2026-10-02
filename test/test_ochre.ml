@@ -589,6 +589,28 @@ let test_decoration_invalid_utf8 () =
     Alcotest.fail "invalid UTF-8 should raise Invalid_argument"
   with Invalid_argument _ -> ()
 
+let test_decoration_invalid_data_key () =
+  (* A data key becomes part of a data-* attribute name, so characters that
+     would break out of it must be rejected at construction time. *)
+  try
+    ignore
+      (Ochre.Decoration.make
+         ~data:[ ({|note"onmouseover="x|}, "value") ]
+         ~start:(Ochre.Decoration.pos 0 0) ~end_:(Ochre.Decoration.pos 0 1) ()
+      );
+    Alcotest.fail "invalid data key should raise Invalid_argument"
+  with Invalid_argument _ -> ()
+
+let test_decoration_empty_data_key () =
+  try
+    ignore
+      (Ochre.Decoration.make
+         ~data:[ ("", "value") ]
+         ~start:(Ochre.Decoration.pos 0 0) ~end_:(Ochre.Decoration.pos 0 1) ()
+      );
+    Alcotest.fail "empty data key should raise Invalid_argument"
+  with Invalid_argument _ -> ()
+
 let test_decoration_overlapping () =
   (* Source: "abcd". Two decorations overlap on "bc" *)
   let tokens = [ [ make_tok "abcd" ] ] in
@@ -1110,6 +1132,8 @@ let () =
           test_case "Unicode scalar negative positions" `Quick
             test_decoration_unicode_negative_character;
           test_case "Invalid UTF-8" `Quick test_decoration_invalid_utf8;
+          test_case "Invalid data key" `Quick test_decoration_invalid_data_key;
+          test_case "Empty data key" `Quick test_decoration_empty_data_key;
           test_case "Overlapping decorations" `Quick test_decoration_overlapping;
           test_case "Multiline decoration" `Quick test_decoration_multiline;
           test_case "Decoration with highlighter" `Quick

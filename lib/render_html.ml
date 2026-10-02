@@ -98,18 +98,25 @@ let style_hash s =
   let h = !h land 0x7FFFFFFF in
   Printf.sprintf "%x" h
 
-type class_registry = { mutable map : (string * string) list; prefix : string }
-(** Registry for collecting style->class mappings during rendering. *)
+type class_registry = {
+  table : (string, string) Hashtbl.t;
+  mutable order : (string * string) list;
+  prefix : string;
+}
+(** Registry for collecting style->class mappings during rendering. [table]
+    gives O(1) dedup lookup per token; [order] tracks insertion order for
+    {!collect_classes}. *)
 
-let create_registry prefix = { map = []; prefix }
+let create_registry prefix = { table = Hashtbl.create 16; order = []; prefix }
 
 let class_for_style registry style =
-  match List.assoc_opt style registry.map with
+  match Hashtbl.find_opt registry.table style with
   | Some cls ->
       cls
   | None ->
       let cls = registry.prefix ^ style_hash style in
-      registry.map <- (style, cls) :: registry.map;
+      Hashtbl.add registry.table style cls;
+      registry.order <- (style, cls) :: registry.order;
       cls
 
 let render_span_attrs ~options ~registry style decoration scopes =
@@ -118,19 +125,26 @@ let render_span_attrs ~options ~registry style decoration scopes =
   (* scope data attribute *)
   let attrs =
     if options.scopes_as_data_attrs && scopes <> [] then
-      Printf.sprintf "data-scope=\"%s\"" (String.concat " " scopes) :: attrs
+      Printf.sprintf "data-scope=\"%s\"" (escape_text (String.concat " " scopes))
+      :: attrs
     else
       attrs
   in
-  (* decoration properties *)
+  (* decoration properties: class_/style/data come from the Decoration.make
+     caller, not the tokenized source, so they must be escaped like any other
+     attribute value. *)
+  let escaped = Option.map Render_decoration.escape decoration in
+  let escaped_class =
+    Option.bind escaped (fun (e : Render_decoration.escaped) -> e.class_)
+  in
   let attrs, extra_style =
-    match decoration with
+    match escaped with
     | None ->
         (attrs, None)
-    | Some (dec : decoration_properties) ->
+    | Some (esc : Render_decoration.escaped) ->
         let a = attrs in
         let a =
-          match dec.class_ with
+          match esc.class_ with
           | Some c ->
               Printf.sprintf "class=\"%s\"" c :: a
           | None ->
@@ -139,9 +153,9 @@ let render_span_attrs ~options ~registry style decoration scopes =
         let a =
           List.fold_left
             (fun acc (k, v) -> Printf.sprintf "data-%s=\"%s\"" k v :: acc)
-            a dec.data
+            a esc.data
         in
-        (a, dec.style)
+        (a, esc.style)
   in
   let combined_style =
     match (style, extra_style) with
@@ -186,16 +200,16 @@ let render_span_attrs ~options ~registry style decoration scopes =
               if combined_style <> "" then
                 let cls = class_for_style reg combined_style in
                 (* merge with existing class attr from decoration *)
-                match decoration with
-                | Some { class_ = Some existing; _ } ->
+                match escaped_class with
+                | Some existing ->
                     Printf.sprintf "class=\"%s %s\"" existing cls
-                | _ ->
+                | None ->
                     Printf.sprintf "class=\"%s\"" cls
               else
-                match decoration with
-                | Some { class_ = Some c; _ } ->
+                match escaped_class with
+                | Some c ->
                     Printf.sprintf "class=\"%s\"" c
-                | _ ->
+                | None ->
                     ""
             in
             (* filter out the old class attr from attrs, add new one *)
@@ -398,7 +412,7 @@ let collect_classes registry =
     (fun (style, cls) ->
       Buffer.add_string buf (Printf.sprintf ".%s { %s }\n" cls style)
     )
-    (List.rev registry.map);
+    (List.rev registry.order);
   Buffer.contents buf
 
 let render_theme_css ~class_prefix (theme : Theme.theme) code =

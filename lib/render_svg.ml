@@ -61,14 +61,15 @@ let render_token (token : styled_token) =
     | None ->
         attrs
     | Some dec -> (
+        let esc = Render_decoration.escape dec in
         let attrs =
-          match dec.class_ with
+          match esc.class_ with
           | Some c ->
               Printf.sprintf "class=\"%s\"" c :: attrs
           | None ->
               attrs
         in
-        match dec.style with
+        match esc.style with
         | Some s ->
             Printf.sprintf "style=\"%s\"" s :: attrs
         | None ->
@@ -80,6 +81,26 @@ let render_token (token : styled_token) =
   else
     Printf.sprintf "<tspan %s>%s</tspan>" (String.concat " " attrs) text
 
+(* Each source line keeps its trailing '\n' as the last character of its last
+   token (see [Ochre.split_lines]). SVG already positions each line with its
+   own [y], so that newline is neither needed nor visible; keeping it would
+   both inflate the computed width and leave a literal newline inside a
+   [tspan]. Drop it, the way [render_latex]'s escaper drops embedded '\n'. *)
+let strip_trailing_newline line =
+  match List.rev line with
+  | [] ->
+      []
+  | (last : styled_token) :: rest ->
+      let len = String.length last.text in
+      if len > 0 && last.text.[len - 1] = '\n' then
+        let text = String.sub last.text 0 (len - 1) in
+        if text = "" then
+          List.rev rest
+        else
+          List.rev ({ last with text } :: rest)
+      else
+        line
+
 let render_line ~y line =
   let tokens = String.concat "" (List.map render_token line) in
   Printf.sprintf
@@ -88,6 +109,7 @@ let render_line ~y line =
     padding y font_family font_size tokens
 
 let render theme (code : highlighted_code) =
+  let code = List.map strip_trailing_newline code in
   let row_height = font_size *. line_height in
   let num_lines = List.length code in
   let max_chars =

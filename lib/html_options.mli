@@ -12,7 +12,8 @@ type style_mode =
   | Css_classes of { class_prefix : string }
       (** Replace inline styles with deterministic CSS class names. Each unique
           style combination gets a class like [<prefix><hash>]. Use
-          {!Render_html.collect_classes} to extract a CSS stylesheet after
+          {!Render_html.render_theme_css} (exposed as
+          {!Ochre.html_render_theme_css}) to extract a CSS stylesheet after
           rendering. *)
 
 (** Whether the primary theme's colors are emitted as inline CSS properties.
@@ -45,7 +46,8 @@ type t = {
     - [code_class]: extra class(es) for the [<code>] element.
     - [line_numbers]: emit [data-line="N"] on each line [<span>].
     - [css_variable_prefix]: prefix for CSS custom properties (default
-      ["--ochre-"]).
+      ["--ochre-"]). {!make} appends a trailing ['-'] if missing, so a value
+      built straight from this field always ends with ['-'].
     - [scopes_as_data_attrs]: emit [data-scope="..."] on token [<span>]s. *)
 
 val default : t
@@ -62,4 +64,7 @@ val make :
   ?scopes_as_data_attrs:bool ->
   unit ->
   t
-(** Construct options with defaults for any unspecified fields. *)
+(** Construct options with defaults for any unspecified fields.
+
+    [css_variable_prefix] must end with ['-']; if the given value does not, a
+    ['-'] is appended. *)

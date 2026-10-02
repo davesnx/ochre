@@ -27,7 +27,10 @@ type properties = {
     - [class_] maps to an HTML [class] attribute (or equivalent in other
       formats).
     - [style] maps to an inline [style] attribute.
-    - [data] maps to [data-*] attributes in HTML; ignored in other formats. *)
+    - [data] maps to [data-*] attributes in HTML; ignored in other formats. Keys
+      become part of the attribute name, so {!make} only accepts keys made of
+      letters, digits, ['-'], and ['_']. Values are free text and are escaped by
+      the renderer. *)
 
 type t = { start : position; end_ : position; properties : properties }
 (** {2 t}
@@ -52,6 +55,9 @@ val make :
 (** {2 make}
 
     Create a decoration with the given properties and range.
+
+    Raises [Invalid_argument] if a [data] key is empty or contains a character
+    other than a letter, digit, ['-'], or ['_'] (see {!properties}).
 
     {[
     let d =

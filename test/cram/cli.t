@@ -46,7 +46,7 @@ LaTeX output
 SVG output (header only)
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord --format svg | head -2
-  <svg xmlns="http://www.w3.org/2000/svg" width="104" height="38" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px">
+  <svg xmlns="http://www.w3.org/2000/svg" width="96" height="38" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px">
    <rect width="100%" height="100%" fill="#2e3440"/>
 
 Dual-theme HTML emits dark CSS custom properties with light as default
