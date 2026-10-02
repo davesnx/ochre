@@ -10,7 +10,28 @@ type t = { start : position; end_ : position; properties : properties }
 
 let pos line character = { line; character }
 
+let valid_data_key_char = function
+  | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '-' | '_' ->
+      true
+  | _ ->
+      false
+
+let invalid_data_key key =
+  invalid_arg
+    (Printf.sprintf
+       "Decoration.make: invalid data key %S (must be non-empty and contain \
+        only letters, digits, '-', or '_', since it becomes part of a data-* \
+        attribute name)"
+       key
+    )
+
 let make ?class_ ?style ?(data = []) ~start ~end_ () =
+  List.iter
+    (fun (key, _) ->
+      if key = "" || not (String.for_all valid_data_key_char key) then
+        invalid_data_key key
+    )
+    data;
   { start; end_; properties = { class_; style; data } }
 
 let invalid_utf8 () = invalid_arg "Decoration.apply: source is not valid UTF-8"

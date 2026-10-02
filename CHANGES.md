@@ -1,3 +1,11 @@
+## Unreleased
+
+- Escape decoration-supplied `class_`, `style`, and `data` values (and grammar scope names) before writing them into HTML/SVG attributes, closing an HTML/SVG injection hole for decorations built from untrusted strings.
+- Reject `Decoration.make ~data` keys that are not valid `data-*` attribute-name characters, instead of writing them unescaped into the attribute name.
+- Normalize `Html_options.make ~css_variable_prefix` to always end with `-`.
+- Stop counting a line's trailing newline towards SVG output width.
+- Document that decorations are applied by the HTML and SVG renderers only; ANSI and LaTeX output ignore them.
+
 ## 1.1.0
 
 - Add built-in `plaintext`/`text`/`txt` languages that produce unstyled tokens without a grammar, in both the library and the CLI.

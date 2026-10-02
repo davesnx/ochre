@@ -8,8 +8,8 @@
 (** {2 Class registry}
 
     When using [Html_options.Css_classes] mode, the renderer collects a mapping
-    from inline styles to generated class names. Use {!collect_classes} after
-    rendering to extract a CSS stylesheet. *)
+    from inline styles to generated class names. Use {!render_theme_css} to
+    extract a CSS stylesheet for a theme and a set of highlighted code. *)
 
 type class_registry
 (** Opaque type holding style-to-class mappings. *)
