@@ -33,9 +33,13 @@ let output_formats =
     (fun f -> (string_of_output_format f, f))
     [ Html; Ansi; Latex; Svg; Tokens ]
 
-let configure_oniguruma_limits () =
-  Oniguruma.set_retry_limit_in_match 1_000_000;
-  Oniguruma.set_match_stack_limit_size 100_000
+let oniguruma_limits =
+  lazy
+    ( Oniguruma.set_retry_limit_in_match 1_000_000;
+      Oniguruma.set_match_stack_limit_size 100_000
+    )
+
+let configure_oniguruma_limits () = Lazy.force oniguruma_limits
 
 let load_exn grammars =
   configure_oniguruma_limits ();

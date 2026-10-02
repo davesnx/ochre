@@ -29,6 +29,13 @@ ochre LANG [FILE] [OPTION]...
 - `--css-var-prefix PREFIX` — CSS custom property prefix for multi-theme output (default: `--ochre-`).
 - `--scopes-data` — Add `data-scope` attributes to token spans in HTML output with TextMate scope names.
 
+## Exit codes
+
+- `0` — success.
+- `1` — a user/input error: an invalid command line (unknown option, too many arguments, a missing required argument), an unresolvable language/theme/grammar, a malformed theme/grammar file, a missing input file, or any other error this CLI can name. Reported on standard error as `ochre: <message>`.
+- `124` — an option given a malformed value (wrong type, e.g. `--format`) or missing its required value (e.g. `--theme` with no argument).
+- `125` — an unexpected internal error (a bug — please report it).
+
 ## Examples
 
 

@@ -103,7 +103,7 @@ Include a bundled grammar by name
 Unknown language reports an error
 
   $ printf 'x\n' | ochre notareallang 2>error.log; echo "exit: $?"
-  exit: 124
+  exit: 1
   $ head -1 error.log | cut -c1-42
   ochre: No bundled grammar for 'notareallan
 
@@ -113,3 +113,95 @@ Invalid format is a usage error
   exit: 124
   $ head -1 usage.log
   Usage: ochre [--help] [OPTION]… LANG [FILE]
+
+A valid --theme file works
+
+  $ cat > good-theme.json <<'EOF'
+  > {
+  >   "name": "good",
+  >   "colors": { "editor.foreground": "#111111", "editor.background": "#222222" },
+  >   "tokenColors": [
+  >     { "scope": "keyword", "settings": { "foreground": "#ff0000" } }
+  >   ]
+  > }
+  > EOF
+  $ printf 'let x = 1\n' | ochre ocaml --theme good-theme.json --format tokens
+  line 1:
+    "let"  keyword.ocaml, source.ocaml
+    " "  source.ocaml
+    "x"  entity.name.function.binding.ocaml, source.ocaml
+    " "  source.ocaml
+    "="  keyword.operator.ocaml, source.ocaml
+    " "  source.ocaml
+    "1"  constant.numeric.decimal.integer.ocaml, source.ocaml
+    "\n"  source.ocaml
+
+A malformed --theme file is a clean error, not a crash
+
+  $ printf '{not valid json' > bad-theme.json
+  $ printf 'let x = 1\n' | ochre ocaml --theme bad-theme.json 2>theme-malformed.log; echo "exit: $?"
+  exit: 1
+  $ cat theme-malformed.log
+  ochre: bad-theme.json: invalid JSON: Line 1, bytes 5-15: Expected ':' but
+         found 'valid json'
+
+A missing --theme file reports it is not a built-in name or a file
+
+  $ printf 'let x = 1\n' | ochre ocaml --theme ./does-not-exist-theme.json 2>theme-missing.log; echo "exit: $?"
+  exit: 1
+  $ cat theme-missing.log
+  ochre: Unknown theme './does-not-exist-theme.json': not a built-in name and
+         not a file. Available: dark, light, tokyonight, everforest, ayu,
+         catppuccin, catppuccin-macchiato, gruvbox, kanagawa, nord, matrix,
+         one-dark
+
+A typo'd built-in --theme name lists the available names
+
+  $ printf 'let x = 1\n' | ochre ocaml --theme not-a-real-theme 2>theme-typo.log; echo "exit: $?"
+  exit: 1
+  $ cat theme-typo.log
+  ochre: Unknown theme 'not-a-real-theme': not a built-in name and not a file.
+         Available: dark, light, tokyonight, everforest, ayu, catppuccin,
+         catppuccin-macchiato, gruvbox, kanagawa, nord, matrix, one-dark
+
+A valid --grammar file matching LANG works
+
+  $ cat > foo.tmLanguage.json <<'EOF'
+  > { "scopeName": "source.foo", "name": "foo", "patterns": [] }
+  > EOF
+  $ printf 'let x = 1\n' | ochre foo --grammar foo.tmLanguage.json --format tokens
+  line 1:
+    "let x = 1\n"  source.foo
+
+A --grammar file whose filename-derived id does not match LANG explains the rule
+
+  $ printf 'let x = 1\n' | ochre javascript --grammar foo.tmLanguage.json 2>grammar-mismatch.log; echo "exit: $?"
+  exit: 1
+  $ cat grammar-mismatch.log
+  ochre: LANG is 'javascript' but none of the --grammar files register under
+         that id. A --grammar file's id comes from its filename (e.g.
+         'ocaml.tmLanguage.json' registers as 'ocaml'); rename the file or
+         change LANG to match.
+
+A malformed --grammar file is a clean error, not a crash
+
+  $ printf '{not valid json' > bad.tmLanguage.json
+  $ printf 'let x = 1\n' | ochre bad --grammar bad.tmLanguage.json 2>grammar-malformed.log; echo "exit: $?"
+  exit: 1
+  $ cat grammar-malformed.log
+  ochre: grammar 'bad': invalid JSON: Line 1, bytes 5-15: Expected ':' but
+         found 'valid json'
+
+A missing input file is a clean error
+
+  $ ochre ocaml does-not-exist.ml 2>missing-input.log; echo "exit: $?"
+  exit: 1
+  $ cat missing-input.log
+  ochre: does-not-exist.ml: No such file or directory
+
+A missing LANG is a user/input error (not a parse-time value error)
+
+  $ printf 'x\n' | ochre 2>missing-lang.log; echo "exit: $?"
+  exit: 1
+  $ head -2 missing-lang.log | tail -1
+  ochre: required argument LANG is missing

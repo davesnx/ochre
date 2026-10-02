@@ -90,7 +90,7 @@ let theme =
 ```ocaml
 val load_exn : ?base_dir:string -> string -> theme
 ```
-Like [`load`](./#val-load) but raises on failure.
+Like [`load`](./#val-load) but raises `Failure` when the JSON is malformed or contains invalid theme data.
 
 
 ### load\_from\_file
@@ -115,7 +115,7 @@ match Ochre.Theme.load_from_file "/path/to/theme.json" with
 ```ocaml
 val load_from_file_exn : string -> theme
 ```
-Like [`load_from_file`](./#val-load_from_file) but raises on failure.
+Like [`load_from_file`](./#val-load_from_file) but raises `Failure` when the file cannot be read or contains invalid theme data.
 
 ```ocaml
 let theme = Ochre.Theme.load_from_file_exn "/path/to/theme.json"
@@ -181,6 +181,14 @@ Look up a built-in theme by name. Returns `None` when the name is not recognised
 ```ocaml
 let theme = Ochre.Theme.find "nord"
 ```
+
+### themes
+
+```ocaml
+val themes : (string * theme) list
+```
+All built-in themes as `(name, theme)` pairs.
+
 
 ### Built-in themes
 

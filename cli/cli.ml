@@ -69,9 +69,18 @@ let default_theme =
 let resolve_theme_name_or_path name_or_path =
   match builtin_theme name_or_path with
   | Some theme ->
-      theme
+      Ok theme
   | None ->
-      Ochre.Theme.load_from_file_exn name_or_path
+      if Sys.file_exists name_or_path then
+        Ochre.Theme.load_from_file name_or_path
+      else
+        Error
+          (Printf.sprintf
+             "Unknown theme '%s': not a built-in name and not a file. \
+              Available: %s"
+             name_or_path
+             (String.concat ", " Ochre.Theme.available_names)
+          )
 
 let error msg = `Error (false, msg)
 
@@ -109,7 +118,7 @@ let resolve_theme ~theme_path ~theme_dark ~theme_light =
           | Some name_or_path ->
               resolve_theme_name_or_path name_or_path
           | None ->
-              default_theme
+              Ok default_theme
         )
     )
 
@@ -117,12 +126,20 @@ let resolve_theme ~theme_path ~theme_dark ~theme_light =
     (without --theme), use multi-theme rendering with CSS custom properties. *)
 let resolve_multi_themes ~theme_path ~theme_dark ~theme_light ~format =
   match (format, theme_path, theme_light, theme_dark) with
-  | Ochre.Html, None, Some light_name, Some dark_name ->
-      let light = resolve_theme_name_or_path light_name in
-      let dark = resolve_theme_name_or_path dark_name in
-      Some (light, [ ("dark", dark) ])
+  | Ochre.Html, None, Some light_name, Some dark_name -> (
+      match resolve_theme_name_or_path light_name with
+      | Error _ as err ->
+          err
+      | Ok light -> (
+          match resolve_theme_name_or_path dark_name with
+          | Error _ as err ->
+              err
+          | Ok dark ->
+              Ok (Some (light, [ ("dark", dark) ]))
+        )
+    )
   | _ ->
-      None
+      Ok None
 
 let build_html_options ~css_classes ~line_numbers ~no_default_color
     ~css_var_prefix ~scopes_data =
@@ -214,7 +231,22 @@ let highlight lang theme_path theme_dark theme_light grammars includes format
                 let file_grammars =
                   List.map grammar_json_of_path grammars_arg
                 in
-                Ochre.load (file_grammars @ include_grammars)
+                let lang_is_covered =
+                  List.exists (fun (id, _) -> id = lang) file_grammars
+                  || List.exists (fun (id, _) -> id = lang) include_grammars
+                  || List.mem lang [ "plaintext"; "text"; "txt" ]
+                in
+                if not lang_is_covered then
+                  Error
+                    (Printf.sprintf
+                       "LANG is '%s' but none of the --grammar files register \
+                        under that id. A --grammar file's id comes from its \
+                        filename (e.g. 'ocaml.tmLanguage.json' registers as \
+                        'ocaml'); rename the file or change LANG to match."
+                       lang
+                    )
+                else
+                  Ochre.load (file_grammars @ include_grammars)
             | [] -> (
                 match Tm_grammars.find lang with
                 | Some json ->
@@ -243,12 +275,18 @@ let highlight lang theme_path theme_dark theme_light grammars includes format
           match
             resolve_multi_themes ~theme_path ~theme_dark ~theme_light ~format
           with
-          | Some (theme, extra_themes) ->
+          | Error msg ->
+              error msg
+          | Ok (Some (theme, extra_themes)) ->
               render_html_multi highlighter ~theme ~extra_themes ~lang ~options
                 source
-          | None ->
-              let theme = resolve_theme ~theme_path ~theme_dark ~theme_light in
-              render highlighter ~theme ~lang ~format ~options source
+          | Ok None -> (
+              match resolve_theme ~theme_path ~theme_dark ~theme_light with
+              | Error msg ->
+                  error msg
+              | Ok theme ->
+                  render highlighter ~theme ~lang ~format ~options source
+            )
         )
     )
 
@@ -361,9 +399,27 @@ let version =
   | Some v ->
       Build_info.V1.Version.to_string v
 
+let exits =
+  [
+    Cmd.Exit.info Cmd.Exit.ok ~doc:"on success.";
+    Cmd.Exit.info 1
+      ~doc:
+        "on a user/input error: an invalid command line (unknown option, too \
+         many arguments, a missing required argument), an unresolvable \
+         language/theme/grammar, a malformed theme/grammar file, a missing \
+         input file, or any other error this CLI can name. Reported on \
+         standard error as \"ochre: <message>\".";
+    Cmd.Exit.info Cmd.Exit.cli_error
+      ~doc:
+        "on an option given a malformed value (wrong type, e.g. --format) or \
+         missing its required value (e.g. --theme with no argument).";
+    Cmd.Exit.info Cmd.Exit.internal_error
+      ~doc:"on an unexpected internal error (a bug - please report it).";
+  ]
+
 let cmd =
   let doc = "Syntax highlighter using TextMate grammars and themes" in
-  let info = Cmd.info "ochre" ~version ~doc in
+  let info = Cmd.info "ochre" ~version ~doc ~exits in
   Cmd.v info
     Term.(
       ret
@@ -374,7 +430,10 @@ let cmd =
     )
 
 let () =
-  try exit (Cmd.eval ~catch:false cmd)
-  with Sys_error msg | Failure msg | Invalid_argument msg ->
-    prerr_endline ("ochre: " ^ msg);
-    exit 1
+  try exit (Cmd.eval ~catch:false ~term_err:1 cmd) with
+  | Sys_error msg | Failure msg | Invalid_argument msg ->
+      prerr_endline ("ochre: " ^ msg);
+      exit 1
+  | exn ->
+      prerr_endline ("ochre: " ^ Printexc.to_string exn);
+      exit 1

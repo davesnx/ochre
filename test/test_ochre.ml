@@ -1019,6 +1019,136 @@ let test_plaintext_langs () =
       ignore (Ochre.to_tokens hl ~theme ~lang:"nope" "x")
   )
 
+let has_sub s sub =
+  let sub_len = String.length sub in
+  let max_start = String.length s - sub_len in
+  let rec scan i =
+    i <= max_start && (String.sub s i sub_len = sub || scan (i + 1))
+  in
+  max_start >= 0 && scan 0
+
+let assert_raises_failure name f =
+  match f () with
+  | _ ->
+      Alcotest.fail (name ^ ": expected a Failure exception, raised none")
+  | exception Failure msg ->
+      msg
+  | exception exn ->
+      Alcotest.fail
+        (Printf.sprintf "%s: expected Failure, got %s" name
+           (Printexc.to_string exn)
+        )
+
+let test_load_exn_wraps_malformed_json () =
+  ignore
+    (assert_raises_failure "Ochre.load_exn with malformed grammar JSON"
+       (fun () -> ignore (Ochre.load_exn [ ("bad", "{not valid json") ])
+     )
+    )
+
+let test_theme_load_exn_wraps_malformed_json () =
+  ignore
+    (assert_raises_failure "Ochre.Theme.load_exn with malformed theme JSON"
+       (fun () -> ignore (Ochre.Theme.load_exn "{not valid json")
+     )
+    )
+
+let test_load_exn_rejects_duplicate_ids () =
+  ignore
+    (assert_raises_failure "Ochre.load_exn with a duplicate language id"
+       (fun () ->
+         ignore (Ochre.load_exn [ ("dup", grammar_json); ("dup", grammar_json) ])
+     )
+    )
+
+let test_malformed_json_message_is_readable () =
+  let msg =
+    assert_raises_failure "Ochre.load_exn with malformed grammar JSON"
+      (fun () -> ignore (Ochre.load_exn [ ("bad", "{not valid json") ])
+    )
+  in
+  Alcotest.(check bool)
+    "names the lang id, no OCaml exception constructor name" true
+    (has_sub msg "bad" && has_sub msg "invalid JSON"
+    && (not (has_sub msg "Yojson"))
+    && not (has_sub msg "Json_error")
+    );
+  let theme_msg =
+    assert_raises_failure "Ochre.Theme.load_exn with malformed theme JSON"
+      (fun () -> ignore (Ochre.Theme.load_exn "{not valid json")
+    )
+  in
+  Alcotest.(check bool)
+    "no OCaml exception constructor name" true
+    (has_sub theme_msg "invalid JSON"
+    && (not (has_sub theme_msg "Yojson"))
+    && not (has_sub theme_msg "Json_error")
+    );
+  let path = "bad-theme-test.json" in
+  let oc = open_out path in
+  output_string oc "{not valid json";
+  close_out oc;
+  let file_msg =
+    assert_raises_failure "Ochre.Theme.load_from_file_exn with malformed JSON"
+      (fun () -> ignore (Ochre.Theme.load_from_file_exn path)
+    )
+  in
+  Sys.remove path;
+  Alcotest.(check bool)
+    "names the file path, no OCaml exception constructor name" true
+    (has_sub file_msg path
+    && has_sub file_msg "invalid JSON"
+    && (not (has_sub file_msg "Yojson"))
+    && not (has_sub file_msg "Json_error")
+    );
+  let grammar_path = "bad-grammar.tmLanguage.json" in
+  let oc = open_out grammar_path in
+  output_string oc "{not valid json";
+  close_out oc;
+  let grammar_file_msg =
+    assert_raises_failure "Ochre.load_from_files_exn with malformed JSON"
+      (fun () -> ignore (Ochre.load_from_files_exn [ grammar_path ])
+    )
+  in
+  Sys.remove grammar_path;
+  Alcotest.(check bool)
+    "names the file path, no OCaml exception constructor name" true
+    (has_sub grammar_file_msg grammar_path
+    && has_sub grammar_file_msg "invalid JSON"
+    && (not (has_sub grammar_file_msg "Yojson"))
+    && not (has_sub grammar_file_msg "Json_error")
+    )
+
+let test_missing_file_message_hides_sys_error () =
+  let missing_theme = "does-not-exist-theme.json" in
+  let theme_msg =
+    assert_raises_failure "Ochre.Theme.load_from_file_exn with a missing file"
+      (fun () -> ignore (Ochre.Theme.load_from_file_exn missing_theme)
+    )
+  in
+  Alcotest.(check bool)
+    "names the path, no Sys_error constructor name" true
+    (has_sub theme_msg missing_theme && not (has_sub theme_msg "Sys_error"));
+  let missing_grammar = "does-not-exist-grammar.tmLanguage.json" in
+  let grammar_msg =
+    assert_raises_failure "Ochre.load_from_files_exn with a missing file"
+      (fun () -> ignore (Ochre.load_from_files_exn [ missing_grammar ])
+    )
+  in
+  Alcotest.(check bool)
+    "names the path, no Sys_error constructor name" true
+    (has_sub grammar_msg missing_grammar
+    && not (has_sub grammar_msg "Sys_error")
+    )
+
+let test_load_rejects_duplicate_ids () =
+  match Ochre.load [ ("dup", grammar_json); ("dup", grammar_json) ] with
+  | Error msg ->
+      Alcotest.(check bool)
+        "error names the duplicate id" true (has_sub msg "dup")
+  | Ok _ ->
+      Alcotest.fail "expected duplicate language id to be rejected"
+
 let test_to_string_html_options_extra_themes () =
   let hl = highlight () in
   let options = Ochre.Html_options.make ~line_numbers:true () in
@@ -1078,6 +1208,24 @@ let () =
             test_capture_arrays_in_grammar;
           test_case "Plaintext languages without a grammar" `Quick
             test_plaintext_langs;
+        ]
+      );
+      ( "errors",
+        [
+          test_case "load_exn wraps malformed grammar JSON as Failure" `Quick
+            test_load_exn_wraps_malformed_json;
+          test_case "Theme.load_exn wraps malformed theme JSON as Failure"
+            `Quick test_theme_load_exn_wraps_malformed_json;
+          test_case "load_exn rejects a duplicate language id" `Quick
+            test_load_exn_rejects_duplicate_ids;
+          test_case "load returns Error for a duplicate language id" `Quick
+            test_load_rejects_duplicate_ids;
+          test_case
+            "malformed JSON message names the source and hides the OCaml \
+             exception"
+            `Quick test_malformed_json_message_is_readable;
+          test_case "missing file message names the path and hides Sys_error"
+            `Quick test_missing_file_message_hides_sys_error;
         ]
       );
       ( "backend",

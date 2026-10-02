@@ -29,9 +29,16 @@ val load : (string * string) list -> (t, string) result
 (** Load a highlighter from grammar JSON strings.
 
     Each pair is [(lang_id, json_content)] where [lang_id] is the language
-    identifier and [json_content] is the raw TextMate grammar JSON.
+    identifier and [json_content] is the raw TextMate grammar JSON. Each
+    [lang_id] must be unique.
 
-    Returns [Error msg] when a grammar fails to parse.
+    Returns [Error msg] when a grammar fails to parse or a [lang_id] is
+    duplicated.
+
+    The first call to {!val-load}, {!val-load_exn}, {!val-load_from_files}, or
+    {!val-load_from_files_exn} in a process configures ochre's Oniguruma regex
+    engine limits (retry and match-stack size) process-wide; later calls do not
+    change them.
 
     {@ocaml[
     match Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ] with
@@ -44,7 +51,8 @@ val load : (string * string) list -> (t, string) result
 (** {2 load_exn} *)
 
 val load_exn : (string * string) list -> t
-(** Like {!val-load} but raises on failure.
+(** Like {!val-load} but raises [Failure] when a grammar fails to parse or a
+    [lang_id] is duplicated.
 
     {@ocaml[
     let hl = Ochre.load_exn [ ("ocaml", Tm_grammar_ocaml.json) ]
@@ -57,9 +65,10 @@ val load_from_files : string list -> (t, string) result
 
     Each grammar is a path to a [.tmLanguage.json] file. The language identifier
     is derived from the filename (e.g. ["ocaml.tmLanguage.json"] registers as
-    ["ocaml"]).
+    ["ocaml"]) and must be unique across the given files.
 
-    Returns [Error msg] when a file cannot be read or a grammar fails to parse.
+    Returns [Error msg] when a file cannot be read, a grammar fails to parse, or
+    two files derive the same language id.
 
     {@ocaml[
     match
@@ -74,7 +83,8 @@ val load_from_files : string list -> (t, string) result
 (** {2 load_from_files_exn} *)
 
 val load_from_files_exn : string list -> t
-(** Like {!val-load_from_files} but raises on failure.
+(** Like {!val-load_from_files} but raises [Failure] when a file cannot be read,
+    a grammar fails to parse, or two files derive the same language id.
 
     {@ocaml[
     let hl =
@@ -222,7 +232,8 @@ module Theme : sig
   (** {2 load_exn} *)
 
   val load_exn : ?base_dir:string -> string -> theme
-  (** Like {!val-load} but raises on failure. *)
+  (** Like {!val-load} but raises [Failure] when the JSON is malformed or
+      contains invalid theme data. *)
 
   (** {2 load_from_file} *)
 
@@ -244,7 +255,8 @@ module Theme : sig
   (** {2 load_from_file_exn} *)
 
   val load_from_file_exn : string -> theme
-  (** Like {!val-load_from_file} but raises on failure.
+  (** Like {!val-load_from_file} but raises [Failure] when the file cannot be
+      read or contains invalid theme data.
 
       {@ocaml[
       let theme = Ochre.Theme.load_from_file_exn "/path/to/theme.json"
@@ -301,6 +313,11 @@ module Theme : sig
       {@ocaml[
       let theme = Ochre.Theme.find "nord"
       ]} *)
+
+  (** {2 themes} *)
+
+  val themes : (string * theme) list
+  (** All built-in themes as [(name, theme)] pairs. *)
 
   (** {2 Built-in themes} *)
 
@@ -439,6 +456,8 @@ val to_html :
   string ->
   string
 (** Highlight source code to HTML.
+
+    Raises [Failure] if the grammar for [lang] cannot be found.
 
     {3 Single theme}
 

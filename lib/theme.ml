@@ -29,6 +29,10 @@ type loaded_theme_data = {
   token_colors : token_color_rule list;
 }
 
+(* Yojson's own message already names the line/byte range; just fold its
+   embedded newline so the error reads as one line. *)
+let describe_json_error msg = String.map (function '\n' -> ' ' | c -> c) msg
+
 let empty_settings = { foreground = None; background = None; font_style = None }
 
 let rule ?name ?(scope = []) ?foreground ?background ?font_style () =
@@ -365,7 +369,12 @@ let rec load_theme_data_from_json ?base_dir ~visited json =
       local
 
 and load_theme_data_from_path ~visited path =
-  let json = Yojson.Basic.from_file path in
+  let json =
+    try Yojson.Basic.from_file path
+    with Yojson.Json_error msg ->
+      failwith
+        (Printf.sprintf "%s: invalid JSON: %s" path (describe_json_error msg))
+  in
   let dir = Filename.dirname path in
   load_theme_data_from_json ~base_dir:dir ~visited json
 
@@ -373,31 +382,33 @@ let make ~name ?(colors = []) ~token_colors () =
   finalize_theme ~name ~colors ~fg_legacy:None ~bg_legacy:None ~token_colors
 
 let load_from_file_exn path =
-  let data = load_theme_data_from_path ~visited:[ normalize_path path ] path in
-  let name = Option.value data.name_opt ~default:(Filename.basename path) in
-  finalize_theme ~name ~colors:data.colors ~fg_legacy:data.fg_legacy
-    ~bg_legacy:data.bg_legacy ~token_colors:data.token_colors
+  Exn_utils.wrap_exn (fun () ->
+      let data =
+        load_theme_data_from_path ~visited:[ normalize_path path ] path
+      in
+      let name = Option.value data.name_opt ~default:(Filename.basename path) in
+      finalize_theme ~name ~colors:data.colors ~fg_legacy:data.fg_legacy
+        ~bg_legacy:data.bg_legacy ~token_colors:data.token_colors
+  )
 
 let load_from_file path =
-  try Ok (load_from_file_exn path) with
-  | Failure msg ->
-      Error msg
-  | exn ->
-      Error (Printexc.to_string exn)
+  try Ok (load_from_file_exn path) with Failure msg -> Error msg
 
 let load_exn ?base_dir str =
-  let json = Yojson.Basic.from_string str in
-  let data = load_theme_data_from_json ?base_dir ~visited:[] json in
-  let name = Option.value data.name_opt ~default:"unnamed" in
-  finalize_theme ~name ~colors:data.colors ~fg_legacy:data.fg_legacy
-    ~bg_legacy:data.bg_legacy ~token_colors:data.token_colors
+  Exn_utils.wrap_exn (fun () ->
+      let json =
+        try Yojson.Basic.from_string str
+        with Yojson.Json_error msg ->
+          failwith (Printf.sprintf "invalid JSON: %s" (describe_json_error msg))
+      in
+      let data = load_theme_data_from_json ?base_dir ~visited:[] json in
+      let name = Option.value data.name_opt ~default:"unnamed" in
+      finalize_theme ~name ~colors:data.colors ~fg_legacy:data.fg_legacy
+        ~bg_legacy:data.bg_legacy ~token_colors:data.token_colors
+  )
 
 let load ?base_dir str =
-  try Ok (load_exn ?base_dir str) with
-  | Failure msg ->
-      Error msg
-  | exn ->
-      Error (Printexc.to_string exn)
+  try Ok (load_exn ?base_dir str) with Failure msg -> Error msg
 
 let load_builtin json ~name =
   let theme = load_exn json in

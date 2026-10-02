@@ -31,9 +31,11 @@ val load : (string * string) list -> (t, string) Stdlib.result
 ```
 Load a highlighter from grammar JSON strings.
 
-Each pair is `(lang_id, json_content)` where `lang_id` is the language identifier and `json_content` is the raw TextMate grammar JSON.
+Each pair is `(lang_id, json_content)` where `lang_id` is the language identifier and `json_content` is the raw TextMate grammar JSON. Each `lang_id` must be unique.
 
-Returns `Error msg` when a grammar fails to parse.
+Returns `Error msg` when a grammar fails to parse or a `lang_id` is duplicated.
+
+The first call to [`load`](./#val-load), [`load_exn`](./#val-load_exn), [`load_from_files`](./#val-load_from_files), or [`load_from_files_exn`](./#val-load_from_files_exn) in a process configures ochre's Oniguruma regex engine limits (retry and match-stack size) process-wide; later calls do not change them.
 
 ```ocaml
 match Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ] with
@@ -48,7 +50,7 @@ match Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ] with
 ```ocaml
 val load_exn : (string * string) list -> t
 ```
-Like [`load`](./#val-load) but raises on failure.
+Like [`load`](./#val-load) but raises `Failure` when a grammar fails to parse or a `lang_id` is duplicated.
 
 ```ocaml
 let hl = Ochre.load_exn [ ("ocaml", Tm_grammar_ocaml.json) ]
@@ -61,9 +63,9 @@ val load_from_files : string list -> (t, string) Stdlib.result
 ```
 Load a highlighter from grammar files on disk.
 
-Each grammar is a path to a `.tmLanguage.json` file. The language identifier is derived from the filename (e.g. `"ocaml.tmLanguage.json"` registers as `"ocaml"`).
+Each grammar is a path to a `.tmLanguage.json` file. The language identifier is derived from the filename (e.g. `"ocaml.tmLanguage.json"` registers as `"ocaml"`) and must be unique across the given files.
 
-Returns `Error msg` when a file cannot be read or a grammar fails to parse.
+Returns `Error msg` when a file cannot be read, a grammar fails to parse, or two files derive the same language id.
 
 ```ocaml
 match
@@ -80,7 +82,7 @@ with
 ```ocaml
 val load_from_files_exn : string list -> t
 ```
-Like [`load_from_files`](./#val-load_from_files) but raises on failure.
+Like [`load_from_files`](./#val-load_from_files) but raises `Failure` when a file cannot be read, a grammar fails to parse, or two files derive the same language id.
 
 ```ocaml
 let hl =
@@ -164,6 +166,8 @@ val to_html :
   string
 ```
 Highlight source code to HTML.
+
+Raises `Failure` if the grammar for `lang` cannot be found.
 
 Single theme
 
