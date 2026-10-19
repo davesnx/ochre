@@ -40,21 +40,25 @@ jobs:
         with:
           enablement: true
 
-      - name: Use OCaml
-        uses: ocaml/setup-ocaml@v3.4.5
+      - name: Setup OCaml and dependencies
+        uses: ml-in-barcelona/gh-ci-action@v1.0.0
         with:
           ocaml-compiler: 5.4.0
-          dune-cache: true
-          opam-disable-sandboxing: true
+          pins: |
+            odoc-parser https://github.com/davesnx/odoc.git#markdown-types
+            odoc https://github.com/davesnx/odoc.git#markdown-types
+          with-doc: true
+          with-dev-setup: true
 
-      - name: Pin dependencies
-        run: make pin
-
-      - name: Install opam deps
-        run: make install
+      - name: Load dune cache
+        uses: ml-in-barcelona/gh-ci-action/dune-cache/load@v1.0.0
 
       - name: Build API documentation
         run: opam exec -- dune build @doc
+
+      - name: Save dune cache
+        if: ${{ !cancelled() }}
+        uses: ml-in-barcelona/gh-ci-action/dune-cache/save@v1.0.0
 
       - name: Install LaTeX packages and aha
         run: sudo apt-get update && sudo apt-get install -y texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended aha
