@@ -43,18 +43,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Use OCaml ${{ matrix.ocaml-compiler }}
-        uses: ocaml/setup-ocaml@v3.4.5
+      - name: Setup OCaml and dependencies
+        uses: ml-in-barcelona/gh-ci-action@v1.0.0
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
-          dune-cache: true
-          opam-disable-sandboxing: true
+          pins: |
+            odoc-parser https://github.com/davesnx/odoc.git#markdown-types
+            odoc https://github.com/davesnx/odoc.git#markdown-types
+          with-doc: true
+          with-dev-setup: true
 
-      - name: Pin dependencies
-        run: make pin
-
-      - name: Install opam deps
-        run: make install
+      - name: Load dune cache
+        uses: ml-in-barcelona/gh-ci-action/dune-cache/load@v1.0.0
 
       - name: Build
         run: make build
@@ -64,6 +64,10 @@ jobs:
 
       - name: Run tests
         run: make test
+
+      - name: Save dune cache
+        if: ${{ !cancelled() }}
+        uses: ml-in-barcelona/gh-ci-action/dune-cache/save@v1.0.0
 
       - name: Install dune-release
         if: startsWith(github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest'
@@ -87,16 +91,19 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Use OCaml 4.14.2
-        uses: ocaml/setup-ocaml@v3.4.5
+      - name: Setup OCaml and dependencies
+        uses: ml-in-barcelona/gh-ci-action@v1.0.0
         with:
           ocaml-compiler: 4.14.2
-          dune-cache: true
-          opam-disable-sandboxing: true
+          with-test: false
 
-      - name: Install opam deps
-        run: opam install . --deps-only -y
+      - name: Load dune cache
+        uses: ml-in-barcelona/gh-ci-action/dune-cache/load@v1.0.0
 
       - name: Build packages
         run: opam exec -- dune build -p ochre,ochre-cli
+
+      - name: Save dune cache
+        if: ${{ !cancelled() }}
+        uses: ml-in-barcelona/gh-ci-action/dune-cache/save@v1.0.0
 
