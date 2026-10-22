@@ -40,7 +40,7 @@
   (ezjsonm :with-test)
   (html_of_jsx
    (and
-    (>= 0.0.9)
+    (>= 0.1.1)
     :with-test))
   (tiny_httpd :with-test)
   (odoc

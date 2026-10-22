@@ -1,3 +1,7 @@
+## Unreleased
+
+- Require `html_of_jsx` >= 0.1.1 for the test and preview executables.
+
 ## 1.1.0
 
 - Add built-in `plaintext`/`text`/`txt` languages that produce unstyled tokens without a grammar, in both the library and the CLI.
