@@ -44,12 +44,10 @@ let font_style_attrs styles =
   attrs
 
 let render_token (token : styled_token) =
-  let buf = Buffer.create (String.length token.text) in
-  Escape.html buf token.text;
-  let text = Buffer.contents buf in
+  let text = Escape.to_string Escape.xml token.text in
   let attrs = [] in
   let attrs =
-    match token.foreground with
+    match Option.bind token.foreground Escape.css_color with
     | Some color ->
         Printf.sprintf "fill=\"%s\"" color :: attrs
     | None ->
@@ -61,7 +59,7 @@ let render_token (token : styled_token) =
     | None ->
         attrs
     | Some dec -> (
-        let esc = Render_decoration.escape dec in
+        let esc = Render_decoration.escape_xml dec in
         let attrs =
           match esc.class_ with
           | Some c ->
@@ -128,10 +126,13 @@ let render theme (code : highlighted_code) =
       code
   in
   let body = String.concat "\n" lines in
+  let background =
+    Option.value (Escape.css_color theme.Theme.bg) ~default:"none"
+  in
   Printf.sprintf
     "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"%.0f\" height=\"%.0f\" \
      font-family=\"%s\" font-size=\"%.0fpx\">\n\
     \ <rect width=\"100%%\" height=\"100%%\" fill=\"%s\"/>\n\
      %s\n\
      </svg>"
-    width height font_family font_size theme.Theme.bg body
+    width height font_family font_size background body

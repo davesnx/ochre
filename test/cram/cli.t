@@ -71,7 +71,7 @@ No default color suppresses inline colors
 CSS classes mode
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord --html-css-classes
-  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span class="ochre-6afa81a">let</span><span class="ochre-6e5998fa"> </span><span class="ochre-17276d42">x</span><span class="ochre-6e5998fa"> </span><span class="ochre-6afa81a">=</span><span class="ochre-6e5998fa"> </span><span class="ochre-edd9683">1</span><span class="ochre-6e5998fa">
+  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span class="ochre-e235a20ca1cb1117">let</span><span class="ochre-9a91402e327de2c5"> </span><span class="ochre-1e8b07019ea8aab0">x</span><span class="ochre-9a91402e327de2c5"> </span><span class="ochre-e235a20ca1cb1117">=</span><span class="ochre-9a91402e327de2c5"> </span><span class="ochre-a6b89ebf05d16eb9">1</span><span class="ochre-9a91402e327de2c5">
   </span></span></code></pre>
 
 Line numbers

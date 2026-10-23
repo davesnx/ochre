@@ -1,7 +1,43 @@
 open Cmdliner
 
-let read_file path = In_channel.with_open_bin path In_channel.input_all
-let read_stdin () = In_channel.input_all stdin
+let name_path path msg =
+  if String.starts_with ~prefix:(path ^ ": ") msg then
+    msg
+  else
+    path ^ ": " ^ msg
+
+let read_file path =
+  try In_channel.with_open_bin path In_channel.input_all
+  with Sys_error msg -> failwith (name_path path msg)
+
+let read_stdin () =
+  try In_channel.input_all stdin
+  with Sys_error msg -> failwith (name_path "<stdin>" msg)
+
+exception Output_failed of Unix.error
+
+let write_stdout s =
+  let rec go off =
+    if off < String.length s then
+      match Unix.write_substring Unix.stdout s off (String.length s - off) with
+      | n ->
+          go (off + n)
+      | exception Unix.Unix_error (Unix.EINTR, _, _) ->
+          go off
+      | exception Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _) ->
+          ( match Unix.select [] [ Unix.stdout ] [] (-1.) with
+          | _ ->
+              ()
+          | exception Unix.Unix_error (Unix.EINTR, _, _) ->
+              ()
+          | exception Unix.Unix_error (err, _, _) ->
+              raise (Output_failed err)
+          );
+          go off
+      | exception Unix.Unix_error (err, _, _) ->
+          raise (Output_failed err)
+  in
+  go 0
 
 let stdin_has_data () = not (Unix.isatty Unix.stdin)
 
@@ -72,7 +108,13 @@ let resolve_theme_name_or_path name_or_path =
       Ok theme
   | None ->
       if Sys.file_exists name_or_path then
-        Ochre.Theme.load_from_file name_or_path
+        match Ochre.Theme.load_from_file name_or_path with
+        | Ok _ as ok ->
+            ok
+        | Error msg ->
+            Error (name_path name_or_path msg)
+        | exception Sys_error msg ->
+            Error (name_path name_or_path msg)
       else
         Error
           (Printf.sprintf
@@ -87,15 +129,16 @@ let error msg = `Error (false, msg)
 let render highlighter ~theme ~lang ~format ~options source =
   match format with
   | Ochre.Html ->
-      print_endline (Ochre.to_html highlighter ~options ~theme ~lang source);
+      write_stdout
+        (Ochre.to_html highlighter ~options ~theme ~lang source ^ "\n");
       `Ok ()
   | _ ->
-      print_string (Ochre.to_string highlighter ~format ~theme ~lang source);
+      write_stdout (Ochre.to_string highlighter ~format ~theme ~lang source);
       `Ok ()
 
 let render_html_multi highlighter ~theme ~extra_themes ~lang ~options source =
-  print_endline
-    (Ochre.to_html highlighter ~options ~theme ~extra_themes ~lang source);
+  write_stdout
+    (Ochre.to_html highlighter ~options ~theme ~extra_themes ~lang source ^ "\n");
   `Ok ()
 
 let resolve_theme ~theme_path ~theme_dark ~theme_light =
@@ -399,6 +442,8 @@ let version =
   | Some v ->
       Build_info.V1.Version.to_string v
 
+let output_error_code = 3
+
 let exits =
   [
     Cmd.Exit.info Cmd.Exit.ok ~doc:"on success.";
@@ -409,6 +454,14 @@ let exits =
          language/theme/grammar, a malformed theme/grammar file, a missing \
          input file, or any other error this CLI can name. Reported on \
          standard error as \"ochre: <message>\".";
+    Cmd.Exit.info output_error_code
+      ~doc:
+        "when the output cannot be written to standard output (for example the \
+         disk is full, or standard output is closed). Reported on standard \
+         error as \"ochre: cannot write output: <reason>\". When the reader of \
+         a pipe closes it early (EPIPE), ochre exits with this code and no \
+         message, because the reader chose to stop. ochre ignores SIGPIPE, so \
+         this holds whatever the parent process set.";
     Cmd.Exit.info Cmd.Exit.cli_error
       ~doc:
         "on an option given a malformed value (wrong type, e.g. --format) or \
@@ -429,11 +482,24 @@ let cmd =
         )
     )
 
-let () =
-  try exit (Cmd.eval ~catch:false ~term_err:1 cmd) with
+let report msg = try prerr_endline ("ochre: " ^ msg) with Sys_error _ -> ()
+
+let run () =
+  try Cmd.eval ~catch:false ~term_err:1 cmd with
+  | Output_failed Unix.EPIPE ->
+      output_error_code
+  | Output_failed err ->
+      report ("cannot write output: " ^ Unix.error_message err);
+      output_error_code
   | Sys_error msg | Failure msg | Invalid_argument msg ->
-      prerr_endline ("ochre: " ^ msg);
-      exit 1
+      report msg;
+      1
   | exn ->
-      prerr_endline ("ochre: " ^ Printexc.to_string exn);
-      exit 1
+      report (Printexc.to_string exn);
+      1
+
+let () =
+  Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
+  let code = run () in
+  (try flush stderr with Sys_error _ -> ());
+  exit code
