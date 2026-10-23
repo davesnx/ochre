@@ -157,6 +157,7 @@ and patterns_of_plist obj =
             {
               pattern_source;
               pattern = compile_regex pattern_source;
+              pattern_first = First_byte.leading_predicate pattern_source;
               name = get_name_opt obj "name";
               captures =
                 ( match List.assoc_opt "captures" obj with
@@ -210,11 +211,30 @@ and patterns_of_plist obj =
                       Hashtbl.create 0
                 )
           in
+          let delim_end = get_string e in
           Delim
             {
               delim_begin_source;
               delim_begin = compile_regex delim_begin_source;
-              delim_end = get_string e;
+              delim_begin_first =
+                First_byte.leading_predicate delim_begin_source;
+              delim_end;
+              delim_end_regex =
+                ( if has_backrefs delim_end then
+                    None
+                  else
+                    Some
+                      (compile_regex
+                         ~error_context:
+                           ( match delim_kind with
+                           | End ->
+                               "End pattern"
+                           | While ->
+                               "While pattern"
+                           )
+                         delim_end
+                      )
+                );
               delim_patterns =
                 ( match List.assoc_opt "patterns" obj with
                 | None ->
@@ -351,11 +371,15 @@ let of_doc_exn (plist : union) =
     hashtbl
   in
   let obj = get_dict plist in
+  let injection_selector =
+    Option.map get_string (List.assoc_opt "injectionSelector" obj)
+  in
   {
     name = Option.map get_string (List.assoc_opt "name" obj);
     scope_name = get_string (find_exn "scopeName" obj);
-    injection_selector =
-      Option.map get_string (List.assoc_opt "injectionSelector" obj);
+    injection_selector;
+    parsed_injection_selector =
+      Option.map parse_injection_selector injection_selector;
     filetypes =
       ( match List.assoc_opt "fileTypes" obj with
       | None ->

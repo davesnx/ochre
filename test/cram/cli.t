@@ -91,13 +91,13 @@ Include a bundled grammar by name
 
   $ printf '<b>hi</b>\n' | ochre html --include css --theme nord --format tokens
   line 1:
-    "<"  punctuation.definition.tag.begin.html, meta.tag.inline.$2.start.html, text.html.basic
-    "b"  entity.name.tag.html, meta.tag.inline.$2.start.html, text.html.basic
-    ">"  punctuation.definition.tag.end.html, meta.tag.inline.$2.start.html, text.html.basic
+    "<"  punctuation.definition.tag.begin.html, meta.tag.inline.b.start.html, text.html.basic
+    "b"  entity.name.tag.html, meta.tag.inline.b.start.html, text.html.basic
+    ">"  punctuation.definition.tag.end.html, meta.tag.inline.b.start.html, text.html.basic
     "hi"  text.html.basic
-    "</"  punctuation.definition.tag.begin.html, meta.tag.inline.$2.end.html, text.html.basic
-    "b"  entity.name.tag.html, meta.tag.inline.$2.end.html, text.html.basic
-    ">"  punctuation.definition.tag.end.html, meta.tag.inline.$2.end.html, text.html.basic
+    "</"  punctuation.definition.tag.begin.html, meta.tag.inline.b.end.html, text.html.basic
+    "b"  entity.name.tag.html, meta.tag.inline.b.end.html, text.html.basic
+    ">"  punctuation.definition.tag.end.html, meta.tag.inline.b.end.html, text.html.basic
     "\n"  text.html.basic
 
 Unknown language reports an error
