@@ -33,9 +33,13 @@ let output_formats =
     (fun f -> (string_of_output_format f, f))
     [ Html; Ansi; Latex; Svg; Tokens ]
 
-let configure_oniguruma_limits () =
-  Oniguruma.set_retry_limit_in_match 1_000_000;
-  Oniguruma.set_match_stack_limit_size 100_000
+let oniguruma_limits =
+  lazy
+    ( Oniguruma.set_retry_limit_in_match 1_000_000;
+      Oniguruma.set_match_stack_limit_size 100_000
+    )
+
+let configure_oniguruma_limits () = Lazy.force oniguruma_limits
 
 let load_exn grammars =
   configure_oniguruma_limits ();
@@ -91,7 +95,8 @@ let tokenize_with_grammar tm_collection grammar source =
     List.map
       (fun line ->
         let tokens, new_stack =
-          TmLanguage.tokenize_exn tm_collection grammar !stack line
+          TmLanguage.tokenize_exn tm_collection grammar !stack
+            (Utf8.mask_invalid line)
         in
         stack := new_stack;
         let rec extract_tokens prev_end = function
@@ -111,12 +116,12 @@ let tokenize_with_grammar tm_collection grammar source =
   tokenized_lines
 
 let apply_theme theme tokens_per_line =
-  let theme_rules = theme.Theme.token_colors in
+  let resolver = Scope.resolver theme.Theme.token_colors in
   List.map
     (fun line_tokens ->
       List.map
         (fun (text, scopes) ->
-          let settings = Scope.find_best_match scopes theme_rules in
+          let settings = Scope.resolve resolver scopes in
           let foreground =
             match settings with
             | Some s ->

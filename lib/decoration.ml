@@ -10,87 +10,81 @@ type t = { start : position; end_ : position; properties : properties }
 
 let pos line character = { line; character }
 
+let valid_data_key_char = function
+  | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '-' | '_' ->
+      true
+  | _ ->
+      false
+
+let invalid_data_key key =
+  invalid_arg
+    (Printf.sprintf
+       "Decoration.make: invalid data key %S (must be non-empty and contain \
+        only letters, digits, '-', or '_', since it becomes part of a data-* \
+        attribute name)"
+       key
+    )
+
 let make ?class_ ?style ?(data = []) ~start ~end_ () =
+  List.iter
+    (fun (key, _) ->
+      if key = "" || not (String.for_all valid_data_key_char key) then
+        invalid_data_key key
+    )
+    data;
   { start; end_; properties = { class_; style; data } }
 
-let invalid_utf8 () = invalid_arg "Decoration.apply: source is not valid UTF-8"
+let scalar_length source offset =
+  match Utf8.scalar_length source offset with 0 -> 1 | n -> n
 
-let is_continuation_byte byte = byte >= 0x80 && byte <= 0xbf
-
-let utf8_scalar_length source offset =
+let line_boundaries source line_start =
   let length = String.length source in
-  let byte index = Char.code source.[index] in
-  let has_continuation index =
-    index < length && is_continuation_byte (byte index)
+  let line_end =
+    match String.index_from_opt source line_start '\n' with
+    | Some index ->
+        index
+    | None ->
+        length
   in
-  match byte offset with
-  | byte when byte <= 0x7f ->
-      1
-  | byte when byte >= 0xc2 && byte <= 0xdf && has_continuation (offset + 1) ->
-      2
-  | 0xe0
-    when offset + 2 < length
-         && byte (offset + 1) >= 0xa0
-         && byte (offset + 1) <= 0xbf
-         && has_continuation (offset + 2) ->
-      3
-  | byte
-    when ((byte >= 0xe1 && byte <= 0xec) || (byte >= 0xee && byte <= 0xef))
-         && has_continuation (offset + 1)
-         && has_continuation (offset + 2) ->
-      3
-  | 0xed
-    when offset + 2 < length
-         && byte (offset + 1) >= 0x80
-         && byte (offset + 1) <= 0x9f
-         && has_continuation (offset + 2) ->
-      3
-  | 0xf0
-    when offset + 3 < length
-         && byte (offset + 1) >= 0x90
-         && byte (offset + 1) <= 0xbf
-         && has_continuation (offset + 2)
-         && has_continuation (offset + 3) ->
-      4
-  | byte
-    when byte >= 0xf1 && byte <= 0xf3
-         && has_continuation (offset + 1)
-         && has_continuation (offset + 2)
-         && has_continuation (offset + 3) ->
-      4
-  | 0xf4
-    when offset + 3 < length
-         && byte (offset + 1) >= 0x80
-         && byte (offset + 1) <= 0x8f
-         && has_continuation (offset + 2)
-         && has_continuation (offset + 3) ->
-      4
-  | _ ->
-      invalid_utf8 ()
-
-let line_boundaries source =
-  let length = String.length source in
-  let rec scan offset line_start boundaries lines =
-    if offset = length then
-      Array.of_list (List.rev (Array.of_list (List.rev boundaries) :: lines))
+  let rec scan offset boundaries =
+    if offset >= line_end then
+      Array.of_list (List.rev boundaries)
     else
-      let scalar_length = utf8_scalar_length source offset in
-      if source.[offset] = '\n' then
-        scan (offset + scalar_length) (offset + scalar_length) [ 0 ]
-          (Array.of_list (List.rev boundaries) :: lines)
+      let next = offset + scalar_length source offset in
+      scan next ((next - line_start) :: boundaries)
+  in
+  scan line_start [ 0 ]
+
+let line_starts source =
+  let rec scan from acc =
+    match String.index_from_opt source from '\n' with
+    | Some index ->
+        scan (index + 1) ((index + 1) :: acc)
+    | None ->
+        Array.of_list (List.rev acc)
+  in
+  scan 0 [ 0 ]
+
+let boundaries_lookup source =
+  let starts = line_starts source in
+  let cache = Hashtbl.create 16 in
+  let source_lines = Array.length starts in
+  ( source_lines,
+    fun line ->
+      if line < 0 || line >= Array.length starts then
+        [| 0 |]
       else
-        let boundary = offset + scalar_length - line_start in
-        scan (offset + scalar_length) line_start (boundary :: boundaries) lines
-  in
-  scan 0 0 [ 0 ] []
+        match Hashtbl.find_opt cache line with
+        | Some boundaries ->
+            boundaries
+        | None ->
+            let boundaries = line_boundaries source starts.(line) in
+            Hashtbl.add cache line boundaries;
+            boundaries
+  )
 
-let resolve_character boundaries pos =
-  let line_boundaries =
-    if pos.line >= 0 && pos.line < Array.length boundaries then
-      boundaries.(pos.line)
-    else
-      [| 0 |]
-  in
+let resolve_character boundaries_of pos =
+  let line_boundaries = boundaries_of pos.line in
   let scalar_count = Array.length line_boundaries - 1 in
   let character =
     if pos.character >= 0 then
@@ -145,7 +139,7 @@ let set_decoration (tok : Token.styled_token) (props : properties) :
   in
   { tok with decoration }
 
-let apply_to_line ~line_idx ~boundaries decorations tokens =
+let apply_to_line ~line_idx ~source_lines ~boundaries_of decorations tokens =
   let relevant =
     List.filter_map
       (fun (d : t) ->
@@ -158,17 +152,17 @@ let apply_to_line ~line_idx ~boundaries decorations tokens =
             if line_idx > start_line then
               0
             else
-              resolve_character boundaries d.start
+              resolve_character boundaries_of d.start
           in
           let end_char =
             if line_idx < end_line then
-              if line_idx < Array.length boundaries then
-                boundaries.(line_idx).(Array.length boundaries.(line_idx) - 1)
-                + 1
+              if line_idx < source_lines then
+                let line_boundaries = boundaries_of line_idx in
+                line_boundaries.(Array.length line_boundaries - 1) + 1
               else
                 1000000
             else
-              resolve_character boundaries d.end_
+              resolve_character boundaries_of d.end_
           in
           Some (start_char, end_char, d.properties)
       )
@@ -243,10 +237,25 @@ let apply_to_line ~line_idx ~boundaries decorations tokens =
     process 0 tokens
 
 let apply ~source decorations tokens =
-  let boundaries = line_boundaries source in
   if decorations = [] then
     tokens
   else
+    let source_lines, boundaries_of = boundaries_lookup source in
+    let line_count = List.length tokens in
+    let by_line = Array.make line_count [] in
+    List.iter
+      (fun (d : t) ->
+        for line = max 0 d.start.line to min (line_count - 1) d.end_.line do
+          by_line.(line) <- d :: by_line.(line)
+        done
+      )
+      (List.rev decorations);
     List.mapi
-      (fun line_idx line -> apply_to_line ~line_idx ~boundaries decorations line)
+      (fun line_idx line ->
+        match by_line.(line_idx) with
+        | [] ->
+            line
+        | relevant ->
+            apply_to_line ~line_idx ~source_lines ~boundaries_of relevant line
+      )
       tokens

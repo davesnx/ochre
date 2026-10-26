@@ -108,6 +108,33 @@ let () =
       in
       print_endline
         (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
+  | "html-escape" ->
+      (* class_, style, and a data value all carry characters that must not
+         reach the output unescaped, or they break out of the attribute. *)
+      let source = "let x = 42" in
+      let decorations =
+        [
+          Ochre.Decoration.make ~class_:{|dangerous"><script>|}
+            ~style:{|color:red;"onmouseover="alert(1)|}
+            ~data:[ ("note", {|a"><script>|}) ]
+            ~start:(Ochre.Decoration.pos 0 0) ~end_:(Ochre.Decoration.pos 0 3)
+            ();
+        ]
+      in
+      print_endline
+        (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
+  | "svg-escape" ->
+      let source = "let x = 42" in
+      let decorations =
+        [
+          Ochre.Decoration.make ~class_:{|dangerous"><script>|}
+            ~style:{|color:red;"onmouseover="alert(1)|}
+            ~start:(Ochre.Decoration.pos 0 0) ~end_:(Ochre.Decoration.pos 0 3)
+            ();
+        ]
+      in
+      print_endline
+        (Ochre.to_svg hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1

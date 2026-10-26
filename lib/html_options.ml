@@ -22,6 +22,12 @@ let default =
     scopes_as_data_attrs = false;
   }
 
+let normalize_css_variable_prefix prefix =
+  if String.length prefix > 0 && prefix.[String.length prefix - 1] = '-' then
+    prefix
+  else
+    prefix ^ "-"
+
 let make ?(style_mode = Inline_styles) ?(default_color = Default_color)
     ?pre_class ?code_class ?(line_numbers = false)
     ?(css_variable_prefix = "--ochre-") ?(scopes_as_data_attrs = false) () =
@@ -31,6 +37,6 @@ let make ?(style_mode = Inline_styles) ?(default_color = Default_color)
     pre_class;
     code_class;
     line_numbers;
-    css_variable_prefix;
+    css_variable_prefix = normalize_css_variable_prefix css_variable_prefix;
     scopes_as_data_attrs;
   }

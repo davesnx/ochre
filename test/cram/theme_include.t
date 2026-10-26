@@ -74,5 +74,5 @@ Missing include target errors
   > { "name": "broken", "include": "./does-not-exist.json" }
   > EOF
   $ ./test_theme.exe load-file broken.json
-  error: Sys_error("does-not-exist.json: No such file or directory")
+  error: does-not-exist.json: No such file or directory
   [1]

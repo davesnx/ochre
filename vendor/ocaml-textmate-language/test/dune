@@ -1,9 +1,16 @@
 (tests
- (names test_find test_tokenize test_cpp test_csharp test_ocaml)
+ (names
+  test_find
+  test_tokenize
+  test_cpp
+  test_csharp
+  test_ocaml
+  test_lenient_grammars
+  test_robust)
  (modes native)
  (deps
   (glob_files data/*))
- (libraries alcotest ezjsonm plist-xml ochre.textmate_language yojson))
+ (libraries alcotest ezjsonm plist-xml ochre.textmate_language yojson unix))
 
 (executable
  (name test_vscode_compat)

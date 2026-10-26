@@ -77,7 +77,8 @@ val load : ?base_dir:string -> string -> (theme, string) result
 val load_exn : ?base_dir:string -> string -> theme
 (** {2 load_exn}
 
-    Like {!val-load} but raises on failure. *)
+    Like {!val-load} but raises [Failure] when the JSON is malformed or contains
+    invalid theme data. *)
 
 val load_from_file : string -> (theme, string) result
 (** {2 load_from_file}
@@ -99,7 +100,8 @@ val load_from_file : string -> (theme, string) result
 val load_from_file_exn : string -> theme
 (** {2 load_from_file_exn}
 
-    Like {!val-load_from_file} but raises on failure.
+    Like {!val-load_from_file} but raises [Failure] when the file cannot be read
+    or contains invalid theme data.
 
     {[
     let theme = Theme.load_from_file_exn "/path/to/theme.json"

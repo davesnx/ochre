@@ -27,7 +27,10 @@ type properties = {
     - [class_] maps to an HTML [class] attribute (or equivalent in other
       formats).
     - [style] maps to an inline [style] attribute.
-    - [data] maps to [data-*] attributes in HTML; ignored in other formats. *)
+    - [data] maps to [data-*] attributes in HTML; ignored in other formats. Keys
+      become part of the attribute name, so {!make} only accepts keys made of
+      letters, digits, ['-'], and ['_']. Values are free text and are escaped by
+      the renderer. *)
 
 type t = { start : position; end_ : position; properties : properties }
 (** {2 t}
@@ -53,6 +56,9 @@ val make :
 
     Create a decoration with the given properties and range.
 
+    Raises [Invalid_argument] if a [data] key is empty or contains a character
+    other than a letter, digit, ['-'], or ['_'] (see {!properties}).
+
     {[
     let d =
       Decoration.make ~class_:"highlighted" ~start:(Decoration.pos 0 0)
@@ -74,10 +80,10 @@ val apply :
     Character positions, including negative positions, are resolved in Unicode
     scalar values. Token offsets and splitting remain UTF-8 byte-based.
 
-    Raises [Invalid_argument] if [source] is not valid UTF-8.
-
-    For valid UTF-8 source, an empty decoration list returns the tokens
-    unchanged.
+    Never raises. [source] is not validated: each byte that is not part of a
+    valid UTF-8 sequence counts as one character, so ranges still resolve on
+    invalid input. An empty decoration list returns the tokens unchanged without
+    reading [source].
 
     {[
       let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in

@@ -29,37 +29,30 @@ let font_style_to_css_var prefix = function
   | Strikethrough ->
       prefix ^ "text-decoration:line-through"
 
+let color_declaration prop color =
+  Option.map (fun c -> prop c) (Option.bind color Escape.css_color)
+
 let token_style_to_css ~emit_default ~prefix token =
-  let fg_var = css_var_foreground_name prefix in
-  let bg_var = css_var_background_name prefix in
-  let styles = [] in
-  let styles =
-    if emit_default then
-      match token.foreground with
-      | Some color ->
-          ("color:var(" ^ fg_var ^ "," ^ color ^ ")") :: styles
-      | None ->
-          styles
-    else
-      styles
-  in
-  let styles =
-    if emit_default then
-      match token.background with
-      | Some color ->
-          ("background-color:var(" ^ bg_var ^ "," ^ color ^ ")") :: styles
-      | None ->
-          styles
-    else
-      styles
-  in
-  let styles =
-    if emit_default then
-      List.map (font_style_to_css_var_fallback prefix) token.font_style @ styles
-    else
-      styles
-  in
-  String.concat ";" styles
+  if not emit_default then
+    ""
+  else
+    let fg_var = css_var_foreground_name prefix in
+    let bg_var = css_var_background_name prefix in
+    let colors =
+      List.filter_map Fun.id
+        [
+          color_declaration
+            (fun c -> "color:var(" ^ fg_var ^ "," ^ c ^ ")")
+            token.foreground;
+          color_declaration
+            (fun c -> "background-color:var(" ^ bg_var ^ "," ^ c ^ ")")
+            token.background;
+        ]
+    in
+    String.concat ";"
+      (List.map (font_style_to_css_var_fallback prefix) token.font_style
+      @ List.rev colors
+      )
 
 (** Generate CSS custom property declarations for a themed token. [prefix] must
     end with [-] (e.g. [--ochre-dark-]). Produces vars like
@@ -67,70 +60,78 @@ let token_style_to_css ~emit_default ~prefix token =
     [--ochre-dark-font-weight:bold]. *)
 let token_style_to_css_vars prefix token =
   let fg_name = css_var_foreground_name prefix in
-  let vars = [] in
   let vars =
-    match token.foreground with
-    | Some color ->
-        (fg_name ^ ":" ^ color) :: vars
-    | None ->
-        vars
+    List.filter_map Fun.id
+      [
+        color_declaration (fun c -> fg_name ^ ":" ^ c) token.foreground;
+        color_declaration (fun c -> prefix ^ "bg:" ^ c) token.background;
+      ]
   in
-  let vars =
-    match token.background with
-    | Some color ->
-        (prefix ^ "bg:" ^ color) :: vars
-    | None ->
-        vars
-  in
+  let vars = List.rev vars in
   let vars = List.map (font_style_to_css_var prefix) token.font_style @ vars in
   vars
 
-let escape_text text =
-  let buf = Buffer.create (String.length text) in
-  Escape.html buf text;
-  Buffer.contents buf
+let escape_text = Escape.to_string Escape.html
 
-(** Deterministic hash of a style string to produce short class names. *)
-let style_hash s =
-  (* Simple DJB2 hash *)
-  let h = ref 5381 in
-  String.iter (fun c -> h := (!h * 33) + Char.code c) s;
-  let h = !h land 0x7FFFFFFF in
-  Printf.sprintf "%x" h
+let style_hash s = String.sub (Digest.to_hex (Digest.string s)) 0 16
 
-type class_registry = { mutable map : (string * string) list; prefix : string }
-(** Registry for collecting style->class mappings during rendering. *)
+type class_registry = {
+  table : (string, string) Hashtbl.t;
+  mutable order : (string * string) list;
+  prefix : string;
+}
+(** Registry for collecting style->class mappings during rendering. [table]
+    gives O(1) dedup lookup per token; [order] tracks insertion order for
+    {!collect_classes}. *)
 
-let create_registry prefix = { map = []; prefix }
+let create_registry prefix =
+  let prefix =
+    match prefix with
+    | "" ->
+        "_"
+    | p
+      when match p.[0] with 'a' .. 'z' | 'A' .. 'Z' | '_' -> false | _ -> true
+      ->
+        "_" ^ p
+    | p ->
+        p
+  in
+  { table = Hashtbl.create 16; order = []; prefix }
 
 let class_for_style registry style =
-  match List.assoc_opt style registry.map with
+  match Hashtbl.find_opt registry.table style with
   | Some cls ->
       cls
   | None ->
       let cls = registry.prefix ^ style_hash style in
-      registry.map <- (style, cls) :: registry.map;
+      Hashtbl.add registry.table style cls;
+      registry.order <- (style, cls) :: registry.order;
       cls
 
-let render_span_attrs ~options ~registry style decoration scopes =
+let join_styles parts = String.concat ";" (List.filter (( <> ) "") parts)
+
+let render_span_attrs ~options ~registry ~style ~extra_style decoration scopes =
   let open Html_options in
   let attrs = [] in
-  (* scope data attribute *)
   let attrs =
     if options.scopes_as_data_attrs && scopes <> [] then
-      Printf.sprintf "data-scope=\"%s\"" (String.concat " " scopes) :: attrs
+      Printf.sprintf "data-scope=\"%s\"" (escape_text (String.concat " " scopes))
+      :: attrs
     else
       attrs
   in
-  (* decoration properties *)
-  let attrs, extra_style =
-    match decoration with
+  let escaped = Option.map Render_decoration.escape decoration in
+  let escaped_class =
+    Option.bind escaped (fun (e : Render_decoration.escaped) -> e.class_)
+  in
+  let attrs, decoration_style =
+    match escaped with
     | None ->
-        (attrs, None)
-    | Some (dec : decoration_properties) ->
+        (attrs, "")
+    | Some (esc : Render_decoration.escaped) ->
         let a = attrs in
         let a =
-          match dec.class_ with
+          match esc.class_ with
           | Some c ->
               Printf.sprintf "class=\"%s\"" c :: a
           | None ->
@@ -139,84 +140,46 @@ let render_span_attrs ~options ~registry style decoration scopes =
         let a =
           List.fold_left
             (fun acc (k, v) -> Printf.sprintf "data-%s=\"%s\"" k v :: acc)
-            a dec.data
+            a esc.data
         in
-        (a, dec.style)
+        (a, Option.value esc.style ~default:"")
   in
-  let combined_style =
-    match (style, extra_style) with
-    | "", None ->
-        ""
-    | s, None | "", Some s ->
-        s
-    | s, Some ds ->
-        s ^ ";" ^ ds
+  let class_style, inline_style =
+    match (options.style_mode, registry) with
+    | Css_classes _, Some reg when style <> "" ->
+        ( Some (class_for_style reg style),
+          join_styles [ extra_style; decoration_style ]
+        )
+    | _ ->
+        (None, join_styles [ style; extra_style; decoration_style ])
   in
-  match options.style_mode with
-  | Inline_styles ->
-      if combined_style = "" && attrs = [] then
-        None
-      else
-        let parts =
-          if combined_style <> "" then
-            Printf.sprintf "style=\"%s\"" combined_style :: attrs
-          else
-            attrs
+  let attrs =
+    match class_style with
+    | None ->
+        attrs
+    | Some cls ->
+        let existing, others =
+          List.partition (fun a -> String.starts_with ~prefix:"class=" a) attrs
         in
-        Some (String.concat " " parts)
-  | Css_classes { class_prefix = _ } -> (
-      match registry with
-      | None ->
-          (* fallback to inline if no registry *)
-          if combined_style = "" && attrs = [] then
-            None
-          else
-            let parts =
-              if combined_style <> "" then
-                Printf.sprintf "style=\"%s\"" combined_style :: attrs
-              else
-                attrs
-            in
-            Some (String.concat " " parts)
-      | Some reg ->
-          if combined_style = "" && attrs = [] then
-            None
-          else
-            let cls_attr =
-              if combined_style <> "" then
-                let cls = class_for_style reg combined_style in
-                (* merge with existing class attr from decoration *)
-                match decoration with
-                | Some { class_ = Some existing; _ } ->
-                    Printf.sprintf "class=\"%s %s\"" existing cls
-                | _ ->
-                    Printf.sprintf "class=\"%s\"" cls
-              else
-                match decoration with
-                | Some { class_ = Some c; _ } ->
-                    Printf.sprintf "class=\"%s\"" c
-                | _ ->
-                    ""
-            in
-            (* filter out the old class attr from attrs, add new one *)
-            let other_attrs =
-              List.filter
-                (fun a ->
-                  not (String.length a >= 6 && String.sub a 0 6 = "class=")
-                )
-                attrs
-            in
-            let parts =
-              if cls_attr <> "" then
-                cls_attr :: other_attrs
-              else
-                other_attrs
-            in
-            if parts = [] then
-              None
-            else
-              Some (String.concat " " parts)
-    )
+        let merged =
+          match (escaped_class, existing) with
+          | Some c, _ :: _ ->
+              Printf.sprintf "class=\"%s %s\"" c cls
+          | _ ->
+              Printf.sprintf "class=\"%s\"" cls
+        in
+        merged :: others
+  in
+  let parts =
+    if inline_style <> "" then
+      Printf.sprintf "style=\"%s\"" inline_style :: attrs
+    else
+      attrs
+  in
+  if parts = [] then
+    None
+  else
+    Some (String.concat " " parts)
 
 let render_token ~options ~registry ~extras ~emit_default primary =
   let prefix = options.Html_options.css_variable_prefix in
@@ -226,18 +189,11 @@ let render_token ~options ~registry ~extras ~emit_default primary =
       (fun (label, tok) -> token_style_to_css_vars (prefix ^ label ^ "-") tok)
       extras
   in
-  let all_parts =
-    ( if primary_style <> "" then
-        [ primary_style ]
-      else
-        []
-    )
-    @ extra_vars
-  in
-  let style = String.concat ";" all_parts in
   let text = escape_text primary.text in
   match
-    render_span_attrs ~options ~registry style primary.decoration primary.scopes
+    render_span_attrs ~options ~registry ~style:primary_style
+      ~extra_style:(String.concat ";" extra_vars)
+      primary.decoration primary.scopes
   with
   | None ->
       text
@@ -269,6 +225,26 @@ let dedupe_preserving_order items =
   loop [] [] items
 
 let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
+  let options =
+    {
+      options with
+      Html_options.css_variable_prefix =
+        Escape.css_ident options.css_variable_prefix;
+      style_mode =
+        ( match options.style_mode with
+        | Html_options.Css_classes { class_prefix } ->
+            Html_options.Css_classes
+              { class_prefix = Escape.css_ident class_prefix }
+        | Html_options.Inline_styles ->
+            Html_options.Inline_styles
+        );
+    }
+  in
+  let extra_themes =
+    List.map
+      (fun (label, theme, tokens) -> (Escape.css_ident label, theme, tokens))
+      extra_themes
+  in
   let has_extras = extra_themes <> [] in
   let prefix = options.css_variable_prefix in
   let registry =
@@ -328,17 +304,24 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
     in
     dedupe_preserving_order classes
   in
-  let pre_class_attr = String.concat " " pre_classes in
+  let pre_class_attr = escape_text (String.concat " " pre_classes) in
   let pre_style_parts =
     ( if emit_default then
-        [
-          "background-color:var("
-          ^ css_var_background_name prefix
-          ^ "," ^ theme.Theme.bg ^ ")";
-          "color:var("
-          ^ css_var_foreground_name prefix
-          ^ "," ^ theme.Theme.fg ^ ")";
-        ]
+        List.filter_map Fun.id
+          [
+            color_declaration
+              (fun c ->
+                "background-color:var("
+                ^ css_var_background_name prefix
+                ^ "," ^ c ^ ")"
+              )
+              (Some theme.Theme.bg);
+            color_declaration
+              (fun c ->
+                "color:var(" ^ css_var_foreground_name prefix ^ "," ^ c ^ ")"
+              )
+              (Some theme.Theme.fg);
+          ]
       else
         []
     )
@@ -346,10 +329,15 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
     if has_extras then
       List.concat_map
         (fun (label, theme, _tokens) ->
-          [
-            prefix ^ label ^ "-bg:" ^ theme.Theme.bg;
-            prefix ^ label ^ ":" ^ theme.Theme.fg;
-          ]
+          List.filter_map Fun.id
+            [
+              color_declaration
+                (fun c -> prefix ^ label ^ "-bg:" ^ c)
+                (Some theme.Theme.bg);
+              color_declaration
+                (fun c -> prefix ^ label ^ ":" ^ c)
+                (Some theme.Theme.fg);
+            ]
         )
         extra_themes
     else
@@ -364,7 +352,7 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
   let code_attrs =
     match options.code_class with
     | Some c ->
-        Printf.sprintf " class=\"%s\"" c
+        Printf.sprintf " class=\"%s\"" (escape_text c)
     | None ->
         ""
   in
@@ -372,6 +360,7 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
     pre_class_attr pre_style code_attrs code_content
 
 let theme_css label =
+  let label = Escape.css_ident label in
   let prefix = "--ochre-" in
   let base_fg = css_var_foreground_name prefix in
   let base_bg = css_var_background_name prefix in
@@ -398,11 +387,11 @@ let collect_classes registry =
     (fun (style, cls) ->
       Buffer.add_string buf (Printf.sprintf ".%s { %s }\n" cls style)
     )
-    (List.rev registry.map);
+    (List.rev registry.order);
   Buffer.contents buf
 
 let render_theme_css ~class_prefix (theme : Theme.theme) code =
-  let reg = create_registry class_prefix in
+  let reg = create_registry (Escape.css_ident class_prefix) in
   List.iter
     (fun line ->
       List.iter
@@ -416,9 +405,15 @@ let render_theme_css ~class_prefix (theme : Theme.theme) code =
     )
     code;
   let buf = Buffer.create 512 in
-  Buffer.add_string buf
-    (Printf.sprintf ".ochre { background-color:%s; color:%s }\n" theme.bg
-       theme.fg
-    );
+  let declarations =
+    List.filter_map Fun.id
+      [
+        color_declaration (fun c -> "background-color:" ^ c) (Some theme.bg);
+        color_declaration (fun c -> "color:" ^ c) (Some theme.fg);
+      ]
+  in
+  if declarations <> [] then
+    Buffer.add_string buf
+      (Printf.sprintf ".ochre { %s }\n" (String.concat "; " declarations));
   Buffer.add_string buf (collect_classes reg);
   Buffer.contents buf
