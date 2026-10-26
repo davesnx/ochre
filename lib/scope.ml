@@ -1,15 +1,13 @@
+(* Theme resolution follows vscode-textmate 9.2.0 [src/theme.ts]
+   (https://github.com/microsoft/vscode-textmate/blob/v9.2.0/src/theme.ts):
+   rules go into a trie keyed by scope segments, and a token's style is
+   folded from the outermost scope to the innermost one, each level keeping
+   the attributes its own match leaves unset. *)
+
 let split_on_spaces text =
-  String.split_on_char ' ' text
-  |> List.map String.trim
-  |> List.filter (fun s -> s <> "")
+  String.split_on_char ' ' text |> List.filter (fun s -> s <> "")
 
-let split_selector = split_on_spaces
-let normalize_scopes scopes = List.concat_map split_on_spaces scopes
-
-let split_selector_group selector =
-  String.split_on_char ',' selector
-  |> List.map String.trim
-  |> List.filter (fun s -> s <> "")
+type path = { name : string; up : path option }
 
 let scope_matches_selector_part scope selector_part =
   if scope = selector_part then
@@ -19,100 +17,282 @@ let scope_matches_selector_part scope selector_part =
     && String.starts_with ~prefix:selector_part scope
     && scope.[String.length selector_part] = '.'
 
-let position_weight = 1000
+(* [parents] lists the selector's ancestor parts nearest first. A [">"] entry
+   follows the part it constrains and requires the next part to be the direct
+   parent. *)
+let rec parents_match up = function
+  | [] ->
+      true
+  | [ ">" ] ->
+      false
+  | ">" :: part :: rest ->
+      ancestor_matches up part true rest
+  | part :: rest ->
+      ancestor_matches up part false rest
 
-let match_selector scopes selector =
-  let parts = split_selector selector in
-  let scopes = Array.of_list (normalize_scopes scopes) in
-  let scope_count = Array.length scopes in
-  let rec go parts idx score =
-    match parts with
-    | [] ->
-        Some score
-    | part :: rest ->
-        if idx >= scope_count then
-          None
-        else if scope_matches_selector_part scopes.(idx) part then
-          go rest (idx + 1)
-            (score
-            + ((scope_count - idx) * position_weight)
-            + String.length part
-            )
-        else
-          go parts (idx + 1) score
-  in
-  go parts 0 0
+and ancestor_matches up part direct rest =
+  match up with
+  | None ->
+      false
+  | Some node ->
+      if scope_matches_selector_part node.name part then
+        parents_match node.up rest
+      else if direct then
+        false
+      else
+        ancestor_matches node.up part direct rest
 
-type compiled = {
-  rules : Theme.token_color_rule array;
-  unconditional : int list;
-  selector_rule : int array;
-  selector_length : int array;
-  selector_specificity : int array;
-  part_selector : int array;
-  part_index : int array;
-  parts_by_name : (string, int list) Hashtbl.t;
+type rule = {
+  mutable depth : int;
+  parents : string list;
+  mutable font_style : Theme.font_style list option;
+  mutable foreground : Theme.color option;
+  mutable background : Theme.color option;
 }
 
-let compile (rules : Theme.token_color_rule list) =
-  let rules = Array.of_list rules in
-  let unconditional = ref [] in
-  let selectors = ref [] in
-  Array.iteri
-    (fun idx (rule : Theme.token_color_rule) ->
-      if rule.scope = [] then
-        unconditional := idx :: !unconditional
-      else
-        List.iter
-          (fun selector ->
-            match split_selector selector with
-            | [] ->
-                ()
-            | parts ->
-                selectors := (idx, parts) :: !selectors
-          )
-          (List.concat_map split_selector_group rule.scope)
-    )
-    rules;
-  let selectors = Array.of_list (List.rev !selectors) in
-  let part_count =
-    Array.fold_left (fun acc (_, parts) -> acc + List.length parts) 0 selectors
-  in
-  let part_selector = Array.make part_count 0 in
-  let part_index = Array.make part_count 0 in
-  let parts_by_name = Hashtbl.create 256 in
-  let next = ref 0 in
-  Array.iteri
-    (fun sel (_, parts) ->
-      List.iteri
-        (fun local part ->
-          let g = !next in
-          incr next;
-          part_selector.(g) <- sel;
-          part_index.(g) <- local;
-          let existing =
-            Option.value (Hashtbl.find_opt parts_by_name part) ~default:[]
-          in
-          Hashtbl.replace parts_by_name part (g :: existing)
-        )
-        parts
-    )
-    selectors;
+type element = {
+  main : rule;
+  mutable with_parents : rule list;
+  children : (string, element) Hashtbl.t;
+  mutable candidates : rule list;
+}
+
+let clone_rule rule = { rule with depth = rule.depth }
+
+let new_element ~main ~with_parents =
   {
-    rules;
-    unconditional = List.rev !unconditional;
-    selector_rule = Array.map fst selectors;
-    selector_length = Array.map (fun (_, parts) -> List.length parts) selectors;
-    selector_specificity =
-      Array.map
-        (fun (_, parts) ->
-          List.fold_left (fun acc part -> acc + String.length part) 0 parts
-        )
-        selectors;
-    part_selector;
-    part_index;
-    parts_by_name;
+    main = clone_rule main;
+    with_parents = List.map clone_rule with_parents;
+    children = Hashtbl.create 4;
+    candidates = [];
   }
+
+let split_first_dot scope =
+  match String.index_opt scope '.' with
+  | None ->
+      (scope, "")
+  | Some i ->
+      ( String.sub scope 0 i,
+        String.sub scope (i + 1) (String.length scope - i - 1)
+      )
+
+let accept_overwrite rule depth font_style foreground background =
+  rule.depth <- depth;
+  if font_style <> None then rule.font_style <- font_style;
+  if foreground <> None then rule.foreground <- foreground;
+  if background <> None then rule.background <- background
+
+let insert_here element depth parents font_style foreground background =
+  match parents with
+  | [] ->
+      accept_overwrite element.main depth font_style foreground background
+  | _ -> (
+      match
+        List.find_opt (fun rule -> rule.parents = parents) element.with_parents
+      with
+      | Some rule ->
+          accept_overwrite rule depth font_style foreground background
+      | None ->
+          let inherit_ current main =
+            if current = None then
+              main
+            else
+              current
+          in
+          element.with_parents <-
+            element.with_parents
+            @ [
+                {
+                  depth;
+                  parents;
+                  font_style = inherit_ font_style element.main.font_style;
+                  foreground = inherit_ foreground element.main.foreground;
+                  background = inherit_ background element.main.background;
+                };
+              ]
+    )
+
+let rec insert element depth scope parents font_style foreground background =
+  if scope = "" then
+    insert_here element depth parents font_style foreground background
+  else
+    let head, rest = split_first_dot scope in
+    let child =
+      match Hashtbl.find_opt element.children head with
+      | Some child ->
+          child
+      | None ->
+          let child =
+            new_element ~main:element.main ~with_parents:element.with_parents
+          in
+          Hashtbl.add element.children head child;
+          child
+    in
+    insert child (depth + 1) rest parents font_style foreground background
+
+let compare_by_specificity a b =
+  if a.depth <> b.depth then
+    b.depth - a.depth
+  else
+    let skip = function ">" :: rest -> rest | parents -> parents in
+    let rec go a_parents b_parents =
+      match (skip a_parents, skip b_parents) with
+      | [], _ | _, [] ->
+          List.length b.parents - List.length a.parents
+      | a_part :: a_rest, b_part :: b_rest ->
+          let order = String.length b_part - String.length a_part in
+          if order <> 0 then
+            order
+          else
+            go a_rest b_rest
+    in
+    go a.parents b.parents
+
+let rec freeze element =
+  element.candidates <-
+    List.stable_sort compare_by_specificity
+      (element.with_parents @ [ element.main ]);
+  Hashtbl.iter (fun _ child -> freeze child) element.children
+
+let rec lookup element name =
+  if name = "" then
+    element
+  else
+    let head, rest = split_first_dot name in
+    match Hashtbl.find_opt element.children head with
+    | Some child ->
+        lookup child rest
+    | None ->
+        element
+
+type entry = {
+  scope : string;
+  entry_parents : string list;
+  index : int;
+  entry_font_style : Theme.font_style list option;
+  entry_foreground : Theme.color option;
+  entry_background : Theme.color option;
+}
+
+let compare_parents a b =
+  match (a, b) with
+  | [], [] ->
+      0
+  | [], _ ->
+      -1
+  | _, [] ->
+      1
+  | _ ->
+      let a_length = List.length a and b_length = List.length b in
+      if a_length = b_length then
+        List.fold_left2
+          (fun order x y ->
+            if order <> 0 then
+              order
+            else
+              String.compare x y
+          )
+          0 a b
+      else
+        a_length - b_length
+
+let compare_entries a b =
+  let order = String.compare a.scope b.scope in
+  if order <> 0 then
+    order
+  else
+    let order = compare_parents a.entry_parents b.entry_parents in
+    if order <> 0 then
+      order
+    else
+      a.index - b.index
+
+let entries_of_rules rules =
+  List.mapi
+    (fun index (rule : Theme.token_color_rule) ->
+      let valid = function
+        | Some c when Theme.is_valid_color c ->
+            Some c
+        | _ ->
+            None
+      in
+      let selectors =
+        if rule.scope = [] then
+          [ "" ]
+        else
+          rule.scope
+      in
+      List.map
+        (fun selector ->
+          let reversed =
+            List.rev (String.split_on_char ' ' (String.trim selector))
+          in
+          {
+            scope = List.hd reversed;
+            entry_parents = List.tl reversed;
+            index;
+            entry_font_style = rule.settings.font_style;
+            entry_foreground = valid rule.settings.foreground;
+            entry_background = valid rule.settings.background;
+          }
+        )
+        selectors
+    )
+    rules
+  |> List.concat
+
+type compiled = { trie : element; defaults : Theme.token_color_settings }
+
+let compile rules =
+  let entries = List.stable_sort compare_entries (entries_of_rules rules) in
+  let globals, scoped = List.partition (fun e -> e.scope = "") entries in
+  let defaults =
+    List.fold_left
+      (fun (acc : Theme.token_color_settings) entry ->
+        {
+          Theme.font_style =
+            ( if entry.entry_font_style <> None then
+                entry.entry_font_style
+              else
+                acc.font_style
+            );
+          foreground =
+            ( if entry.entry_foreground <> None then
+                entry.entry_foreground
+              else
+                acc.foreground
+            );
+          background =
+            ( if entry.entry_background <> None then
+                entry.entry_background
+              else
+                acc.background
+            );
+        }
+      )
+      Theme.{ foreground = None; background = None; font_style = None }
+      globals
+  in
+  let trie =
+    new_element
+      ~main:
+        {
+          depth = 0;
+          parents = [];
+          font_style = None;
+          foreground = None;
+          background = None;
+        }
+      ~with_parents:[]
+  in
+  List.iter
+    (fun entry ->
+      insert trie 0 entry.scope entry.entry_parents entry.entry_font_style
+        entry.entry_foreground entry.entry_background
+    )
+    scoped;
+  freeze trie;
+  { trie; defaults }
 
 let cache_capacity = 16
 let compiled_cache : (Theme.token_color_rule list * compiled) list Atomic.t =
@@ -140,145 +320,101 @@ let compiled_for rules =
       update ();
       compiled
 
-module Stack_table = Hashtbl.Make (struct
-  type t = string list
-
-  let equal = List.equal String.equal
-
-  let hash scopes =
-    List.fold_left (fun acc scope -> (acc * 31) + Hashtbl.hash scope) 17 scopes
-    land max_int
-end)
-
-type resolver = {
-  compiled : compiled;
-  memo : Theme.token_color_settings option Stack_table.t;
-  scope_parts : (string, int list) Hashtbl.t;
-  state : int array;
-  index_sum : int array;
+type node = {
+  path : path;
+  settings : Theme.token_color_settings;
+  next : (string, node) Hashtbl.t;
 }
 
+type resolver = { compiled : compiled; roots : (string, node) Hashtbl.t }
+
 let resolver rules =
-  let compiled = compiled_for rules in
-  let selector_count = Array.length compiled.selector_rule in
-  {
-    compiled;
-    memo = Stack_table.create 64;
-    scope_parts = Hashtbl.create 64;
-    state = Array.make selector_count 0;
-    index_sum = Array.make selector_count 0;
-  }
+  { compiled = compiled_for rules; roots = Hashtbl.create 64 }
 
-let parts_matching_scope resolver scope =
-  match Hashtbl.find_opt resolver.scope_parts scope with
-  | Some parts ->
-      parts
-  | None ->
-      let by_name = resolver.compiled.parts_by_name in
-      let found = ref [] in
-      let collect name =
-        match Hashtbl.find_opt by_name name with
-        | Some parts ->
-            found := List.rev_append parts !found
-        | None ->
-            ()
-      in
-      String.iteri
-        (fun i c -> if c = '.' then collect (String.sub scope 0 i))
-        scope;
-      collect scope;
-      let parts = List.sort (fun a b -> compare b a) !found in
-      Hashtbl.add resolver.scope_parts scope parts;
-      parts
-
-let better_candidate current ((score, idx) as rank) value =
-  match current with
-  | None ->
-      Some (rank, value)
-  | Some ((best_score, best_idx), _) ->
-      if score > best_score || (score = best_score && idx > best_idx) then
-        Some (rank, value)
-      else
-        current
-
-let resolve_uncached resolver scopes =
-  let compiled = resolver.compiled in
-  let scopes = Array.of_list (normalize_scopes scopes) in
-  let scope_count = Array.length scopes in
-  let touched = ref [] in
-  Array.iteri
-    (fun idx scope ->
-      List.iter
-        (fun g ->
-          let sel = compiled.part_selector.(g) in
-          let state = resolver.state.(sel) in
-          if state = compiled.part_index.(g) then (
-            if state = 0 then touched := sel :: !touched;
-            resolver.state.(sel) <- state + 1;
-            resolver.index_sum.(sel) <- resolver.index_sum.(sel) + idx
-          )
-        )
-        (parts_matching_scope resolver scope)
-    )
-    scopes;
-  let has_any = ref (compiled.unconditional <> []) in
-  let fg_best = ref None in
-  let bg_best = ref None in
-  let font_best = ref None in
-  let apply_rule idx score =
-    has_any := true;
-    let rank = (score, idx) in
-    let settings = compiled.rules.(idx).settings in
-    ( match settings.foreground with
-    | Some color ->
-        fg_best := better_candidate !fg_best rank color
+let make_node compiled parent name (inherited : Theme.token_color_settings) =
+  let up = Option.map (fun node -> node.path) parent in
+  let element = lookup compiled.trie name in
+  let settings =
+    match
+      List.find_opt
+        (fun rule -> parents_match up rule.parents)
+        element.candidates
+    with
     | None ->
-        ()
-    );
-    ( match settings.background with
-    | Some color ->
-        bg_best := better_candidate !bg_best rank color
-    | None ->
-        ()
-    );
-    match settings.font_style with
-    | Some styles ->
-        font_best := better_candidate !font_best rank styles
-    | None ->
-        ()
+        inherited
+    | Some rule ->
+        {
+          Theme.font_style =
+            ( if rule.font_style <> None then
+                rule.font_style
+              else
+                inherited.font_style
+            );
+          foreground =
+            ( if rule.foreground <> None then
+                rule.foreground
+              else
+                inherited.foreground
+            );
+          background =
+            ( if rule.background <> None then
+                rule.background
+              else
+                inherited.background
+            );
+        }
   in
-  List.iter (fun idx -> apply_rule idx 0) compiled.unconditional;
-  List.iter
-    (fun sel ->
-      ( if resolver.state.(sel) = compiled.selector_length.(sel) then
-          let score =
-            (compiled.selector_length.(sel) * scope_count * position_weight)
-            - (resolver.index_sum.(sel) * position_weight)
-            + compiled.selector_specificity.(sel)
-          in
-          apply_rule compiled.selector_rule.(sel) score
-      );
-      resolver.state.(sel) <- 0;
-      resolver.index_sum.(sel) <- 0
-    )
-    !touched;
-  if not !has_any then
-    None
-  else
-    Some
-      {
-        Theme.foreground = Option.map snd !fg_best;
-        background = Option.map snd !bg_best;
-        font_style = Option.map snd !font_best;
-      }
+  { path = { name; up }; settings; next = Hashtbl.create 4 }
 
 let resolve resolver scopes =
-  match Stack_table.find_opt resolver.memo scopes with
-  | Some settings ->
-      settings
-  | None ->
-      let settings = resolve_uncached resolver scopes in
-      Stack_table.add resolver.memo scopes settings;
-      settings
+  let rec walk table parent settings = function
+    | [] ->
+        settings
+    | name :: rest ->
+        let node =
+          match Hashtbl.find_opt table name with
+          | Some node ->
+              node
+          | None ->
+              let node = make_node resolver.compiled parent name settings in
+              Hashtbl.add table name node;
+              node
+        in
+        walk node.next (Some node) node.settings rest
+  in
+  let names = List.concat_map split_on_spaces (List.rev scopes) in
+  let settings = walk resolver.roots None resolver.compiled.defaults names in
+  match settings with
+  | { Theme.foreground = None; background = None; font_style = None } ->
+      None
+  | _ ->
+      Some settings
 
 let find_best_match scopes rules = resolve (resolver rules) scopes
+
+let match_selector scopes selector =
+  let reversed = List.rev (String.split_on_char ' ' (String.trim selector)) in
+  let last = List.hd reversed and parents = List.tl reversed in
+  let path_of_stack =
+    List.fold_left
+      (fun up name -> Some { name; up })
+      None
+      (List.concat_map split_on_spaces (List.rev scopes))
+  in
+  let rec search = function
+    | None ->
+        None
+    | Some node ->
+        if
+          scope_matches_selector_part node.name last
+          && parents_match node.up parents
+        then
+          Some
+            (List.fold_left
+               (fun acc part -> acc + String.length part)
+               (String.length last) parents
+            )
+        else
+          search node.up
+  in
+  search path_of_stack

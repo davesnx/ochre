@@ -124,13 +124,22 @@ let apply_theme theme tokens_per_line =
           let settings = Scope.resolve resolver scopes in
           let foreground =
             match settings with
-            | Some s ->
-                s.Theme.foreground
-            | None ->
+            | Some { Theme.foreground = Some color; _ } ->
+                Some color
+            | _ ->
                 Some theme.fg
           in
           let background =
-            match settings with Some s -> s.Theme.background | None -> None
+            match settings with
+            | Some { Theme.background = Some color; _ }
+              when not
+                     (String.equal
+                        (String.lowercase_ascii color)
+                        (String.lowercase_ascii theme.bg)
+                     ) ->
+                Some color
+            | _ ->
+                None
           in
           let font_style =
             match settings with

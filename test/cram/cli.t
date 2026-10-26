@@ -4,7 +4,7 @@ independent of the terminal environment.
 Bundled grammar with zero flags
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord
-  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#81A1C1)">let</span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)"> </span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#88C0D0)">x</span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)"> </span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#81A1C1)">=</span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)"> </span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#B48EAD)">1</span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)">
+  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)" tabindex="0"><code><span class="line"><span style="color:var(--ochre,#81A1C1)">let</span><span style="color:var(--ochre,#d8dee9ff)"> </span><span style="color:var(--ochre,#88C0D0)">x</span><span style="color:var(--ochre,#d8dee9ff)"> </span><span style="color:var(--ochre,#81A1C1)">=</span><span style="color:var(--ochre,#d8dee9ff)"> </span><span style="color:var(--ochre,#B48EAD)">1</span><span style="color:var(--ochre,#d8dee9ff)">
   </span></span></code></pre>
 
 File input instead of stdin
@@ -27,13 +27,13 @@ Plaintext works without any grammar
   line 1:
     "no grammar here\n"  
   $ printf 'hello\n' | ochre text --theme nord
-  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)">hello
+  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)" tabindex="0"><code><span class="line"><span style="color:var(--ochre,#d8dee9ff)">hello
   </span></span></code></pre>
 
 ANSI output
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord --format ansi | cat -v
-  ^[[48;2;46;52;64m^[[38;2;129;161;193mlet^[[0m^[[48;2;46;52;64m^[[38;2;216;222;233m ^[[0m^[[48;2;46;52;64m^[[38;2;136;192;208mx^[[0m^[[48;2;46;52;64m^[[38;2;216;222;233m ^[[0m^[[48;2;46;52;64m^[[38;2;129;161;193m=^[[0m^[[48;2;46;52;64m^[[38;2;216;222;233m ^[[0m^[[48;2;46;52;64m^[[38;2;180;142;173m1^[[0m^[[48;2;46;52;64m^[[38;2;216;222;233m
+  ^[[38;2;129;161;193mlet^[[0m^[[38;2;216;222;233m ^[[0m^[[38;2;136;192;208mx^[[0m^[[38;2;216;222;233m ^[[0m^[[38;2;129;161;193m=^[[0m^[[38;2;216;222;233m ^[[0m^[[38;2;180;142;173m1^[[0m^[[38;2;216;222;233m
   ^[[0m
 
 LaTeX output
@@ -47,31 +47,29 @@ SVG output (header only)
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord --format svg | head -2
   <svg xmlns="http://www.w3.org/2000/svg" width="96" height="38" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px">
-   <rect width="100%" height="100%" fill="#2e3440"/>
+   <rect width="100%" height="100%" fill="#2e3440ff"/>
 
 Dual-theme HTML emits dark CSS custom properties with light as default
 
   $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord | grep -o -- '--ochre-dark-[a-z-]*bg:[^;"]*' | sort -u
-  --ochre-dark-bg:#2e3440
-  --ochre-dark-token-bg:#2e3440ff
+  --ochre-dark-bg:#2e3440ff
   $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord | grep -o 'background-color:var(--ochre-bg,#[0-9A-Fa-f]*)' | sort -u
   background-color:var(--ochre-bg,#FFFFFF)
 
 Custom CSS variable prefix
 
   $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord --css-var-prefix=--hl- | grep -o -- '--hl-dark-[a-z-]*bg:[^;"]*' | sort -u
-  --hl-dark-bg:#2e3440
-  --hl-dark-token-bg:#2e3440ff
+  --hl-dark-bg:#2e3440ff
 
 No default color suppresses inline colors and emits every theme as variables
 
   $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord --no-default-color | head -1
-  <pre class="ochre ochre-themes light nord" style="--ochre-light-bg:#FFFFFF;--ochre-light:#000000;--ochre-dark-bg:#2e3440;--ochre-dark:#d8dee9" tabindex="0"><code><span class="line"><span style="--ochre-light-token-bg:transparent;--ochre-light:#0000ff;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#81A1C1">let</span><span style="--ochre-light-token-bg:transparent;--ochre-light:#000000;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-light-token-bg:transparent;--ochre-light:#795E26;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#88C0D0">x</span><span style="--ochre-light-token-bg:transparent;--ochre-light:#000000;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-light-token-bg:transparent;--ochre-light:#000000;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#81A1C1">=</span><span style="--ochre-light-token-bg:transparent;--ochre-light:#000000;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-light-token-bg:transparent;--ochre-light:#098658;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#B48EAD">1</span><span style="--ochre-light-token-bg:transparent;--ochre-light:#000000;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#d8dee9ff">
+  <pre class="ochre ochre-themes light nord" style="--ochre-light-bg:#FFFFFF;--ochre-light:#000000;--ochre-dark-bg:#2e3440ff;--ochre-dark:#d8dee9ff" tabindex="0"><code><span class="line"><span style="--ochre-light:#0000ff;--ochre-dark:#81A1C1">let</span><span style="--ochre-light:#000000;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-light:#795E26;--ochre-dark:#88C0D0">x</span><span style="--ochre-light:#000000;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-light:#000000;--ochre-dark:#81A1C1">=</span><span style="--ochre-light:#000000;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-light:#098658;--ochre-dark:#B48EAD">1</span><span style="--ochre-light:#000000;--ochre-dark:#d8dee9ff">
 
 CSS classes mode
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord --html-css-classes
-  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span class="ochre-dc0973e3ff43905f">let</span><span class="ochre-fe1225fb9540083e"> </span><span class="ochre-e8da3adeb7e6385a">x</span><span class="ochre-fe1225fb9540083e"> </span><span class="ochre-dc0973e3ff43905f">=</span><span class="ochre-fe1225fb9540083e"> </span><span class="ochre-712566744e866431">1</span><span class="ochre-fe1225fb9540083e">
+  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)" tabindex="0"><code><span class="line"><span class="ochre-94dec1eb9a518504">let</span><span class="ochre-d0241342ad1f0214"> </span><span class="ochre-61c3e44bec174d4d">x</span><span class="ochre-d0241342ad1f0214"> </span><span class="ochre-94dec1eb9a518504">=</span><span class="ochre-d0241342ad1f0214"> </span><span class="ochre-b8c6aec07cdc0207">1</span><span class="ochre-d0241342ad1f0214">
   </span></span></code></pre>
 
 Line numbers
@@ -209,26 +207,21 @@ A missing LANG is a user/input error (not a parse-time value error)
 No default color on one theme emits that theme as variables
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord --no-default-color | grep -o -- '--ochre-[a-z-]*:#[0-9A-Fa-f]*' | sort -u
-  --ochre-nord-bg:#2e3440
-  --ochre-nord-token-bg:#2e3440ff
+  --ochre-nord-bg:#2e3440ff
   --ochre-nord:#81A1C1
   --ochre-nord:#88C0D0
   --ochre-nord:#B48EAD
-  --ochre-nord:#d8dee9
   --ochre-nord:#d8dee9ff
 
 No default color on two themes emits the light theme as variables too
 
   $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord --no-default-color | grep -o -- '--ochre-[a-z-]*:[#0-9A-Za-z]*' | sort -u
-  --ochre-dark-bg:#2e3440
-  --ochre-dark-token-bg:#2e3440ff
+  --ochre-dark-bg:#2e3440ff
   --ochre-dark:#81A1C1
   --ochre-dark:#88C0D0
   --ochre-dark:#B48EAD
-  --ochre-dark:#d8dee9
   --ochre-dark:#d8dee9ff
   --ochre-light-bg:#FFFFFF
-  --ochre-light-token-bg:transparent
   --ochre-light:#000000
   --ochre-light:#0000ff
   --ochre-light:#098658

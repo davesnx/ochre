@@ -33,9 +33,7 @@ Rule with missing settings
   name: no-settings
   fg: #000000
   bg: #ffffff
-  rules: 1
-    scopes: [comment]
-    fg: none
+  rules: 0
 
 Scope specified as an array of strings
   $ ./test_theme.exe array-scope
