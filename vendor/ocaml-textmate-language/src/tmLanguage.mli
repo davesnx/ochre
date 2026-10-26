@@ -115,11 +115,16 @@ val tokenize_exn :
 
     Precondition:
 
-    - [line] must be a single line, including the newline character at the end.
+    - [line] must be a single line. A newline at the end is optional.
+
+    As in vscode-textmate, a [line] that does not end with a newline is
+    tokenized as if it did, so that rules ending at [\n] still apply. The
+    newline is not part of the result: the last token is cut to end at
+    [String.length line], and dropped when that leaves it empty.
 
     Postconditions:
 
-    - [tokens] is nonempty.
+    - [tokens] is nonempty, unless [line] is empty.
     - The ending positions of [tokens] are strictly increasing.
     - The [ending] of the last token in [tokens] is always [String.length line].
 
