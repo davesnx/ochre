@@ -58,9 +58,7 @@ and normalize_capture_map = function
   | `List items ->
       `Assoc
         (List.mapi
-           (fun idx item ->
-             (string_of_int (idx + 1), normalize_grammar_json item)
-           )
+           (fun idx item -> (string_of_int idx, normalize_grammar_json item))
            items
         )
   | value ->
