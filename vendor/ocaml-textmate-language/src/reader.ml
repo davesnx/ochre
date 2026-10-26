@@ -144,7 +144,14 @@ and patterns_of_plist obj =
             Include_scope s
     )
   | None -> (
-      match (List.assoc_opt "match" obj, List.assoc_opt "begin" obj) with
+      let non_empty key =
+        match List.assoc_opt key obj with
+        | Some v when get_string v = "" ->
+            None
+        | v ->
+            v
+      in
+      match (non_empty "match", List.assoc_opt "begin" obj) with
       | Some s, _ ->
           (* vscode-textmate's RuleFactory.getCompiledRuleId checks
              `desc.match` before `desc.begin`/`desc.while`: when a rule has
@@ -170,7 +177,7 @@ and patterns_of_plist obj =
       | None, Some b ->
           let delim_begin_source = get_string b in
           let e, key, delim_kind =
-            match (List.assoc_opt "end" obj, List.assoc_opt "while" obj) with
+            match (non_empty "end", non_empty "while") with
             | _, Some e ->
                 (* `while` also takes priority over `end` in vscode-textmate
                    (the `desc.while` check runs before the BeginEndRule
@@ -192,25 +199,17 @@ and patterns_of_plist obj =
                    [retokenize_line]. *)
                 (`String "\\A(?!x)x", "endCaptures", End)
           in
-          let delim_begin_captures, delim_end_captures =
-            match List.assoc_opt "captures" obj with
+          let captures_of keys =
+            match List.find_map (fun k -> List.assoc_opt k obj) keys with
             | Some value ->
-                let captures = get_captures value in
-                (captures, captures)
+                get_captures value
             | None ->
-                ( ( match List.assoc_opt "beginCaptures" obj with
-                  | Some value ->
-                      get_captures value
-                  | None ->
-                      Hashtbl.create 0
-                  ),
-                  match List.assoc_opt key obj with
-                  | Some value ->
-                      get_captures value
-                  | None ->
-                      Hashtbl.create 0
-                )
+                Hashtbl.create 0
           in
+          let delim_begin_captures =
+            captures_of [ "beginCaptures"; "captures" ]
+          in
+          let delim_end_captures = captures_of [ key; "captures" ] in
           let delim_end = get_string e in
           Delim
             {
@@ -248,16 +247,15 @@ and patterns_of_plist obj =
               delim_end_captures;
               delim_apply_end_pattern_last =
                 ( match List.assoc_opt "applyEndPatternLast" obj with
-                | Some (`Int 1) ->
-                    true
-                | _ ->
+                | None | Some (`Int 0 | `Bool false | `Null | `String "") ->
                     false
+                | Some _ ->
+                    true
                 );
               delim_kind;
             }
       | None, None ->
-          (* Pattern with neither match nor begin acts as a scope wrapper *)
-          let scope_name = get_name_opt obj "name" in
+          (* vscode-textmate's IncludeOnlyRule ignores "name". *)
           let child_patterns =
             match List.assoc_opt "patterns" obj with
             | None ->
@@ -265,7 +263,7 @@ and patterns_of_plist obj =
             | Some v ->
                 get_pattern_list v
           in
-          Scope_patterns { scope_name; child_patterns }
+          Scope_patterns { scope_name = None; child_patterns }
     )
 
 let parse_injection_selector raw =
