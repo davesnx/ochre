@@ -1,5 +1,10 @@
 ## Unreleased
 
+- Change the default background of `line_highlight` and `notation_highlight` from `#ffffff22` to `#8888883a`, so that it shows on light themes, where the old one matched the page background.
+- Read `COLORFGBG` as rxvt does for the CLI's default theme: background 0-6 and 8 is dark, 7 and 9-15 is light, and any other value gives no guess (dark).
+- Use the full Unicode 17.0 East Asian Width table (W and F) for SVG and LaTeX column widths, so emoji such as rockets and check marks take two cells, and more combining marks take none.
+- Find notation comments in any grammar whose root scope is `text.*` (plain text, Markdown, LaTeX, XML, and HTML text nodes), not only Markdown. All grammars share one opener list, which now includes `;;`, `%%`, `"`, `'`, and `*`, and an opener in prose must follow a blank or the line start.
+- Add `Ochre.is_plaintext_lang`, true for `"plaintext"`, `"text"`, and `"txt"`.
 - Fix an uncaught `Invalid_argument "String.sub / Bytes.sub"` when a grammar has a simple capture followed by a sibling capture with nested patterns, which crashed ordinary Markdown, CSS, Go, dotenv, and shellsession input.
 - Fix quadratic tokenization time on long lines. Tokenizing a line now takes time proportional to its length.
 - Fix the remaining `Invalid_argument "String.sub / Bytes.sub"` crashes on valid input: a zero-width match with captures past its end (JavaScript/TypeScript `export const`, `declare const`) and a capture nested inside a capture with patterns (Swift regex literals, C++ function definitions). Captures are now handled as vscode-textmate does, and `$N` references in rule and capture names are expanded.

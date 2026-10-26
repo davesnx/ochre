@@ -33,3 +33,16 @@ XML entities are escaped in SVG output
    <rect width="100%" height="100%" fill="#1e1e1e"/>
     <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" fill="#d4d4d4" xml:space="preserve"><tspan font-style="italic" fill="#888888"># &lt;div&gt;&amp;amp;&lt;/div&gt;</tspan></text>
   </svg>
+
+Emoji and CJK take two cells, combining marks none
+  $ for text in 'ab' '漢字' '한글' 'ＡＢ' '🚀🚀' '✅⭐' '🩷' 'e'"$(printf '\314\201')"; do
+  >   printf '%s\n' "$text" | ochre plaintext --format svg | sed -n '1s/.* width="\([0-9]*\)".*/\1/p'
+  > done
+  37
+  54
+  54
+  54
+  54
+  54
+  37
+  28

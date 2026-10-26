@@ -35,38 +35,6 @@ let format_of_path path =
   else
     Json
 
-let rec normalize_grammar_json = function
-  | `Assoc fields ->
-      `Assoc
-        (List.map
-           (fun (key, value) ->
-             if is_capture_field key then
-               (key, normalize_capture_map value)
-             else
-               (key, normalize_grammar_json value)
-           )
-           fields
-        )
-  | `List items ->
-      `List (List.map normalize_grammar_json items)
-  | value ->
-      value
-
-and normalize_capture_map = function
-  | `Assoc _ as assoc ->
-      normalize_grammar_json assoc
-  | `List items ->
-      `Assoc
-        (List.mapi
-           (fun idx item -> (string_of_int idx, normalize_grammar_json item))
-           items
-        )
-  | value ->
-      normalize_grammar_json value
-
-and is_capture_field key =
-  key = "captures" || String.ends_with ~suffix:"Captures" key
-
 let load_grammar_from_file path =
   match format_of_path path with
   | Json ->
@@ -77,7 +45,7 @@ let load_grammar_from_file path =
             (Printf.sprintf "%s: invalid JSON: %s" path (describe_json_error msg)
             )
       in
-      TmLanguage.of_yojson_exn (normalize_grammar_json json)
+      TmLanguage.of_yojson_exn json
   | Plist ->
       let ic = open_in path in
       let plist =
@@ -89,7 +57,7 @@ let load_grammar_from_file path =
 
 let load_grammar_from_string json_string =
   let json = Yojson.Basic.from_string json_string in
-  TmLanguage.of_yojson_exn (normalize_grammar_json json)
+  TmLanguage.of_yojson_exn json
 
 let check_no_duplicate_ids loaded =
   let seen = Hashtbl.create (List.length loaded) in

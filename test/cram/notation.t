@@ -51,6 +51,39 @@ Notation highlight in real grammars: the whole comment goes, other text and the 
   plaintext
     hl "foo\n"
     .  "bar\n"
+  plaintext
+    hl "foo\n"
+    .  "bar\n"
+  plaintext
+    hl "foo\n"
+    .  "bar\n"
+  plaintext
+    hl "foo\n"
+    .  "bar\n"
+  plaintext
+    hl "foo\n"
+    .  "bar\n"
+  plaintext
+    hl "foo\n"
+    .  "bar\n"
+  plaintext
+    hl "say \"hi\"\n"
+    .  "bar\n"
+  html
+    hl "foo\n"
+    .  "bar\n"
+  xml
+    hl "foo\n"
+    .  "bar\n"
+  xml
+    hl "foo\n"
+    .  "bar\n"
+  latex
+    hl "foo\n"
+    .  "bar\n"
+  latex
+    hl "foo\n"
+    .  "bar\n"
 
 Notation diff
   $ ./test_notation.exe diff
@@ -155,7 +188,6 @@ Random lines in many languages lose no code
   java: only comments change
   ocaml: only comments change
   css: only comments change
-  html: only comments change
 
 Many markers in a string take linear time
   $ ./test_notation.exe speed
