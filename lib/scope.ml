@@ -326,10 +326,18 @@ type node = {
   next : (string, node) Hashtbl.t;
 }
 
-type resolver = { compiled : compiled; roots : (string, node) Hashtbl.t }
+type resolver = {
+  compiled : compiled;
+  roots : (string, node) Hashtbl.t;
+  mutable stack : (string list * node option) list;
+}
 
 let resolver rules =
-  { compiled = compiled_for rules; roots = Hashtbl.create 64 }
+  {
+    compiled = compiled_for rules;
+    roots = Hashtbl.create 64;
+    stack = [ ([], None) ];
+  }
 
 let make_node compiled parent name (inherited : Theme.token_color_settings) =
   let up = Option.map (fun node -> node.path) parent in
@@ -366,24 +374,105 @@ let make_node compiled parent name (inherited : Theme.token_color_settings) =
   in
   { path = { name; up }; settings; next = Hashtbl.create 4 }
 
-let resolve resolver scopes =
-  let rec walk table parent settings = function
-    | [] ->
-        settings
-    | name :: rest ->
-        let node =
-          match Hashtbl.find_opt table name with
-          | Some node ->
-              node
-          | None ->
-              let node = make_node resolver.compiled parent name settings in
-              Hashtbl.add table name node;
-              node
-        in
-        walk node.next (Some node) node.settings rest
+let step resolver parent scope =
+  List.fold_left
+    (fun parent name ->
+      let table =
+        match parent with Some node -> node.next | None -> resolver.roots
+      in
+      let settings =
+        match parent with
+        | Some node ->
+            node.settings
+        | None ->
+            resolver.compiled.defaults
+      in
+      match Hashtbl.find_opt table name with
+      | Some node ->
+          Some node
+      | None ->
+          let node = make_node resolver.compiled parent name settings in
+          Hashtbl.add table name node;
+          Some node
+    )
+    parent (split_on_spaces scope)
+
+let alignment_budget = 16
+
+let rec tails budget scopes =
+  match scopes with
+  | [] ->
+      [ scopes ]
+  | _ :: rest ->
+      if budget = 0 then
+        []
+      else
+        scopes :: tails (budget - 1) rest
+
+let rec take_tails n scopes =
+  match scopes with
+  | _ :: rest when n > 0 ->
+      scopes :: take_tails (n - 1) rest
+  | _ ->
+      []
+
+let rec drop n stack =
+  if n = 0 then
+    stack
+  else
+    drop (n - 1) (List.tl stack)
+
+(* Scope lists of consecutive tokens share their tails physically, so the
+   previous list's chain of nodes is reused when the new list differs from it
+   by at most [alignment_budget] elements on each side. Otherwise the whole
+   list is resolved again. Returns the number of new elements and the number of
+   stack entries to drop. *)
+let align stack scopes =
+  let rec over_stack tail j = function
+    | (l, _) :: rest when j < alignment_budget ->
+        if l == tail then
+          Some j
+        else
+          over_stack tail (j + 1) rest
+    | _ ->
+        None
   in
-  let names = List.concat_map split_on_spaces (List.rev scopes) in
-  let settings = walk resolver.roots None resolver.compiled.defaults names in
+  let rec over_new i = function
+    | tail :: rest -> (
+        match over_stack tail 0 stack with
+        | Some j ->
+            Some (i, j)
+        | None ->
+            over_new (i + 1) rest
+      )
+    | [] ->
+        None
+  in
+  match over_new 0 (tails alignment_budget scopes) with
+  | Some found ->
+      found
+  | None ->
+      (List.length scopes, List.length stack - 1)
+
+let resolve resolver scopes =
+  let fresh, dropped = align resolver.stack scopes in
+  let stack =
+    List.fold_left
+      (fun stack tail ->
+        let parent = snd (List.hd stack) in
+        (tail, step resolver parent (List.hd tail)) :: stack
+      )
+      (drop dropped resolver.stack)
+      (List.rev (take_tails fresh scopes))
+  in
+  resolver.stack <- stack;
+  let settings =
+    match snd (List.hd stack) with
+    | Some node ->
+        node.settings
+    | None ->
+        resolver.compiled.defaults
+  in
   match settings with
   | { Theme.foreground = None; background = None; font_style = None } ->
       None
