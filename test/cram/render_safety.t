@@ -11,9 +11,9 @@ Colours that are not plain CSS colours are left out, never written
   <pre class="ochre" tabindex="0"><code><span class="line">let x = &quot;s&quot;</span></code></pre>
   <pre class="ochre ochre-themes t evil" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span style="color:var(--ochre,#ff0000)">let</span><span style="color:var(--ochre,#d4d4d4)"> x = </span><span style="color:var(--ochre,#00ff00)">&quot;s&quot;</span></span></code></pre>
 
-Plain CSS colours are kept
+Hex colours in rules are kept, other CSS colours in rules are ignored, theme defaults are kept as written
   $ ./test_render_safety.exe html-valid-colors
-  <pre class="ochre" style="background-color:var(--ochre-bg,hsl(10 20% 30% / 0.5));color:var(--ochre,rgb(1, 2, 3))" tabindex="0"><code><span class="line"><span style="color:var(--ochre,tomato)">let</span><span style="color:var(--ochre,rgb(1, 2, 3))"> x = </span><span style="color:var(--ochre,#0f08)">&quot;s&quot;</span></span></code></pre>
+  <pre class="ochre" style="background-color:var(--ochre-bg,hsl(10 20% 30% / 0.5));color:var(--ochre,rgb(1, 2, 3))" tabindex="0"><code><span class="line"><span style="color:var(--ochre,rgb(1, 2, 3))">let</span><span style="color:var(--ochre,rgb(1, 2, 3))"> x = </span><span style="color:var(--ochre,#0f08)">&quot;s&quot;</span></span></code></pre>
 
 Options and labels are made safe for HTML attributes and CSS names
   $ ./test_render_safety.exe html-options
@@ -47,7 +47,7 @@ SVG colours that are not plain CSS colours are left out
   $ ./test_render_safety.exe svg-colors
   <svg xmlns="http://www.w3.org/2000/svg" width="112" height="38" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px">
    <rect width="100%" height="100%" fill="none"/>
-    <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve">let<tspan fill="#d4d4d4"> x = </tspan>&quot;s&quot;</text>
+    <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan fill="#d4d4d4">let</tspan><tspan fill="#d4d4d4"> x = </tspan><tspan fill="#d4d4d4">&quot;s&quot;</tspan></text>
   </svg>
 
 SVG replaces characters that XML 1.0 forbids by U+FFFD

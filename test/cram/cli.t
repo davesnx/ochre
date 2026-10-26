@@ -4,7 +4,7 @@ independent of the terminal environment.
 Bundled grammar with zero flags
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord
-  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#81A1C1)">let</span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)"> </span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#88C0D0)">x</span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)"> </span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#81A1C1)">=</span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)"> </span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#B48EAD)">1</span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)">
+  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)" tabindex="0"><code><span class="line"><span style="color:var(--ochre,#81A1C1)">let</span><span style="color:var(--ochre,#d8dee9ff)"> </span><span style="color:var(--ochre,#88C0D0)">x</span><span style="color:var(--ochre,#d8dee9ff)"> </span><span style="color:var(--ochre,#81A1C1)">=</span><span style="color:var(--ochre,#d8dee9ff)"> </span><span style="color:var(--ochre,#B48EAD)">1</span><span style="color:var(--ochre,#d8dee9ff)">
   </span></span></code></pre>
 
 File input instead of stdin
@@ -27,13 +27,13 @@ Plaintext works without any grammar
   line 1:
     "no grammar here\n"  
   $ printf 'hello\n' | ochre text --theme nord
-  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)">hello
+  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)" tabindex="0"><code><span class="line"><span style="color:var(--ochre,#d8dee9ff)">hello
   </span></span></code></pre>
 
 ANSI output
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord --format ansi | cat -v
-  ^[[48;2;46;52;64m^[[38;2;129;161;193mlet^[[0m^[[48;2;46;52;64m^[[38;2;216;222;233m ^[[0m^[[48;2;46;52;64m^[[38;2;136;192;208mx^[[0m^[[48;2;46;52;64m^[[38;2;216;222;233m ^[[0m^[[48;2;46;52;64m^[[38;2;129;161;193m=^[[0m^[[48;2;46;52;64m^[[38;2;216;222;233m ^[[0m^[[48;2;46;52;64m^[[38;2;180;142;173m1^[[0m^[[48;2;46;52;64m^[[38;2;216;222;233m
+  ^[[38;2;129;161;193mlet^[[0m^[[38;2;216;222;233m ^[[0m^[[38;2;136;192;208mx^[[0m^[[38;2;216;222;233m ^[[0m^[[38;2;129;161;193m=^[[0m^[[38;2;216;222;233m ^[[0m^[[38;2;180;142;173m1^[[0m^[[38;2;216;222;233m
   ^[[0m
 
 LaTeX output
@@ -47,12 +47,11 @@ SVG output (header only)
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord --format svg | head -2
   <svg xmlns="http://www.w3.org/2000/svg" width="96" height="38" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px">
-   <rect width="100%" height="100%" fill="#2e3440"/>
+   <rect width="100%" height="100%" fill="#2e3440ff"/>
 
 Dual-theme HTML emits dark CSS custom properties with light as default
 
   $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord | grep -o -- '--ochre-dark-bg:[^;"]*' | sort -u
-  --ochre-dark-bg:#2e3440
   --ochre-dark-bg:#2e3440ff
   $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord | grep -o 'background-color:var(--ochre-bg,#[0-9A-Fa-f]*)' | sort -u
   background-color:var(--ochre-bg,#FFFFFF)
@@ -60,18 +59,17 @@ Dual-theme HTML emits dark CSS custom properties with light as default
 Custom CSS variable prefix
 
   $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord --css-var-prefix=--hl- | grep -o -- '--hl-dark-bg:[^;"]*' | sort -u
-  --hl-dark-bg:#2e3440
   --hl-dark-bg:#2e3440ff
 
 No default color suppresses inline colors
 
   $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord --no-default-color | head -1
-  <pre class="ochre ochre-themes light nord" style="--ochre-dark-bg:#2e3440;--ochre-dark:#d8dee9" tabindex="0"><code><span class="line"><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#81A1C1">let</span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#88C0D0">x</span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#81A1C1">=</span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#B48EAD">1</span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#d8dee9ff">
+  <pre class="ochre ochre-themes light nord" style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#d8dee9ff" tabindex="0"><code><span class="line"><span style="--ochre-dark:#81A1C1">let</span><span style="--ochre-dark:#d8dee9ff"> </span><span style="--ochre-dark:#88C0D0">x</span><span style="--ochre-dark:#d8dee9ff"> </span><span style="--ochre-dark:#81A1C1">=</span><span style="--ochre-dark:#d8dee9ff"> </span><span style="--ochre-dark:#B48EAD">1</span><span style="--ochre-dark:#d8dee9ff">
 
 CSS classes mode
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord --html-css-classes
-  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span class="ochre-e235a20ca1cb1117">let</span><span class="ochre-9a91402e327de2c5"> </span><span class="ochre-1e8b07019ea8aab0">x</span><span class="ochre-9a91402e327de2c5"> </span><span class="ochre-e235a20ca1cb1117">=</span><span class="ochre-9a91402e327de2c5"> </span><span class="ochre-a6b89ebf05d16eb9">1</span><span class="ochre-9a91402e327de2c5">
+  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)" tabindex="0"><code><span class="line"><span class="ochre-94dec1eb9a518504">let</span><span class="ochre-d0241342ad1f0214"> </span><span class="ochre-61c3e44bec174d4d">x</span><span class="ochre-d0241342ad1f0214"> </span><span class="ochre-94dec1eb9a518504">=</span><span class="ochre-d0241342ad1f0214"> </span><span class="ochre-b8c6aec07cdc0207">1</span><span class="ochre-d0241342ad1f0214">
   </span></span></code></pre>
 
 Line numbers

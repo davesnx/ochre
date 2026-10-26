@@ -53,10 +53,22 @@ val load : ?base_dir:string -> string -> (theme, string) result
 
     When [~base_dir] is provided, ["include"] paths in the JSON are resolved
     relative to that directory (same as {!val-load_from_file} does with the
-    file's parent directory). When omitted, ["include"] fields are silently
-    ignored.
+    file's parent directory). When omitted, a theme with an ["include"] field is
+    rejected.
 
-    Returns [Error msg] when the JSON is malformed.
+    Returns [Error msg] when the JSON is malformed or its ["include"] cannot be
+    resolved.
+
+    The default foreground and background come from a scope-less rule first,
+    then from ["editor.foreground"] and ["editor.background"], then from a
+    fallback chosen by the ["type"] field (["dark"] or ["light"]). When both
+    ["settings"] and ["tokenColors"] are present, only ["settings"] is used,
+    unless ["settings"] is null, false, [0] or [""].
+
+    Rule colors must be [#rgb], [#rgba], [#rrggbb] or [#rrggbbaa]. Other values
+    are ignored, so a rule with [~foreground:"red"] has no effect. A theme with
+    no ["type"], no scope-less rule and no ["editor.*"] colors falls back to
+    light defaults ([#000000] on [#ffffff]).
 
     {[
     let theme =
@@ -73,6 +85,12 @@ val load : ?base_dir:string -> string -> (theme, string) result
         ]
       }|}
     ]} *)
+
+val is_valid_color : string -> bool
+(** {2 is_valid_color}
+
+    [true] for [#rgb], [#rgba], [#rrggbb] and [#rrggbbaa]. Rules whose colors
+    are not valid are applied without them. *)
 
 val load_exn : ?base_dir:string -> string -> theme
 (** {2 load_exn}
@@ -143,8 +161,9 @@ val rule :
     Construct a token color rule.
 
     Omitting [scope] creates a scope-less rule (often used for default text
-    styling in TextMate themes). Omitting [font_style] means "not specified";
-    passing [[]] clears inherited font styles.
+    styling in TextMate themes). Each entry of [scope] is one selector: it is
+    not split on commas. Omitting [font_style] means "not specified"; passing
+    [[]] clears inherited font styles.
 
     {[
     Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955" ~font_style:[ Italic ]

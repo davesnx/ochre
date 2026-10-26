@@ -15,10 +15,10 @@ Compound scope entries prefer string over function scopes
   $ ./test_render_ansi.exe compound-scope
   \e[38;2;255;255;0mx\e[0m
 
-Invalid foreground falls back to white on dark background
+Invalid foreground is ignored and the token keeps the theme foreground (dark)
   $ ./test_render_ansi.exe invalid-fg-dark-bg
-  \e[38;2;255;255;255mlet\e[0m
+  \e[38;2;212;212;212mlet\e[0m
 
-Invalid foreground falls back to black on light background
+Invalid foreground is ignored and the token keeps the theme foreground (light)
   $ ./test_render_ansi.exe invalid-fg-light-bg
-  \e[38;2;0;0;0mlet\e[0m
+  \e[38;2;17;17;17mlet\e[0m

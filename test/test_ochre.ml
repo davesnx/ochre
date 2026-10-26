@@ -878,54 +878,295 @@ let selector_theme rules =
       )
     ()
 
-let test_theme_selector_resolution () =
-  let source = "{\"k\": [1, \"s\"]}\n" in
+let scope_grammar =
+  {|{
+  "scopeName": "source.t",
+  "patterns": [
+    { "match": "\\bx\\b", "name": "a.b" },
+    { "begin": "<", "end": ">", "name": "a",
+      "patterns": [ { "match": "\\bx\\b", "name": "a.b" } ] },
+    { "begin": "\\(", "end": "\\)", "name": "meta.group",
+      "patterns": [
+        { "match": "\\bx\\b", "name": "a.b" },
+        { "begin": "\\[", "end": "\\]", "name": "meta.inner",
+          "patterns": [ { "match": "\\bx\\b", "name": "a.b" } ] }
+      ] }
+  ]
+}|}
+
+let scope_highlighter = lazy (Ochre.load_exn [ ("t", scope_grammar) ])
+
+let x_style ~theme source =
+  let token =
+    Ochre.to_tokens (Lazy.force scope_highlighter) ~theme ~lang:"t" source
+    |> List.concat
+    |> List.find (fun (tok : Ochre.Token.styled_token) -> tok.text = "x")
+  in
+  (token.foreground, token.background, token.font_style)
+
+let style_testable =
+  Alcotest.(
+    triple (option string) (option string)
+      (list
+         (testable
+            (fun fmt s ->
+              Format.pp_print_string fmt
+                ( match s with
+                | Ochre.Token.Bold ->
+                    "bold"
+                | Italic ->
+                    "italic"
+                | Underline ->
+                    "underline"
+                | Strikethrough ->
+                    "strikethrough"
+                )
+            )
+            ( = )
+         )
+      )
+  )
+
+let rules_theme rules =
+  Ochre.Theme.make ~name:"rules"
+    ~token_colors:
+      (List.map
+         (fun (scope, foreground, background, font_style) ->
+           Ochre.Theme.rule ~scope ?foreground ?background ?font_style ()
+         )
+         rules
+      )
+    ()
+
+let json_theme ?(extra = "") token_colors =
+  Ochre.Theme.load_exn
+    (Printf.sprintf {|{ %s "tokenColors": [ %s ] }|} extra token_colors)
+
+let red = "#ff0000"
+let green = "#00ff00"
+let blue = "#0000ff"
+let default_fg = Some "#000000"
+
+let check_style label expected theme source =
+  Alcotest.check style_testable label expected (x_style ~theme source)
+
+let test_descendant_selector_order () =
+  let theme = rules_theme [ ([ "source.t a" ], Some red, None, None) ] in
+  check_style "outer scope first" (Some red, None, []) theme "x\n";
+  let theme = rules_theme [ ([ "a source.t" ], Some red, None, None) ] in
+  check_style "inner scope first" (default_fg, None, []) theme "x\n"
+
+let test_deepest_scope_wins () =
+  let rules =
+    [ ([ "a a" ], Some red, None, None); ([ "a.b" ], Some green, None, None) ]
+  in
+  check_style "more specific scope" (Some green, None, []) (rules_theme rules)
+    "<x>\n";
+  check_style "rule order does not matter" (Some green, None, [])
+    (rules_theme (List.rev rules))
+    "<x>\n"
+
+let test_attributes_come_from_one_rule () =
   let theme =
-    selector_theme
+    rules_theme
       [
-        ([ "source.json" ], "#000001");
-        ([ "string" ], "#000002");
-        ([ "string source.json" ], "#000003");
-        ( [
-            "support.type.property-name string.json \
-             meta.structure.dictionary.json";
-          ],
-          "#000004"
-        );
-        ([ "string.quoted.double.json meta.structure.array.json" ], "#000005");
-        ([ "meta.structure.array.json, constant.numeric" ], "#000006");
-        ([ "meta.structure.array.json meta.structure.array.json" ], "#000007");
-        ([ "string.quoted.double.json string.quoted.double.json" ], "#000008");
-        ([ "punctuation" ], "#000009");
-        ([ "source.json string" ], "#00000a");
+        ([ "a.b" ], Some red, None, None);
+        ([ "a a" ], None, Some blue, Some [ Ochre.Token.Bold ]);
       ]
   in
-  let expected =
-    [
-      ("{", Some "#000009");
-      ("\"", Some "#000004");
-      ("k", Some "#000004");
-      ("\"", Some "#000004");
-      (":", Some "#000009");
-      (" ", Some "#000001");
-      ("[", Some "#000009");
-      ("1", Some "#000006");
-      (",", Some "#000009");
-      (" ", Some "#000006");
-      ("\"", Some "#000005");
-      ("s", Some "#000005");
-      ("\"", Some "#000005");
-      ("]", Some "#000009");
-      ("}", Some "#000009");
-      ("\n", Some "#000001");
-    ]
+  check_style "weaker rule adds nothing" (Some red, None, []) theme "<x>\n"
+
+let test_outer_attributes_are_kept () =
+  let theme =
+    rules_theme
+      [
+        ([ "meta.group" ], Some red, Some blue, Some [ Ochre.Token.Italic ]);
+        ([ "a.b" ], Some green, None, None);
+      ]
   in
-  let got =
-    styles_of ~theme ~lang:"json" source
-    |> List.map (fun (text, fg, _, _) -> (text, fg))
+  check_style "unset attributes come from the enclosing scope"
+    (Some green, Some blue, [ Ochre.Token.Italic ])
+    theme "(x)\n"
+
+let test_theme_default_background () =
+  let theme =
+    Ochre.Theme.load_exn
+      {|{
+      "colors": { "editor.foreground": "#111111", "editor.background": "#10141c" },
+      "tokenColors": [
+        { "settings": { "foreground": "#bfbdb6", "background": "#0d1017" } },
+        { "scope": "a", "settings": { "foreground": "#ff0000" } },
+        { "scope": "meta.group", "settings": { "background": "#0D1017" } },
+        { "scope": "meta.inner", "settings": { "background": "#0000ff" } }
+      ]
+    }|}
   in
-  Alcotest.(check (list (pair string (option string))))
-    "resolved foregrounds" expected got
+  Alcotest.(check string) "theme bg" "#0d1017" theme.bg;
+  Alcotest.(check string) "theme fg" "#bfbdb6" theme.fg;
+  check_style "no background from the scope-less rule" (Some red, None, [])
+    theme "x\n";
+  check_style "background equal to the default is dropped" (Some red, None, [])
+    theme "(x)\n";
+  check_style "background that differs is kept" (Some red, Some blue, []) theme
+    "([x])\n"
+
+let test_invalid_colors_are_ignored () =
+  let theme =
+    rules_theme
+      [
+        ([ "a" ], Some green, None, None);
+        ([ "a.b" ], Some "red", Some "notacolor", None);
+      ]
+  in
+  check_style "named colour" (Some green, None, []) theme "x\n";
+  List.iter
+    (fun color ->
+      let theme =
+        rules_theme
+          [
+            ([ "a" ], Some green, None, None);
+            ([ "a.b" ], Some color, None, None);
+          ]
+      in
+      check_style color (Some green, None, []) theme "x\n"
+    )
+    [ ""; "#12345"; "#12"; "#1234567"; "#ggg"; "ff0000" ];
+  List.iter
+    (fun color ->
+      let theme = rules_theme [ ([ "a.b" ], Some color, None, None) ] in
+      check_style color (Some color, None, []) theme "x\n"
+    )
+    [ "#f00"; "#f008"; "#ff0000"; "#FF000080" ]
+
+let test_child_combinator () =
+  let theme = rules_theme [ ([ "meta.group > a" ], Some red, None, None) ] in
+  check_style "direct child" (Some red, None, []) theme "(x)\n";
+  check_style "not a direct child" (default_fg, None, []) theme "([x])\n";
+  let theme = rules_theme [ ([ "meta.group a" ], Some red, None, None) ] in
+  check_style "descendant" (Some red, None, []) theme "([x])\n"
+
+let test_empty_scope_is_global () =
+  let theme =
+    json_theme {| { "scope": "", "settings": { "foreground": "#ff0000" } } |}
+  in
+  check_style "empty string" (Some red, None, []) theme "x\n";
+  Alcotest.(check string) "theme fg" red theme.fg;
+  let theme =
+    json_theme {| { "scope": [], "settings": { "foreground": "#ff0000" } } |}
+  in
+  check_style "empty array" (default_fg, None, []) theme "x\n"
+
+let test_selector_edge_parsing () =
+  let theme = rules_theme [ ([ "a." ], Some red, None, None) ] in
+  check_style "trailing dot" (Some red, None, []) theme "x\n";
+  let theme =
+    json_theme
+      {| { "scope": ["zz, a.b"], "settings": { "foreground": "#ff0000" } } |}
+  in
+  check_style "array entry is not split on commas" (default_fg, None, []) theme
+    "x\n";
+  let theme =
+    json_theme
+      {| { "scope": "zz, a.b", "settings": { "foreground": "#ff0000" } } |}
+  in
+  check_style "string is split on commas" (Some red, None, []) theme "x\n";
+  let theme =
+    json_theme
+      {| { "scope": "source.t  a", "settings": { "foreground": "#ff0000" } } |}
+  in
+  check_style "double space never matches" (default_fg, None, []) theme "x\n"
+
+let test_unset_font_style () =
+  List.iter
+    (fun font_style ->
+      let theme =
+        json_theme
+          (Printf.sprintf
+             {| { "scope": "a", "settings": { "fontStyle": "bold" } },
+                { "scope": "a.b",
+                  "settings": { "foreground": "#00ff00", "fontStyle": %s } } |}
+             font_style
+          )
+      in
+      check_style font_style
+        (Some green, None, [ Ochre.Token.Bold ])
+        theme "x\n"
+    )
+    [ "null"; "5"; "true" ];
+  let theme =
+    json_theme
+      {| { "scope": "a", "settings": { "fontStyle": "bold" } },
+         { "scope": "a.b", "settings": { "foreground": "#00ff00", "fontStyle": "" } } |}
+  in
+  check_style "empty string resets" (Some green, None, []) theme "x\n"
+
+let test_theme_type_picks_default_colors () =
+  let load kind =
+    Ochre.Theme.load_exn
+      (Printf.sprintf {|{ "type": %S, "tokenColors": [] }|} kind)
+  in
+  let dark = load "dark" and light = load "light" in
+  Alcotest.(check (pair string string))
+    "dark" ("#bbbbbb", "#1e1e1e") (dark.fg, dark.bg);
+  Alcotest.(check (pair string string))
+    "light" ("#333333", "#fffffe") (light.fg, light.bg);
+  let colored =
+    Ochre.Theme.load_exn
+      {|{ "type": "dark", "colors": { "editor.foreground": "#123456", "editor.background": "#654321" } }|}
+  in
+  Alcotest.(check (pair string string))
+    "editor colours win" ("#123456", "#654321") (colored.fg, colored.bg)
+
+let test_include_needs_base_dir () =
+  match
+    Ochre.Theme.load {|{ "include": "./base.json", "tokenColors": [] }|}
+  with
+  | Ok _ ->
+      Alcotest.fail "an include that cannot be resolved must not be dropped"
+  | Error message ->
+      Alcotest.(check bool)
+        "message names the include" true
+        (String.length message > 0)
+
+let test_falsy_settings_use_token_colors () =
+  List.iter
+    (fun settings ->
+      let theme =
+        Ochre.Theme.load_exn
+          (Printf.sprintf
+             {|{ "settings": %s,
+                 "tokenColors": [ { "scope": "a", "settings": { "foreground": "#00ff00" } },
+                                  { "scope": "zz", "settings": 0 },
+                                  { "scope": "zz", "settings": "" } ] }|}
+             settings
+          )
+      in
+      Alcotest.(check int) settings 1 (List.length theme.token_colors);
+      check_style settings (Some green, None, []) theme "x\n"
+    )
+    [ "null"; {|""|}; "0"; "false" ]
+
+let test_foreground_falls_back_to_theme () =
+  let theme =
+    Ochre.Theme.load_exn
+      {|{ "colors": { "editor.foreground": "#aabbcc" },
+          "tokenColors": [ { "scope": "a", "settings": { "fontStyle": "italic" } } ] }|}
+  in
+  check_style "font style only"
+    (Some "#aabbcc", None, [ Ochre.Token.Italic ])
+    theme "x\n"
+
+let test_settings_win_over_token_colors () =
+  let theme =
+    Ochre.Theme.load_exn
+      {|{
+      "tokenColors": [ { "scope": "a", "settings": { "foreground": "#00ff00" } },
+                       { "scope": "zz", "settings": { "foreground": "#0000ff" } } ],
+      "settings": [ { "scope": "a", "settings": { "foreground": "#ff0000" } } ]
+    }|}
+  in
+  Alcotest.(check int) "only settings" 1 (List.length theme.token_colors);
+  check_style "settings rule" (Some red, None, []) theme "x\n"
 
 let deep_json_objects n =
   String.concat "" (List.init n (fun _ -> "{\"a\":"))
@@ -1671,7 +1912,34 @@ let () =
       );
       ( "theme matching",
         [
-          test_case "Selector resolution" `Quick test_theme_selector_resolution;
+          test_case "Descendant selectors follow the scope stack order" `Quick
+            test_descendant_selector_order;
+          test_case "The deepest matching scope wins over more selector parts"
+            `Quick test_deepest_scope_wins;
+          test_case "Attributes come from one rule per scope" `Quick
+            test_attributes_come_from_one_rule;
+          test_case "Unset attributes keep the enclosing scope value" `Quick
+            test_outer_attributes_are_kept;
+          test_case "Theme default background is not painted on tokens" `Quick
+            test_theme_default_background;
+          test_case "Invalid colors are ignored" `Quick
+            test_invalid_colors_are_ignored;
+          test_case "Child combinator needs a direct parent" `Quick
+            test_child_combinator;
+          test_case "Empty string scope is global, empty array is dropped"
+            `Quick test_empty_scope_is_global;
+          test_case "Selector edge parsing" `Quick test_selector_edge_parsing;
+          test_case "Non-string fontStyle is unset" `Quick test_unset_font_style;
+          test_case "Theme type picks default colors" `Quick
+            test_theme_type_picks_default_colors;
+          test_case "Include without base_dir is an error" `Quick
+            test_include_needs_base_dir;
+          test_case "Falsy settings fall back to tokenColors" `Quick
+            test_falsy_settings_use_token_colors;
+          test_case "Foreground falls back to the theme foreground" `Quick
+            test_foreground_falls_back_to_theme;
+          test_case "settings wins over tokenColors" `Quick
+            test_settings_win_over_token_colors;
           test_case "Multi-theme shape mismatch raises Invalid_argument" `Quick
             test_multi_theme_transform_shape_mismatch;
         ]
