@@ -98,6 +98,44 @@ let check_zero_width_begin_with_captures_past_match () =
     "a capture that starts after the match is dropped" false
     (List.exists (fun (_, scopes) -> has "kw.const" scopes) spans)
 
+let check_zero_width_while_keeps_frame () =
+  let loaded =
+    load
+      (grammar_json
+         {|[{"begin":"^```","while":"^(?=.)","name":"blk","patterns":[{"match":"x","name":"inner"}]}]|}
+      )
+  in
+  let spans, stack = tokenize loaded TmLanguage.empty "```\n" in
+  ignore spans;
+  let spans, stack = tokenize loaded stack "x y\n" in
+  Alcotest.(check (list string))
+    "inner pattern still applies"
+    [ "inner"; "blk"; "source.t" ]
+    (scopes_of_text spans "x");
+  Alcotest.(check (list string))
+    "the frame scope stays on the next line" [ "blk"; "source.t" ]
+    (scopes_of_text spans " y\n");
+  let spans, _ = tokenize loaded stack "x\n" in
+  Alcotest.(check (list string))
+    "and on the line after"
+    [ "inner"; "blk"; "source.t" ]
+    (scopes_of_text spans "x")
+
+let check_end_scopes_exclude_content_name () =
+  let loaded =
+    load
+      (grammar_json {|[{"begin":"<","end":">","name":"n","contentName":"c"}]|})
+  in
+  let spans, stack = tokenize loaded TmLanguage.empty "<a\n" in
+  Alcotest.(check (list string))
+    "newline in an open rule has contentName then name once"
+    [ "c"; "n"; "source.t" ]
+    (scopes_of_text spans "a\n");
+  let spans, _ = tokenize loaded stack ">\n" in
+  Alcotest.(check (list string))
+    "end delimiter has the name once and no contentName" [ "n"; "source.t" ]
+    (scopes_of_text spans ">")
+
 let check_capture_nested_in_capture_with_patterns () =
   let loaded =
     load
@@ -537,6 +575,10 @@ let () =
             check_cut_is_on_a_character_boundary;
           Alcotest.test_case "Time limit keeps while frames" `Quick
             check_time_limit_keeps_while_frames;
+          Alcotest.test_case "Zero-width while keeps the frame" `Quick
+            check_zero_width_while_keeps_frame;
+          Alcotest.test_case "End scopes exclude contentName" `Quick
+            check_end_scopes_exclude_content_name;
           Alcotest.test_case "Nested includes scale linearly" `Quick
             check_nested_includes_scale_linearly;
         ]

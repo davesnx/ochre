@@ -1,7 +1,7 @@
 line 1:
   "(*"  comment.block.ocaml, source.ocaml
   " fibonacci "  comment.block.ocaml, source.ocaml
-  "*)"  comment.block.ocaml, comment.block.ocaml, source.ocaml
+  "*)"  comment.block.ocaml, source.ocaml
   "\n"  source.ocaml
 line 2:
   "let"  keyword.ocaml, source.ocaml
