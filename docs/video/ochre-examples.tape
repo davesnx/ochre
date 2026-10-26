@@ -1,36 +1,31 @@
 Output docs/video/ochre-examples.gif
 
-Set Shell "bash"
-Set FontSize 22
+Set Shell "zsh"
+Set FontSize 16
 Set FontFamily "JetBrains Mono"
-Set Width 1024
-Set Height 600
+Set Width 1280
+Set Height 780
 Set CursorBlink false
 
-Type `echo "let a = 33" | ochre 'ocaml' --format ansi`
+Hide
+Type `PROMPT_EOL_MARK='' PROMPT=$'\n%F{magenta}>%f '`
 Enter
-Sleep 2s
 Type "clear"
 Enter
+Show
 
-Type `echo "let a = 33" | ochre 'ocaml' --format html`
+Type `echo "let a = 33" | ochre ocaml --format ansi`
 Enter
-Sleep 2s
-Type "clear"
-Enter
+Sleep 1.5s
 
-Type `echo "let a = 33" | ochre 'ocaml' --format svg`
+Type `echo "let a = 33" | ochre ocaml --format html`
 Enter
-Sleep 2s
-Type "clear"
-Enter
+Sleep 1.5s
 
-Type `echo "let a = 33" | ochre 'ocaml' --format latex`
+Type `echo "let a = 33" | ochre ocaml --format svg`
 Enter
-Sleep 2s
-Type "clear"
-Enter
+Sleep 1.5s
 
-Type `echo "console.log(33)" | ochre 'javascript' --format ansi`
+Type `echo "let a = 33" | ochre ocaml --format latex`
 Enter
-Sleep 2s
+Sleep 3s
