@@ -47,16 +47,20 @@ type repo_item = {
   repo_inner : (string, repo_item) Hashtbl.t;
 }
 
-type injection_selector = {
-  selector_segments : string list;
-  selector_left : bool;
-}
+type selector_expr =
+  | Names of string list
+  | Not of selector_expr
+  | All of selector_expr list
+  | Any of selector_expr list
+
+type injection_selector = { priority : int; expr : selector_expr }
 
 type grammar = {
   name : string option;
   scope_name : string;
   injection_selector : string option;
-  parsed_injection_selector : injection_selector option;
+  parsed_injection_selector : injection_selector list;
+  inject_to : string list;
   filetypes : string list;
   patterns : rule list;
   repository : (string, repo_item) Hashtbl.t;
@@ -67,6 +71,7 @@ type t = {
   by_name : (string, grammar) Hashtbl.t;
   by_scope_name : (string, grammar) Hashtbl.t;
   by_filetype : (string, grammar) Hashtbl.t;
+  injectors : (string, string list) Hashtbl.t;
 }
 
 type union =
@@ -182,6 +187,7 @@ let create () =
     by_name = Hashtbl.create 23;
     by_scope_name = Hashtbl.create 23;
     by_filetype = Hashtbl.create 23;
+    injectors = Hashtbl.create 23;
   }
 
 let add_grammar t grammar =
@@ -193,6 +199,15 @@ let add_grammar t grammar =
   );
   Hashtbl.replace t.by_scope_name grammar.scope_name grammar;
   List.iter
+    (fun target ->
+      let known =
+        Option.value (Hashtbl.find_opt t.injectors target) ~default:[]
+      in
+      if not (List.mem grammar.scope_name known) then
+        Hashtbl.replace t.injectors target (known @ [ grammar.scope_name ])
+    )
+    grammar.inject_to;
+  List.iter
     (fun filetype -> Hashtbl.replace t.by_filetype filetype grammar)
     grammar.filetypes
 
@@ -201,4 +216,14 @@ let find_by_name t name =
 
 let find_by_scope_name t = Hashtbl.find_opt t.by_scope_name
 let find_by_filetype t = Hashtbl.find_opt t.by_filetype
+
+let injection_grammars t scope_name =
+  Option.value (Hashtbl.find_opt t.injectors scope_name) ~default:[]
+  |> List.filter_map (fun name ->
+      match Hashtbl.find_opt t.by_scope_name name with
+      | Some g when List.mem scope_name g.inject_to ->
+          Some g
+      | _ ->
+          None
+  )
 let error msg = raise (Error msg)

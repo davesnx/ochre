@@ -158,6 +158,193 @@ let left_injection_beats_end =
       [ ("b", [ "meta.blk" ]) ];
     ]
 
+let blocks injections =
+  scoped
+  ^ {|"patterns":[
+      {"begin":"<a>","end":"</a>","name":"a.x","patterns":[{"include":"$self"}]},
+      {"begin":"<b>","end":"</b>","name":"b.y","patterns":[{"include":"$self"}]},
+      {"begin":"<c>","end":"</c>","name":"c.z","patterns":[{"include":"$self"}]}],
+      "injections":{|}
+  ^ injections ^ "}}"
+
+let inj_rule = {|{"patterns":[{"match":"!","name":"inj"}]}|}
+
+let injected selector = blocks (Printf.sprintf {|"%s":%s|} selector inj_rule)
+
+let injected_in selector lines expected =
+  check
+    (Printf.sprintf "selector %S on %s" selector (String.concat " " lines))
+    [ injected selector ]
+    (List.map (fun l -> l ^ "\n") lines)
+    expected
+
+let selector_comma =
+  [
+    injected_in "a.x, b.y" [ "<a>!</a>" ]
+      [
+        [ ("<a>", [ "a.x" ]) ]
+        @ [ ("!", [ "a.x"; "inj" ]) ]
+        @ [ ("</a>", [ "a.x" ]) ];
+      ];
+    injected_in "a.x, b.y" [ "<b>!</b>" ]
+      [
+        [ ("<b>", [ "b.y" ]) ]
+        @ [ ("!", [ "b.y"; "inj" ]) ]
+        @ [ ("</b>", [ "b.y" ]) ];
+      ];
+    injected_in "a.x, b.y" [ "<c>!</c>" ] [ [ ("<c>!</c>", [ "c.z" ]) ] ];
+  ]
+
+let selector_pipe =
+  [
+    injected_in "(a.x | b.y)" [ "<b>!</b>" ]
+      [
+        [ ("<b>", [ "b.y" ]) ]
+        @ [ ("!", [ "b.y"; "inj" ]) ]
+        @ [ ("</b>", [ "b.y" ]) ];
+      ];
+    injected_in "(a.x | b.y)" [ "<c>!</c>" ] [ [ ("<c>!</c>", [ "c.z" ]) ] ];
+    injected_in "a.x | b.y" [ "<b>!</b>" ] [ [ ("<b>!</b>", [ "b.y" ]) ] ];
+    injected_in "b.y | a.x" [ "<b>!</b>" ]
+      [
+        [ ("<b>", [ "b.y" ]) ]
+        @ [ ("!", [ "b.y"; "inj" ]) ]
+        @ [ ("</b>", [ "b.y" ]) ];
+      ];
+  ]
+
+let selector_exclusion =
+  [
+    injected_in "a.x -b.y" [ "<a>!<b>!</b></a>" ]
+      [
+        [
+          ("<a>", [ "a.x" ]);
+          ("!", [ "a.x"; "inj" ]);
+          ("<b>!</b>", [ "a.x"; "b.y" ]);
+          ("</a>", [ "a.x" ]);
+        ];
+      ];
+  ]
+
+let selector_group =
+  [
+    injected_in "(a.x | b.y) -c.z" [ "<a>!<c>!</c></a>" ]
+      [
+        [
+          ("<a>", [ "a.x" ]);
+          ("!", [ "a.x"; "inj" ]);
+          ("<c>!</c>", [ "a.x"; "c.z" ]);
+          ("</a>", [ "a.x" ]);
+        ];
+      ];
+    injected_in "(a.x | b.y) -c.z" [ "<b>!</b>" ]
+      [
+        [ ("<b>", [ "b.y" ]) ]
+        @ [ ("!", [ "b.y"; "inj" ]) ]
+        @ [ ("</b>", [ "b.y" ]) ];
+      ];
+  ]
+
+let selector_ancestor_order =
+  [
+    injected_in "a.x b.y" [ "<a><b>!</b></a>" ]
+      [
+        [
+          ("<a>", [ "a.x" ]);
+          ("<b>", [ "a.x"; "b.y" ]);
+          ("!", [ "a.x"; "b.y"; "inj" ]);
+          ("</b>", [ "a.x"; "b.y" ]);
+          ("</a>", [ "a.x" ]);
+        ];
+      ];
+    injected_in "a.x b.y" [ "<b><a>!</a></b>" ]
+      [
+        [
+          ("<b>", [ "b.y" ]); ("<a>!</a>", [ "b.y"; "a.x" ]); ("</b>", [ "b.y" ]);
+        ];
+      ];
+  ]
+
+let competing_rule =
+  scoped
+  ^ {|"patterns":[
+      {"begin":"<a>","end":"</a>","name":"a.x","patterns":[{"match":"!","name":"rule"}]},
+      {"begin":"<b>","end":"</b>","name":"b.y","patterns":[{"match":"!","name":"rule"}]}],
+      "injections":{"L:a.x, R:b.y":{"patterns":[{"match":"!","name":"inj"}]}}}|}
+
+let selector_priority_per_alternative =
+  check "L: and R: apply to their own alternative" [ competing_rule ]
+    [ "<a>!</a>\n"; "<b>!</b>\n" ]
+    [
+      [ ("<a>", [ "a.x" ]); ("!", [ "a.x"; "inj" ]); ("</a>", [ "a.x" ]) ];
+      [ ("<b>", [ "b.y" ]); ("!", [ "b.y"; "rule" ]); ("</b>", [ "b.y" ]) ];
+    ]
+
+let injector ?inject_to scope selector =
+  Printf.sprintf
+    {|{"scopeName":"%s","injectionSelector":"%s",%s"patterns":[{"match":"!","name":"%s"}]}|}
+    scope selector
+    ( match inject_to with
+    | None ->
+        ""
+    | Some l ->
+        Printf.sprintf {|"injectTo":[%s],|}
+          (String.concat "," (List.map (Printf.sprintf "%S") l))
+    )
+    scope
+
+let root_with_a =
+  scoped ^ {|"patterns":[{"begin":"<a>","end":"</a>","name":"a.x"}]}|}
+
+let inject_to_listed =
+  check "a grammar injects into the root scope named in its injectTo"
+    [ root_with_a; injector ~inject_to:[ "source.t" ] "source.i" "a.x" ]
+    [ "<a>!</a>\n" ]
+    [
+      [ ("<a>", [ "a.x" ]); ("!", [ "a.x"; "source.i" ]); ("</a>", [ "a.x" ]) ];
+    ]
+
+let inject_to_other_scope =
+  check "injectTo naming another scope does not inject into the root"
+    [ root_with_a; injector ~inject_to:[ "source.other" ] "source.i" "a.x" ]
+    [ "<a>!</a>\n" ]
+    [ [ ("<a>!</a>", [ "a.x" ]) ] ]
+
+let inject_to_missing =
+  check "a grammar without injectTo does not inject anywhere"
+    [ root_with_a; injector "source.i" "a.x" ]
+    [ "<a>!</a>\n" ]
+    [ [ ("<a>!</a>", [ "a.x" ]) ] ]
+
+let inject_to_order =
+  check "injection grammars apply in the order they were added"
+    [
+      root_with_a;
+      injector ~inject_to:[ "source.t" ] "source.first" "a.x";
+      injector ~inject_to:[ "source.t" ] "source.second" "a.x";
+    ]
+    [ "<a>!</a>\n" ]
+    [
+      [
+        ("<a>", [ "a.x" ]); ("!", [ "a.x"; "source.first" ]); ("</a>", [ "a.x" ]);
+      ];
+    ]
+
+let inject_to_selector_forms =
+  check "injectionSelector supports alternatives, priority and exclusion"
+    [
+      scoped
+      ^ {|"patterns":[
+          {"begin":"<a>","end":"</a>","name":"a.x","patterns":[{"match":"!","name":"rule"}]},
+          {"begin":"<b>","end":"</b>","name":"b.y","patterns":[{"match":"!","name":"rule"}]}]}|};
+      injector ~inject_to:[ "source.t" ] "source.i" "L:a.x, R:b.y -a.x";
+    ]
+    [ "<a>!</a>\n"; "<b>!</b>\n" ]
+    [
+      [ ("<a>", [ "a.x" ]); ("!", [ "a.x"; "source.i" ]); ("</a>", [ "a.x" ]) ];
+      [ ("<b>", [ "b.y" ]); ("!", [ "b.y"; "rule" ]); ("</b>", [ "b.y" ]) ];
+    ]
+
 let while_captures_use_content_name =
   check "while captures and the while match carry the contentName scope"
     [
@@ -270,5 +457,20 @@ let () =
       );
       ( "injections and while",
         [ left_injection_beats_end; while_captures_use_content_name ]
+      );
+      ("injection selector comma", selector_comma);
+      ("injection selector pipe", selector_pipe);
+      ("injection selector exclusion", selector_exclusion);
+      ("injection selector group", selector_group);
+      ("injection selector ancestor order", selector_ancestor_order);
+      ("injection selector priority", [ selector_priority_per_alternative ]);
+      ( "injectTo",
+        [
+          inject_to_listed;
+          inject_to_other_scope;
+          inject_to_missing;
+          inject_to_order;
+          inject_to_selector_forms;
+        ]
       );
     ]
