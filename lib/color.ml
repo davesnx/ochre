@@ -20,34 +20,57 @@ let parse_hex_byte s i =
     | _ ->
         None
 
-let parse_hex_color color =
+let parse_rgba color =
   let hex =
     if String.starts_with ~prefix:"#" color then
       String.sub color 1 (String.length color - 1)
     else
       color
   in
-  match String.length hex with
-  | 3 | 4 -> (
-      match
-        (nibble_of_hex hex.[0], nibble_of_hex hex.[1], nibble_of_hex hex.[2])
-      with
-      | Some r, Some g, Some b ->
-          Some ((r lsl 4) lor r, (g lsl 4) lor g, (b lsl 4) lor b)
-      | _ ->
-          None
-    )
-  | 6 | 8 -> (
-      match
-        (parse_hex_byte hex 0, parse_hex_byte hex 2, parse_hex_byte hex 4)
-      with
-      | Some r, Some g, Some b ->
-          Some (r, g, b)
-      | _ ->
-          None
-    )
+  let nibble i = nibble_of_hex hex.[i] in
+  let short i =
+    match nibble i with Some n -> Some ((n lsl 4) lor n) | None -> None
+  in
+  let channels =
+    match String.length hex with
+    | 3 ->
+        (short 0, short 1, short 2, Some 255)
+    | 4 ->
+        (short 0, short 1, short 2, short 3)
+    | 6 ->
+        ( parse_hex_byte hex 0,
+          parse_hex_byte hex 2,
+          parse_hex_byte hex 4,
+          Some 255
+        )
+    | 8 ->
+        ( parse_hex_byte hex 0,
+          parse_hex_byte hex 2,
+          parse_hex_byte hex 4,
+          parse_hex_byte hex 6
+        )
+    | _ ->
+        (None, None, None, None)
+  in
+  match channels with
+  | Some r, Some g, Some b, Some a ->
+      Some ((r, g, b), float_of_int a /. 255.)
   | _ ->
       None
+
+let parse_hex_color color = Option.map fst (parse_rgba color)
+
+let blend ~over:(or_, og, ob) (r, g, b) alpha =
+  let mix top below =
+    int_of_float
+      (Float.round
+         ((float_of_int top *. alpha) +. (float_of_int below *. (1. -. alpha)))
+      )
+  in
+  (mix r or_, mix g og, mix b ob)
+
+let resolve ~over color =
+  Option.map (fun (rgb, alpha) -> blend ~over rgb alpha) (parse_rgba color)
 
 let luminance (r, g, b) =
   ((0.2126 *. float_of_int r)
@@ -62,20 +85,15 @@ let contrast_fallback_fg bg_rgb =
   else
     (255, 255, 255)
 
+let black = (0, 0, 0)
+
+let page_background theme_bg =
+  match parse_hex_color theme_bg with Some rgb -> rgb | None -> black
+
 let effective_background_rgb theme_bg token =
-  match token.Token.background with
-  | Some color -> (
-      match parse_hex_color color with
-      | Some rgb ->
-          rgb
-      | None -> (
-          match parse_hex_color theme_bg with
-          | Some rgb ->
-              rgb
-          | None ->
-              (0, 0, 0)
-        )
-    )
-  | None -> (
-      match parse_hex_color theme_bg with Some rgb -> rgb | None -> (0, 0, 0)
-    )
+  let page = page_background theme_bg in
+  match Option.bind token.Token.background (resolve ~over:page) with
+  | Some rgb ->
+      rgb
+  | None ->
+      page

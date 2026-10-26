@@ -46,7 +46,7 @@ Try every built-in theme with several grammars in the [playground](https://daves
 - **HTML** — Self-contained `<pre><code>` blocks with inline styles or CSS classes. Supports multi-theme via CSS custom properties, line numbers, and configurable class prefixes. See [rendered example](https://davesnx.github.io/ochre/examples/html-preview.html).
 - **SVG** — Standalone `<svg>` elements with monospace `<text>` and per-token `<tspan>` styling. Open preview: [SVG rendered example](https://davesnx.github.io/ochre/examples/svg-preview.svg). Source: [.svg file](test/svg-preview.svg).
 - **ANSI** — 24-bit color escape sequences for terminal display.
-- **LaTeX** — `\textcolor` commands inside an `ochrehighlight` environment. Requires the `xcolor` and `soul` packages. See [rendered PDF](https://davesnx.github.io/ochre/examples/latex-preview.pdf) (source: [.tex file](test/latex-preview.tex)).
+- **LaTeX** — `\textcolor` commands inside an `ochrehighlight` environment. Requires the `xcolor` and `ulem` packages. See [rendered PDF](https://davesnx.github.io/ochre/examples/latex-preview.pdf) (source: [.tex file](test/latex-preview.tex)).
 All backends share the same interface: create a highlighter, pick a theme, and call the corresponding `to_*` function.
 
 

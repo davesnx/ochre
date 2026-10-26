@@ -3,11 +3,15 @@ open Token
 let escape_latex str =
   let buf = Buffer.create (String.length str * 2) in
   String.iter
-    (function
+    (fun c ->
+      match c with
       | ' ' ->
           Buffer.add_string buf "\\ "
-      | '\n' ->
+      | '\n' | '\r' ->
           ()
+      | '\000' .. '\031' | '\127' ->
+          Buffer.add_string buf "\\textasciicircum{}";
+          Buffer.add_char buf (Char.chr (Char.code c lxor 0x40))
       | '\\' ->
           Buffer.add_string buf "\\textbackslash{}"
       | '{' ->
@@ -30,7 +34,7 @@ let escape_latex str =
           Buffer.add_string buf "\\textasciicircum{}"
       | c ->
           Buffer.add_char buf c
-      )
+    )
     str;
   Buffer.contents buf
 
@@ -51,25 +55,46 @@ let wrap_font_styles styles inner =
     )
     inner styles
 
-let render_token ~theme_bg (token : styled_token) =
-  let text = escape_latex token.text in
-  let styled = wrap_font_styles token.font_style text in
-  match token.foreground with
-  | Some color ->
-      let rgb =
-        match Color.parse_hex_color color with
-        | Some rgb ->
-            rgb
-        | None ->
-            Color.contrast_fallback_fg
-              (Color.effective_background_rgb theme_bg token)
-      in
-      Printf.sprintf "\\textcolor[HTML]{%s}{%s}" (hex_of_rgb rgb) styled
-  | None ->
+let color_box ~theme_bg (token : styled_token) styled =
+  let page = Color.page_background theme_bg in
+  match Option.bind token.background (Color.resolve ~over:page) with
+  | Some rgb when rgb <> page ->
+      Printf.sprintf "{\\setlength{\\fboxsep}{0pt}\\colorbox[HTML]{%s}{%s}}"
+        (hex_of_rgb rgb) styled
+  | _ ->
       styled
 
+let render_token ~theme_bg ~column (token : styled_token) =
+  let expanded, column = Render_cells.expand_tabs ~column token.text in
+  let text = escape_latex expanded in
+  let styled = wrap_font_styles token.font_style text in
+  let styled =
+    match token.foreground with
+    | Some color ->
+        let behind = Color.effective_background_rgb theme_bg token in
+        let rgb =
+          match Color.resolve ~over:behind color with
+          | Some rgb ->
+              rgb
+          | None ->
+              Color.contrast_fallback_fg behind
+        in
+        Printf.sprintf "\\textcolor[HTML]{%s}{%s}" (hex_of_rgb rgb) styled
+    | None ->
+        styled
+  in
+  (color_box ~theme_bg token styled, column)
+
 let render_line ~theme_bg line =
-  String.concat "" (List.map (render_token ~theme_bg) line)
+  let _, parts =
+    List.fold_left
+      (fun (column, parts) token ->
+        let part, column = render_token ~theme_bg ~column token in
+        (column, part :: parts)
+      )
+      (0, []) line
+  in
+  String.concat "" (List.rev parts)
 
 let render theme (code : highlighted_code) =
   let lines = List.map (render_line ~theme_bg:theme.Theme.bg) code in

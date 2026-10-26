@@ -29,7 +29,7 @@ Decoration class and style are escaped in SVG output
   $ ./test_decoration.exe svg-escape
   <svg xmlns="http://www.w3.org/2000/svg" width="104" height="38" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px">
    <rect width="100%" height="100%" fill="#1e1e1e"/>
-    <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" xml:space="preserve"><tspan style="color:red;&quot;onmouseover=&quot;alert(1)" class="dangerous&quot;&gt;&lt;script&gt;" font-weight="bold" fill="#ff0000">let</tspan><tspan fill="#d4d4d4"> x = </tspan><tspan fill="#0000ff">42</tspan></text>
+    <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" fill="#d4d4d4" xml:space="preserve"><tspan style="color:red;&quot;onmouseover=&quot;alert(1)" class="dangerous&quot;&gt;&lt;script&gt;" font-weight="bold" fill="#ff0000">let</tspan><tspan fill="#d4d4d4"> x = </tspan><tspan fill="#0000ff">42</tspan></text>
   </svg>
 
 Decoration spanning multiple lines

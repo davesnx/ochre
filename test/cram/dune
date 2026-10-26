@@ -9,8 +9,12 @@
   test_render_safety
   nonblock_exec
   test_transform
+  test_notation
+  test_formats
+  test_cascade
+  test_roundtrip
   test_decoration)
- (libraries ochre unix))
+ (libraries ochre tm-grammars str unix))
 
 (cram
  (package ochre-cli)
@@ -25,4 +29,8 @@
   test_render_safety.exe
   nonblock_exec.exe
   test_transform.exe
+  test_notation.exe
+  test_formats.exe
+  test_cascade.exe
+  test_roundtrip.exe
   test_decoration.exe))
