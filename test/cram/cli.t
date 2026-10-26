@@ -226,3 +226,18 @@ No default color on two themes emits the light theme as variables too
   --ochre-light:#0000ff
   --ochre-light:#098658
   --ochre-light:#795E26
+
+COLORFGBG picks the default theme from the background colour: 0-6 and 8 are dark, 7 and 9-15 light, anything else is unknown and gives dark
+  $ for value in '15;0' '15;6' '0;7' '0;8' '0;9' '0;15' '15;default;7' '0;250' 'x'; do
+  >   printf '%s ' "$value"
+  >   printf 'x\n' | env -u OCHRE_THEME_MODE -u TERM_THEME COLORFGBG="$value" ochre plaintext --format svg | sed -n '2s/.*fill="\(#[0-9A-Fa-f]*\)".*/\1/p'
+  > done
+  15;0 #1E1E1E
+  15;6 #1E1E1E
+  0;7 #FFFFFF
+  0;8 #1E1E1E
+  0;9 #FFFFFF
+  0;15 #FFFFFF
+  15;default;7 #FFFFFF
+  0;250 #1E1E1E
+  x #1E1E1E

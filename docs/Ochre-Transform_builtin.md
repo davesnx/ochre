@@ -9,7 +9,7 @@ val line_highlight : ?background:string -> int list -> Transform.t
 ```
 Highlights the given line indices (0-based) by setting every token's background color.
 
-Default background: `"#ffffff22"`.
+Default background: `"#8888883a"`.
 
 ```ocaml
 Ochre.to_html hl
@@ -65,7 +65,7 @@ The marker must be inside the last comment of the line: a `//`, `#`, `;`, `%` or
 
 `[!code highlight:3]` applies to three lines. When the comment is alone on its line, the line is removed and the marker applies to the lines below it.
 
-Default background: `"#ffffff22"`.
+Default background: `"#8888883a"`.
 
 ```ocaml
 let code = "let x = 42 // [!code highlight]\nlet y = 10" in

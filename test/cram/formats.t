@@ -1,6 +1,6 @@
 A translucent background is blended over the theme background in ANSI
   $ ./test_formats.exe ansi-alpha
-  \e[1m\e[48;2;60;60;60m\e[38;2;255;0;0mlet\e[0m\e[48;2;60;60;60m\e[38;2;212;212;212m x\n\e[0m\e[1m\e[38;2;255;0;0mlet\e[0m\e[38;2;212;212;212m y\e[0m
+  \e[1m\e[48;2;54;54;54m\e[38;2;255;0;0mlet\e[0m\e[48;2;54;54;54m\e[38;2;212;212;212m x\n\e[0m\e[1m\e[38;2;255;0;0mlet\e[0m\e[38;2;212;212;212m y\e[0m
 
 Diff markers are visible in ANSI
   $ ./test_formats.exe ansi-diff
@@ -10,8 +10,8 @@ Line highlight is a rectangle behind the text in SVG
   $ ./test_formats.exe svg-alpha
   <svg xmlns="http://www.w3.org/2000/svg" width="62" height="56" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px">
    <rect width="100%" height="100%" fill="#1e1e1e"/>
-    <rect x="10.0" y="10.0" width="25.2" height="18.2" fill="#FFFFFF" fill-opacity="0.133"/>
-    <rect x="35.2" y="10.0" width="16.8" height="18.2" fill="#FFFFFF" fill-opacity="0.133"/>
+    <rect x="10.0" y="10.0" width="25.2" height="18.2" fill="#888888" fill-opacity="0.227"/>
+    <rect x="35.2" y="10.0" width="16.8" height="18.2" fill="#888888" fill-opacity="0.227"/>
     <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" fill="#d4d4d4" xml:space="preserve"><tspan font-weight="bold" fill="#ff0000">let</tspan><tspan fill="#d4d4d4"> x</tspan></text>
     <text x="10" y="42.2" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" fill="#d4d4d4" xml:space="preserve"><tspan font-weight="bold" fill="#ff0000">let</tspan><tspan fill="#d4d4d4"> y</tspan></text>
   </svg>
@@ -31,7 +31,7 @@ Diff markers are rectangles in SVG
 Line highlight is a colorbox in LaTeX
   $ ./test_formats.exe latex-alpha
   \begin{ochrehighlight}{1E1E1E}{D4D4D4}
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{3C3C3C}{\textcolor[HTML]{FF0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{3C3C3C}{\textcolor[HTML]{D4D4D4}{\ x}}}\\
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{363636}{\textcolor[HTML]{FF0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{363636}{\textcolor[HTML]{D4D4D4}{\ x}}}\\
   \textcolor[HTML]{FF0000}{\textbf{let}}\textcolor[HTML]{D4D4D4}{\ y}
   \end{ochrehighlight}
 

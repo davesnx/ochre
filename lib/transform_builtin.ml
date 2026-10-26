@@ -1,4 +1,6 @@
-let line_highlight ?(background = "#ffffff22") lines =
+let default_highlight_background = "#8888883a"
+
+let line_highlight ?(background = default_highlight_background) lines =
   Transform.make "line-highlight" ~after_line:(fun ~line_index line ->
       if List.mem line_index lines then
         List.map
@@ -81,7 +83,6 @@ let block_comments =
   [ ("--[[", "]]"); ("<!--", "-->"); ("/*", "*/"); ("(*", "*)"); ("{-", "-}") ]
 
 let line_comments = [ "//"; ";;"; "%%"; "--"; ";"; "%"; "#"; "\""; "'"; "*" ]
-let search_openers = [ "//"; "#"; ";"; "%"; "--" ]
 let is_blank = function ' ' | '\t' -> true | _ -> false
 
 let starts_at text i prefix =
@@ -195,12 +196,20 @@ let has_scope ~prefix (tok : Token.styled_token) =
 
 let is_comment tok = has_scope ~prefix:"comment" tok
 
-(** Plain text and Markdown give no comment scopes, so there a comment is found
-    from its opener. Every other grammar must mark its comments. *)
+let has_root_scope ~prefix (tok : Token.styled_token) =
+  List.exists (String.starts_with ~prefix) tok.scopes
+
+(** Plain text and markup grammars (root scope [text.*]) give no comment scopes
+    for the prose between tags, so there a comment is found from its opener.
+    Code grammars must mark their comments. *)
 let is_prose (tok : Token.styled_token) =
   tok.scopes = []
-  || List.mem "text.html.markdown" tok.scopes
-     && not (has_scope ~prefix:"string" tok || is_comment tok)
+  || has_root_scope ~prefix:"text." tok
+     && not
+          (has_root_scope ~prefix:"source." tok
+          || has_scope ~prefix:"string" tok
+          || is_comment tok
+          )
 
 type context = {
   text : string;
@@ -288,7 +297,10 @@ let last_opener ctx =
       let table = Array.make (n + 1) (-1) in
       for i = 1 to n do
         table.(i) <-
-          ( if List.exists (starts_at ctx.text (i - 1)) search_openers then
+          ( if
+              (i = 1 || is_blank ctx.text.[i - 2])
+              && List.exists (starts_at ctx.text (i - 1)) line_comments
+            then
               i - 1
             else
               table.(i - 1)
@@ -540,7 +552,7 @@ let set_background background line =
     (fun (tok : Token.styled_token) -> { tok with background = Some background })
     line
 
-let notation_highlight ?(background = "#ffffff22") () =
+let notation_highlight ?(background = default_highlight_background) () =
   Transform.make "notation-highlight" ~before_render:(fun doc ->
       run_notation
         ~parse:(parse_keyword [ "highlight"; "hl" ])

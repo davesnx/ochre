@@ -15,16 +15,16 @@ Line highlight (line 0 only)
   $ ./test_transform.exe line-highlight
   text: "let"
     fg: #ff0000
-    bg: #ffffff22
+    bg: #8888883a
     styles: [bold]
     scopes: [keyword.control.test, source.test]
   text: "x ="
     fg: #d4d4d4
-    bg: #ffffff22
+    bg: #8888883a
     scopes: [source.test]
   text: "42"
     fg: #0000ff
-    bg: #ffffff22
+    bg: #8888883a
     scopes: [constant.numeric.test, source.test]
   text: "let"
     fg: #ff0000
@@ -105,23 +105,23 @@ Scope marker (keyword prefix)
 
 HTML output with line highlight transform
   $ ./test_transform.exe html-with-transform
-  <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span style="font-weight:var(--ochre-font-weight,bold);background-color:var(--ochre-token-bg,#ffffff22);color:var(--ochre,#ff0000)">let</span><span style="background-color:var(--ochre-token-bg,#ffffff22);color:var(--ochre,#d4d4d4)"> x = </span><span style="background-color:var(--ochre-token-bg,#ffffff22);color:var(--ochre,#0000ff)">42</span><span style="background-color:var(--ochre-token-bg,#ffffff22);color:var(--ochre,#d4d4d4)">
+  <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span style="font-weight:var(--ochre-font-weight,bold);background-color:var(--ochre-token-bg,#8888883a);color:var(--ochre,#ff0000)">let</span><span style="background-color:var(--ochre-token-bg,#8888883a);color:var(--ochre,#d4d4d4)"> x = </span><span style="background-color:var(--ochre-token-bg,#8888883a);color:var(--ochre,#0000ff)">42</span><span style="background-color:var(--ochre-token-bg,#8888883a);color:var(--ochre,#d4d4d4)">
   </span></span><span class="line"><span style="font-weight:var(--ochre-font-weight,bold);color:var(--ochre,#ff0000)">let</span><span style="color:var(--ochre,#d4d4d4)"> y = </span><span style="color:var(--ochre,#0000ff)">10</span></span></code></pre>
 
 Combined transforms (line-highlight + word-highlight)
   $ ./test_transform.exe combined
   text: "let"
     fg: #ffff00
-    bg: #ffffff22
+    bg: #8888883a
     styles: [bold]
     scopes: [keyword.control.test, source.test]
   text: "x ="
     fg: #d4d4d4
-    bg: #ffffff22
+    bg: #8888883a
     scopes: [source.test]
   text: "42"
     fg: #0000ff
-    bg: #ffffff22
+    bg: #8888883a
     scopes: [constant.numeric.test, source.test]
   text: "let"
     fg: #ffff00
@@ -138,16 +138,16 @@ Notation highlight (// [!code highlight])
   $ ./test_transform.exe notation-highlight
   text: "let"
     fg: #ff0000
-    bg: #ffffff22
+    bg: #8888883a
     styles: [bold]
     scopes: [keyword.control.test, source.test]
   text: "x ="
     fg: #d4d4d4
-    bg: #ffffff22
+    bg: #8888883a
     scopes: [source.test]
   text: "42"
     fg: #0000ff
-    bg: #ffffff22
+    bg: #8888883a
     scopes: [constant.numeric.test, source.test]
   text: "let"
     fg: #ff0000
