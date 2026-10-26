@@ -9,6 +9,7 @@ and match_ = {
   name : string option;
   pattern_source : string;
   pattern : regex;
+  pattern_first : (char -> bool) option;
   captures : (capture_key, capture) Hashtbl.t;
 }
 
@@ -17,7 +18,9 @@ and delim_kind = End | While
 and delim = {
   delim_begin_source : string;
   delim_begin : regex;
+  delim_begin_first : (char -> bool) option;
   delim_end : string; (* Either an end or a while pattern *)
+  delim_end_regex : regex option;
   delim_patterns : rule list;
   delim_name : string option;
   delim_content_name : string option;
@@ -52,6 +55,7 @@ type grammar = {
   name : string option;
   scope_name : string;
   injection_selector : string option;
+  parsed_injection_selector : injection_selector option;
   filetypes : string list;
   patterns : rule list;
   repository : (string, repo_item) Hashtbl.t;
@@ -109,8 +113,15 @@ type yojson =
 exception Error of string
 
 let compile_regex ?error_context re =
+  (* TextMate/Oniguruma grammars routinely mix numbered groups with named
+     groups in the same pattern (e.g. Swift's regex-literal-callout rule
+     uses \g<20> alongside (?<name>...)). Oniguruma's default syntax turns
+     off numbered-group capture once a named group is present in the same
+     pattern ("numbered backref/call is not allowed. (use name)"), unlike
+     vscode-oniguruma, which always compiles with ONIG_OPTION_CAPTURE_GROUP
+     so unnamed groups keep their numbers regardless. Match that. *)
   match
-    Oniguruma.create re Oniguruma.Options.none Oniguruma.Encoding.utf8
+    Oniguruma.create re Oniguruma.Options.capture_group Oniguruma.Encoding.utf8
       Oniguruma.Syntax.default
   with
   | Ok re ->
@@ -124,6 +135,20 @@ let compile_regex ?error_context re =
             context ^ ": " ^ re
       in
       raise (Error (prefix ^ ": " ^ msg))
+
+let has_backrefs pattern =
+  let len = String.length pattern in
+  let rec go i =
+    i + 1 < len
+    &&
+    if pattern.[i] <> '\\' then
+      go (i + 1)
+    else if pattern.[i + 1] >= '0' && pattern.[i + 1] <= '9' then
+      true
+    else
+      go (i + 2)
+  in
+  go 0
 
 let create () =
   {

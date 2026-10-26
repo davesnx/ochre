@@ -13,7 +13,9 @@ val match_selector : string list -> string -> int option
     specificity indicates a more specific match.
 
     A selector like ["source.js variable.parameter"] is split into parts and
-    matched greedily against the scope stack.
+    matched greedily against the scope stack, in time linear in the stack depth.
+    Among all ways to match the parts, the one using the outermost scopes scores
+    highest, and greedy left-to-right matching finds it.
 
     {[
     let scopes = [ "source.ocaml"; "meta.let"; "variable.name" ] in
@@ -43,3 +45,23 @@ val find_best_match :
     | None ->
         Some theme.fg
     ]} *)
+
+type resolver
+(** {2 resolver}
+
+    Resolves the style of many scope stacks against one rule list. Selectors are
+    parsed once, and each distinct scope stack is resolved once. A resolver
+    holds mutable state: do not share one between domains. *)
+
+val resolver : Theme.token_color_rule list -> resolver
+(** {2 resolver}
+
+    [resolver rules] creates a resolver. The parsed selectors are cached per
+    rule list (compared by physical equality) in a domain-safe cache, so
+    creating many resolvers for the same theme parses its selectors once. *)
+
+val resolve : resolver -> string list -> Theme.token_color_settings option
+(** {2 resolve}
+
+    [resolve r scopes] returns the same result as {!find_best_match}
+    [scopes rules], where [rules] is the list given to {!resolver}. *)

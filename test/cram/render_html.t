@@ -66,7 +66,7 @@ No default color with multi-theme (only CSS vars, no inline color)
 
 CSS classes mode replaces inline styles with class names
   $ ./test_render_html.exe css-classes
-  <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span class="s-5b76636a">let</span><span class="s-43cc771a"> x = </span><span class="s-13f4609e">42</span></span></code></pre>
+  <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span class="s-a3999696055f0509">let</span><span class="s-232033c531ff619a"> x = </span><span class="s-125f486d4472df11">42</span></span></code></pre>
 
 Custom CSS variable prefix
   $ ./test_render_html.exe custom-prefix

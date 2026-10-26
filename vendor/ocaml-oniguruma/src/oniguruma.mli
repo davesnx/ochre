@@ -237,7 +237,11 @@ module RegSet : sig
 
       Ownership of regex internals is transferred to the regset (matching
       Oniguruma's C API). After creating the regset, use the set for searching
-      instead of reusing those regex values directly. *)
+      instead of reusing those regex values directly.
+
+      The array's regex values become unusable at once: later calls on them, and
+      a later [create] that includes them again or lists one twice, raise
+      [Failure]. If [create] itself raises, the regexes stay usable. *)
 
   external search :
     t ->
@@ -251,7 +255,8 @@ module RegSet : sig
 
       Returns [Some (idx, region)] where [idx] is the 0-based index of the
       matched regex from the array passed to {!create}. Returns [None] on
-      mismatch. Raises {!exception:Error} on other Oniguruma errors. *)
+      mismatch. Raises {!exception:Error} on other Oniguruma errors. Offsets
+      follow the rules of {!val:search}. *)
 end
 
 external create :
@@ -277,7 +282,17 @@ external search :
     @param string The string to search
     @param start The string position to start searching from, as a byte offset
     @param range The string position to stop searching at, as a byte offset
-    @param option Search options *)
+    @param option Search options
+
+    Returns [None] when [start] is outside \[0, String.length string\]. [range]
+    is clamped to that interval. Raises [Invalid_argument] when [string] is
+    longer than 2{^ 31}-1 bytes.
+
+    Offsets in the region never exceed [String.length string], also when
+    [string] ends inside a multibyte character. [string] must be valid for the
+    regex encoding; Oniguruma does not check it unless
+    {!val:Options.check_validity_of_string} is set, and then raises
+    {!exception:Error} for invalid input. *)
 
 external match_ :
   'enc t -> string -> int -> Options.search_time Options.t -> Region.t option
@@ -289,7 +304,10 @@ external match_ :
     @param regex The pattern to match
     @param string The string to match against
     @param pos The position of the string to match at, as a byte offset
-    @param options Match options *)
+    @param options Match options
+
+    Returns [None] when [pos] is outside \[0, String.length string\]. The length
+    and offset rules of {!val:search} apply. *)
 
 external search_with_param :
   'enc t ->
@@ -321,7 +339,8 @@ external scan :
     [regex] in [string]. For each match, [callback count pos region] is called
     where [count] is the 1-based match number and [pos] is the byte offset.
     Return [true] from [callback] to continue scanning, [false] to stop. Returns
-    the number of matches found. *)
+    the number of matches found. An exception raised by [callback] stops the
+    scan and propagates. [callback] may allocate and run the GC freely. *)
 
 external num_captures : _ t -> int = "ocaml_onig_num_captures"
 (** The number of capture groups in the regex. The entire match itself does not

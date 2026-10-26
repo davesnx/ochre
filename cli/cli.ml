@@ -1,7 +1,43 @@
 open Cmdliner
 
-let read_file path = In_channel.with_open_bin path In_channel.input_all
-let read_stdin () = In_channel.input_all stdin
+let name_path path msg =
+  if String.starts_with ~prefix:(path ^ ": ") msg then
+    msg
+  else
+    path ^ ": " ^ msg
+
+let read_file path =
+  try In_channel.with_open_bin path In_channel.input_all
+  with Sys_error msg -> failwith (name_path path msg)
+
+let read_stdin () =
+  try In_channel.input_all stdin
+  with Sys_error msg -> failwith (name_path "<stdin>" msg)
+
+exception Output_failed of Unix.error
+
+let write_stdout s =
+  let rec go off =
+    if off < String.length s then
+      match Unix.write_substring Unix.stdout s off (String.length s - off) with
+      | n ->
+          go (off + n)
+      | exception Unix.Unix_error (Unix.EINTR, _, _) ->
+          go off
+      | exception Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _) ->
+          ( match Unix.select [] [ Unix.stdout ] [] (-1.) with
+          | _ ->
+              ()
+          | exception Unix.Unix_error (Unix.EINTR, _, _) ->
+              ()
+          | exception Unix.Unix_error (err, _, _) ->
+              raise (Output_failed err)
+          );
+          go off
+      | exception Unix.Unix_error (err, _, _) ->
+          raise (Output_failed err)
+  in
+  go 0
 
 let stdin_has_data () = not (Unix.isatty Unix.stdin)
 
@@ -69,24 +105,40 @@ let default_theme =
 let resolve_theme_name_or_path name_or_path =
   match builtin_theme name_or_path with
   | Some theme ->
-      theme
+      Ok theme
   | None ->
-      Ochre.Theme.load_from_file_exn name_or_path
+      if Sys.file_exists name_or_path then
+        match Ochre.Theme.load_from_file name_or_path with
+        | Ok _ as ok ->
+            ok
+        | Error msg ->
+            Error (name_path name_or_path msg)
+        | exception Sys_error msg ->
+            Error (name_path name_or_path msg)
+      else
+        Error
+          (Printf.sprintf
+             "Unknown theme '%s': not a built-in name and not a file. \
+              Available: %s"
+             name_or_path
+             (String.concat ", " Ochre.Theme.available_names)
+          )
 
 let error msg = `Error (false, msg)
 
 let render highlighter ~theme ~lang ~format ~options source =
   match format with
   | Ochre.Html ->
-      print_endline (Ochre.to_html highlighter ~options ~theme ~lang source);
+      write_stdout
+        (Ochre.to_html highlighter ~options ~theme ~lang source ^ "\n");
       `Ok ()
   | _ ->
-      print_string (Ochre.to_string highlighter ~format ~theme ~lang source);
+      write_stdout (Ochre.to_string highlighter ~format ~theme ~lang source);
       `Ok ()
 
 let render_html_multi highlighter ~theme ~extra_themes ~lang ~options source =
-  print_endline
-    (Ochre.to_html highlighter ~options ~theme ~extra_themes ~lang source);
+  write_stdout
+    (Ochre.to_html highlighter ~options ~theme ~extra_themes ~lang source ^ "\n");
   `Ok ()
 
 let resolve_theme ~theme_path ~theme_dark ~theme_light =
@@ -109,7 +161,7 @@ let resolve_theme ~theme_path ~theme_dark ~theme_light =
           | Some name_or_path ->
               resolve_theme_name_or_path name_or_path
           | None ->
-              default_theme
+              Ok default_theme
         )
     )
 
@@ -117,12 +169,20 @@ let resolve_theme ~theme_path ~theme_dark ~theme_light =
     (without --theme), use multi-theme rendering with CSS custom properties. *)
 let resolve_multi_themes ~theme_path ~theme_dark ~theme_light ~format =
   match (format, theme_path, theme_light, theme_dark) with
-  | Ochre.Html, None, Some light_name, Some dark_name ->
-      let light = resolve_theme_name_or_path light_name in
-      let dark = resolve_theme_name_or_path dark_name in
-      Some (light, [ ("dark", dark) ])
+  | Ochre.Html, None, Some light_name, Some dark_name -> (
+      match resolve_theme_name_or_path light_name with
+      | Error _ as err ->
+          err
+      | Ok light -> (
+          match resolve_theme_name_or_path dark_name with
+          | Error _ as err ->
+              err
+          | Ok dark ->
+              Ok (Some (light, [ ("dark", dark) ]))
+        )
+    )
   | _ ->
-      None
+      Ok None
 
 let build_html_options ~css_classes ~line_numbers ~no_default_color
     ~css_var_prefix ~scopes_data =
@@ -214,7 +274,22 @@ let highlight lang theme_path theme_dark theme_light grammars includes format
                 let file_grammars =
                   List.map grammar_json_of_path grammars_arg
                 in
-                Ochre.load (file_grammars @ include_grammars)
+                let lang_is_covered =
+                  List.exists (fun (id, _) -> id = lang) file_grammars
+                  || List.exists (fun (id, _) -> id = lang) include_grammars
+                  || List.mem lang [ "plaintext"; "text"; "txt" ]
+                in
+                if not lang_is_covered then
+                  Error
+                    (Printf.sprintf
+                       "LANG is '%s' but none of the --grammar files register \
+                        under that id. A --grammar file's id comes from its \
+                        filename (e.g. 'ocaml.tmLanguage.json' registers as \
+                        'ocaml'); rename the file or change LANG to match."
+                       lang
+                    )
+                else
+                  Ochre.load (file_grammars @ include_grammars)
             | [] -> (
                 match Tm_grammars.find lang with
                 | Some json ->
@@ -243,12 +318,18 @@ let highlight lang theme_path theme_dark theme_light grammars includes format
           match
             resolve_multi_themes ~theme_path ~theme_dark ~theme_light ~format
           with
-          | Some (theme, extra_themes) ->
+          | Error msg ->
+              error msg
+          | Ok (Some (theme, extra_themes)) ->
               render_html_multi highlighter ~theme ~extra_themes ~lang ~options
                 source
-          | None ->
-              let theme = resolve_theme ~theme_path ~theme_dark ~theme_light in
-              render highlighter ~theme ~lang ~format ~options source
+          | Ok None -> (
+              match resolve_theme ~theme_path ~theme_dark ~theme_light with
+              | Error msg ->
+                  error msg
+              | Ok theme ->
+                  render highlighter ~theme ~lang ~format ~options source
+            )
         )
     )
 
@@ -361,9 +442,37 @@ let version =
   | Some v ->
       Build_info.V1.Version.to_string v
 
+let output_error_code = 3
+
+let exits =
+  [
+    Cmd.Exit.info Cmd.Exit.ok ~doc:"on success.";
+    Cmd.Exit.info 1
+      ~doc:
+        "on a user/input error: an invalid command line (unknown option, too \
+         many arguments, a missing required argument), an unresolvable \
+         language/theme/grammar, a malformed theme/grammar file, a missing \
+         input file, or any other error this CLI can name. Reported on \
+         standard error as \"ochre: <message>\".";
+    Cmd.Exit.info output_error_code
+      ~doc:
+        "when the output cannot be written to standard output (for example the \
+         disk is full, or standard output is closed). Reported on standard \
+         error as \"ochre: cannot write output: <reason>\". When the reader of \
+         a pipe closes it early (EPIPE), ochre exits with this code and no \
+         message, because the reader chose to stop. ochre ignores SIGPIPE, so \
+         this holds whatever the parent process set.";
+    Cmd.Exit.info Cmd.Exit.cli_error
+      ~doc:
+        "on an option given a malformed value (wrong type, e.g. --format) or \
+         missing its required value (e.g. --theme with no argument).";
+    Cmd.Exit.info Cmd.Exit.internal_error
+      ~doc:"on an unexpected internal error (a bug - please report it).";
+  ]
+
 let cmd =
   let doc = "Syntax highlighter using TextMate grammars and themes" in
-  let info = Cmd.info "ochre" ~version ~doc in
+  let info = Cmd.info "ochre" ~version ~doc ~exits in
   Cmd.v info
     Term.(
       ret
@@ -373,8 +482,24 @@ let cmd =
         )
     )
 
+let report msg = try prerr_endline ("ochre: " ^ msg) with Sys_error _ -> ()
+
+let run () =
+  try Cmd.eval ~catch:false ~term_err:1 cmd with
+  | Output_failed Unix.EPIPE ->
+      output_error_code
+  | Output_failed err ->
+      report ("cannot write output: " ^ Unix.error_message err);
+      output_error_code
+  | Sys_error msg | Failure msg | Invalid_argument msg ->
+      report msg;
+      1
+  | exn ->
+      report (Printexc.to_string exn);
+      1
+
 let () =
-  try exit (Cmd.eval ~catch:false cmd)
-  with Sys_error msg | Failure msg | Invalid_argument msg ->
-    prerr_endline ("ochre: " ^ msg);
-    exit 1
+  Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
+  let code = run () in
+  (try flush stderr with Sys_error _ -> ());
+  exit code

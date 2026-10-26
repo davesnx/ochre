@@ -46,7 +46,7 @@ LaTeX output
 SVG output (header only)
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord --format svg | head -2
-  <svg xmlns="http://www.w3.org/2000/svg" width="104" height="38" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px">
+  <svg xmlns="http://www.w3.org/2000/svg" width="96" height="38" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px">
    <rect width="100%" height="100%" fill="#2e3440"/>
 
 Dual-theme HTML emits dark CSS custom properties with light as default
@@ -71,7 +71,7 @@ No default color suppresses inline colors
 CSS classes mode
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord --html-css-classes
-  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span class="ochre-6afa81a">let</span><span class="ochre-6e5998fa"> </span><span class="ochre-17276d42">x</span><span class="ochre-6e5998fa"> </span><span class="ochre-6afa81a">=</span><span class="ochre-6e5998fa"> </span><span class="ochre-edd9683">1</span><span class="ochre-6e5998fa">
+  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span class="ochre-e235a20ca1cb1117">let</span><span class="ochre-9a91402e327de2c5"> </span><span class="ochre-1e8b07019ea8aab0">x</span><span class="ochre-9a91402e327de2c5"> </span><span class="ochre-e235a20ca1cb1117">=</span><span class="ochre-9a91402e327de2c5"> </span><span class="ochre-a6b89ebf05d16eb9">1</span><span class="ochre-9a91402e327de2c5">
   </span></span></code></pre>
 
 Line numbers
@@ -91,19 +91,19 @@ Include a bundled grammar by name
 
   $ printf '<b>hi</b>\n' | ochre html --include css --theme nord --format tokens
   line 1:
-    "<"  punctuation.definition.tag.begin.html, meta.tag.inline.$2.start.html, text.html.basic
-    "b"  entity.name.tag.html, meta.tag.inline.$2.start.html, text.html.basic
-    ">"  punctuation.definition.tag.end.html, meta.tag.inline.$2.start.html, text.html.basic
+    "<"  punctuation.definition.tag.begin.html, meta.tag.inline.b.start.html, text.html.basic
+    "b"  entity.name.tag.html, meta.tag.inline.b.start.html, text.html.basic
+    ">"  punctuation.definition.tag.end.html, meta.tag.inline.b.start.html, text.html.basic
     "hi"  text.html.basic
-    "</"  punctuation.definition.tag.begin.html, meta.tag.inline.$2.end.html, text.html.basic
-    "b"  entity.name.tag.html, meta.tag.inline.$2.end.html, text.html.basic
-    ">"  punctuation.definition.tag.end.html, meta.tag.inline.$2.end.html, text.html.basic
+    "</"  punctuation.definition.tag.begin.html, meta.tag.inline.b.end.html, text.html.basic
+    "b"  entity.name.tag.html, meta.tag.inline.b.end.html, text.html.basic
+    ">"  punctuation.definition.tag.end.html, meta.tag.inline.b.end.html, text.html.basic
     "\n"  text.html.basic
 
 Unknown language reports an error
 
   $ printf 'x\n' | ochre notareallang 2>error.log; echo "exit: $?"
-  exit: 124
+  exit: 1
   $ head -1 error.log | cut -c1-42
   ochre: No bundled grammar for 'notareallan
 
@@ -113,3 +113,95 @@ Invalid format is a usage error
   exit: 124
   $ head -1 usage.log
   Usage: ochre [--help] [OPTION]… LANG [FILE]
+
+A valid --theme file works
+
+  $ cat > good-theme.json <<'EOF'
+  > {
+  >   "name": "good",
+  >   "colors": { "editor.foreground": "#111111", "editor.background": "#222222" },
+  >   "tokenColors": [
+  >     { "scope": "keyword", "settings": { "foreground": "#ff0000" } }
+  >   ]
+  > }
+  > EOF
+  $ printf 'let x = 1\n' | ochre ocaml --theme good-theme.json --format tokens
+  line 1:
+    "let"  keyword.ocaml, source.ocaml
+    " "  source.ocaml
+    "x"  entity.name.function.binding.ocaml, source.ocaml
+    " "  source.ocaml
+    "="  keyword.operator.ocaml, source.ocaml
+    " "  source.ocaml
+    "1"  constant.numeric.decimal.integer.ocaml, source.ocaml
+    "\n"  source.ocaml
+
+A malformed --theme file is a clean error, not a crash
+
+  $ printf '{not valid json' > bad-theme.json
+  $ printf 'let x = 1\n' | ochre ocaml --theme bad-theme.json 2>theme-malformed.log; echo "exit: $?"
+  exit: 1
+  $ cat theme-malformed.log
+  ochre: bad-theme.json: invalid JSON: Line 1, bytes 5-15: Expected ':' but
+         found 'valid json'
+
+A missing --theme file reports it is not a built-in name or a file
+
+  $ printf 'let x = 1\n' | ochre ocaml --theme ./does-not-exist-theme.json 2>theme-missing.log; echo "exit: $?"
+  exit: 1
+  $ cat theme-missing.log
+  ochre: Unknown theme './does-not-exist-theme.json': not a built-in name and
+         not a file. Available: dark, light, tokyonight, everforest, ayu,
+         catppuccin, catppuccin-macchiato, gruvbox, kanagawa, nord, matrix,
+         one-dark
+
+A typo'd built-in --theme name lists the available names
+
+  $ printf 'let x = 1\n' | ochre ocaml --theme not-a-real-theme 2>theme-typo.log; echo "exit: $?"
+  exit: 1
+  $ cat theme-typo.log
+  ochre: Unknown theme 'not-a-real-theme': not a built-in name and not a file.
+         Available: dark, light, tokyonight, everforest, ayu, catppuccin,
+         catppuccin-macchiato, gruvbox, kanagawa, nord, matrix, one-dark
+
+A valid --grammar file matching LANG works
+
+  $ cat > foo.tmLanguage.json <<'EOF'
+  > { "scopeName": "source.foo", "name": "foo", "patterns": [] }
+  > EOF
+  $ printf 'let x = 1\n' | ochre foo --grammar foo.tmLanguage.json --format tokens
+  line 1:
+    "let x = 1\n"  source.foo
+
+A --grammar file whose filename-derived id does not match LANG explains the rule
+
+  $ printf 'let x = 1\n' | ochre javascript --grammar foo.tmLanguage.json 2>grammar-mismatch.log; echo "exit: $?"
+  exit: 1
+  $ cat grammar-mismatch.log
+  ochre: LANG is 'javascript' but none of the --grammar files register under
+         that id. A --grammar file's id comes from its filename (e.g.
+         'ocaml.tmLanguage.json' registers as 'ocaml'); rename the file or
+         change LANG to match.
+
+A malformed --grammar file is a clean error, not a crash
+
+  $ printf '{not valid json' > bad.tmLanguage.json
+  $ printf 'let x = 1\n' | ochre bad --grammar bad.tmLanguage.json 2>grammar-malformed.log; echo "exit: $?"
+  exit: 1
+  $ cat grammar-malformed.log
+  ochre: grammar 'bad': invalid JSON: Line 1, bytes 5-15: Expected ':' but
+         found 'valid json'
+
+A missing input file is a clean error
+
+  $ ochre ocaml does-not-exist.ml 2>missing-input.log; echo "exit: $?"
+  exit: 1
+  $ cat missing-input.log
+  ochre: does-not-exist.ml: No such file or directory
+
+A missing LANG is a user/input error (not a parse-time value error)
+
+  $ printf 'x\n' | ochre 2>missing-lang.log; echo "exit: $?"
+  exit: 1
+  $ head -2 missing-lang.log | tail -1
+  ochre: required argument LANG is missing

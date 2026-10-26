@@ -5,11 +5,27 @@
     output. Pass [~options] to control style mode, line numbers, CSS variable
     prefix, and other rendering behaviour. *)
 
-(** {2 Class registry}
+(** {2 Untrusted strings}
+
+    A theme name, a theme colour, an option and a label can come from outside
+    the program. Each one is made safe for the place it is written to:
+    - Colours (token colours, theme [fg] and [bg]) must be plain CSS colours:
+      [#rgb], [#rgba], [#rrggbb], [#rrggbbaa], a keyword of letters, or an
+      [rgb]-, [hsl]-, [hwb]-, [lab]-, [lch]-, [oklab]- or [oklch]-style function
+      with numeric arguments. The renderer leaves out the declaration or
+      attribute of any other value, instead of writing it.
+    - Class prefixes, custom-property prefixes and extra-theme labels are
+      written into CSS names: each byte outside [A-Za-z0-9_-] becomes ['_'].
+    - Theme names, [pre_class], [code_class], decoration classes, and data
+      values are HTML-escaped as attribute values.
+    - Source text is HTML-escaped; bytes that are not valid UTF-8 and NUL become
+      U+FFFD.
+
+    {2 Class registry}
 
     When using [Html_options.Css_classes] mode, the renderer collects a mapping
-    from inline styles to generated class names. Use {!collect_classes} after
-    rendering to extract a CSS stylesheet. *)
+    from inline styles to generated class names. Use {!render_theme_css} to
+    extract a CSS stylesheet for a theme and a set of highlighted code. *)
 
 type class_registry
 (** Opaque type holding style-to-class mappings. *)
@@ -48,7 +64,11 @@ val render :
     - [line_numbers]: add [data-line="N"] to each line span
     - [css_variable_prefix]: custom prefix for CSS vars (default ["--ochre-"])
     - [pre_class] / [code_class]: extra classes on wrapper elements
-    - [scopes_as_data_attrs]: add [data-scope="..."] on token spans *)
+    - [scopes_as_data_attrs]: add [data-scope="..."] on token spans
+
+    In [Css_classes] mode a token's theme style becomes a class (see
+    {!Html_options.style_mode}); a decoration [style] and the extra-theme custom
+    properties stay inline. *)
 
 val theme_css : string -> string
 (** [theme_css label] returns a CSS rule that activates the theme stored under
@@ -70,6 +90,8 @@ val theme_css : string -> string
         --ochre-text-decoration: var(--ochre-dark-text-decoration);
       }
     ]}
+
+    [label] is sanitised: each byte outside [A-Za-z0-9_-] becomes ['_'].
 
     Wrap this in your own selector (e.g. a media query, a [.dark] class rule, or
     a [data-theme="dark"]) to control when the theme activates. *)

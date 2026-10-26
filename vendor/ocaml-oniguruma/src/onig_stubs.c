@@ -7,16 +7,12 @@
 #include <caml/mlvalues.h>
 #include <limits.h>
 #include <oniguruma.h>
+#include <string.h>
 
 #define Regex_val(v) (*((regex_t**)Data_custom_val(v)))
 #define Region_val(v) (*((OnigRegion**)Data_custom_val(v)))
 
-typedef struct {
-    OnigRegSet* regset;
-    value* regexes;
-} regset_t;
-
-#define RegSet_val(v) ((regset_t*)Data_custom_val(v))
+#define RegSet_val(v) (*((OnigRegSet**)Data_custom_val(v)))
 
 #define WRAP(name, wrapped)                                                    \
     CAMLprim value name(value unit)                                            \
@@ -251,25 +247,67 @@ static struct custom_operations region_ops = {
     .fixed_length = custom_fixed_length_default,
 };
 
-static void finalize_regset(value v)
+static value alloc_region(void)
 {
-    regset_t* const regset = RegSet_val(v);
-    if (regset->regexes != NULL) {
-        if (*regset->regexes != Val_unit) {
-            const mlsize_t regex_count = Wosize_val(*regset->regexes);
-            for (mlsize_t i = 0; i < regex_count; ++i) {
-                Regex_val(Field(*regset->regexes, i)) = NULL;
-            }
+    const value v = caml_alloc_custom(&region_ops, sizeof(OnigRegion*), 0, 1);
+    Region_val(v) = NULL;
+    OnigRegion* const region = onig_region_new();
+    if (region == NULL) {
+        caml_raise_out_of_memory();
+    }
+    Region_val(v) = region;
+    return v;
+}
+
+/* Oniguruma can report offsets past the end of a string that ends inside a
+   multibyte character. */
+static void clamp_region(OnigRegion* region, int length)
+{
+    for (int i = 0; i < region->num_regs; ++i) {
+        if (region->beg[i] > length) {
+            region->beg[i] = length;
+        }
+        if (region->end[i] > length) {
+            region->end[i] = length;
         }
     }
-    if (regset->regset != NULL) {
-        onig_regset_free(regset->regset);
-        regset->regset = NULL;
+}
+
+static int checked_length(value string_val)
+{
+    const uintnat length = caml_string_length(string_val);
+    if (length > INT_MAX) {
+        caml_raise_with_string(
+            *ocaml_Invalid_argument_exn, "String is too long");
     }
-    if (regset->regexes != NULL) {
-        caml_remove_generational_global_root(regset->regexes);
-        caml_stat_free(regset->regexes);
-        regset->regexes = NULL;
+    return (int)length;
+}
+
+static value region_result(int result, value region_val, int length)
+{
+    CAMLparam1(region_val);
+    CAMLlocal1(option_val);
+    if (result == ONIG_MISMATCH) {
+        CAMLreturn(Val_int(0));
+    }
+    if (result < 0) {
+        UChar err_buf[ONIG_MAX_ERROR_MESSAGE_LEN];
+        onig_error_code_to_str(err_buf, result);
+        caml_raise_with_string(*ocaml_onig_Error_exn, (const char*)err_buf);
+    }
+    clamp_region(Region_val(region_val), length);
+    /* Must store all fields immediately after small allocation! */
+    option_val = caml_alloc_small(1, 0);
+    Field(option_val, 0) = region_val;
+    CAMLreturn(option_val);
+}
+
+static void finalize_regset(value v)
+{
+    OnigRegSet* const regset = RegSet_val(v);
+    if (regset != NULL) {
+        onig_regset_free(regset);
+        RegSet_val(v) = NULL;
     }
 }
 
@@ -283,6 +321,13 @@ static struct custom_operations regset_ops = {
     .deserialize = custom_deserialize_default,
     .fixed_length = custom_fixed_length_default,
 };
+
+static void restore_regexes(value regexes_val, OnigRegex* regs, mlsize_t count)
+{
+    for (mlsize_t i = 0; i < count; ++i) {
+        Regex_val(Field(regexes_val, i)) = regs[i];
+    }
+}
 
 CAMLprim value ocaml_onig_regset_new(value regexes_val)
 {
@@ -300,28 +345,37 @@ CAMLprim value ocaml_onig_regset_new(value regexes_val)
     if (regex_count > 0) {
         regs = caml_stat_alloc(sizeof(OnigRegex) * regex_count);
         for (mlsize_t i = 0; i < regex_count; ++i) {
-            regs[i] = get_regex(Field(regexes_val, i));
+            regs[i] = Regex_val(Field(regexes_val, i));
+            if (regs[i] == NULL) {
+                restore_regexes(regexes_val, regs, i);
+                caml_stat_free(regs);
+                caml_raise_with_string(
+                    *ocaml_Failure_exn,
+                    "This regex is owned by a RegSet and is no longer "
+                    "available");
+            }
+            Regex_val(Field(regexes_val, i)) = NULL;
         }
     }
 
     OnigRegSet* regset = NULL;
     const int result = onig_regset_new(&regset, (int)regex_count, regs);
-    if (regs != NULL) {
-        caml_stat_free(regs);
-    }
 
     if (result != ONIG_NORMAL) {
+        restore_regexes(regexes_val, regs, regex_count);
+        if (regs != NULL) {
+            caml_stat_free(regs);
+        }
         UChar err_buf[ONIG_MAX_ERROR_MESSAGE_LEN];
         onig_error_code_to_str(err_buf, result);
         caml_raise_with_string(*ocaml_onig_Error_exn, (const char*)err_buf);
     }
+    if (regs != NULL) {
+        caml_stat_free(regs);
+    }
 
-    regset_val = caml_alloc_custom(&regset_ops, sizeof(regset_t), 0, 1);
-    regset_t* const wrapped = RegSet_val(regset_val);
-    wrapped->regset = regset;
-    wrapped->regexes = caml_stat_alloc(sizeof(value));
-    *wrapped->regexes = regexes_val;
-    caml_register_generational_global_root(wrapped->regexes);
+    regset_val = caml_alloc_custom(&regset_ops, sizeof(OnigRegSet*), 0, 1);
+    RegSet_val(regset_val) = regset;
 
     CAMLreturn(regset_val);
 }
@@ -337,15 +391,24 @@ CAMLprim value ocaml_onig_regset_search(
         regset_val, string_val, search_start_val, search_end_val, options_val);
     CAMLlocal3(region_val, tuple_val, option_val);
 
-    const regset_t* const wrapped = RegSet_val(regset_val);
-    const UChar* const string = (const UChar*)String_val(string_val);
-    const uintnat string_length = caml_string_length(string_val);
-    const int search_start = Int_val(search_start_val);
-    const int search_end = Int_val(search_end_val);
+    OnigRegSet* const regset = RegSet_val(regset_val);
+    const int string_length = checked_length(string_val);
+    const intnat search_start = Long_val(search_start_val);
+    intnat search_end = Long_val(search_end_val);
     int match_position = -1;
 
+    if (search_start < 0 || search_start > string_length) {
+        CAMLreturn(Val_int(0));
+    }
+    if (search_end < 0) {
+        search_end = 0;
+    } else if (search_end > string_length) {
+        search_end = string_length;
+    }
+
+    const UChar* const string = (const UChar*)String_val(string_val);
     const int result = onig_regset_search(
-        wrapped->regset,
+        regset,
         string,
         string + string_length,
         string + search_start,
@@ -364,26 +427,17 @@ CAMLprim value ocaml_onig_regset_search(
         caml_raise_with_string(*ocaml_onig_Error_exn, (const char*)err_buf);
     }
     const int matched_regex_index = result;
-    if (matched_regex_index < 0) {
-        caml_raise_with_string(
-            *ocaml_Failure_exn, "regset_search: Invalid matched regex index");
-    }
 
     OnigRegion* const region =
-        onig_regset_get_region(wrapped->regset, matched_regex_index);
+        onig_regset_get_region(regset, matched_regex_index);
     if (region == NULL) {
         caml_raise_with_string(
             *ocaml_Failure_exn, "regset_search: Missing region for matched regex");
     }
 
-    OnigRegion* const copied_region = onig_region_new();
-    if (copied_region == NULL) {
-        caml_raise_out_of_memory();
-    }
-    onig_region_copy(copied_region, region);
-
-    region_val = caml_alloc_custom(&region_ops, sizeof(OnigRegion*), 0, 1);
-    Region_val(region_val) = copied_region;
+    region_val = alloc_region();
+    onig_region_copy(Region_val(region_val), region);
+    clamp_region(Region_val(region_val), string_length);
 
     tuple_val = caml_alloc_tuple(2);
     Store_field(tuple_val, 0, Val_int(matched_regex_index));
@@ -403,39 +457,35 @@ CAMLprim value ocaml_onig_search(
 {
     CAMLparam5(
         regex_val, string_val, search_start_val, search_end_val, options_val);
-    CAMLlocal2(region_val, option_val);
+    CAMLlocal1(region_val);
 
     regex_t* const regex = get_regex(regex_val);
-    const UChar* const string = (const UChar*)String_val(string_val);
-    const uintnat string_length = caml_string_length(string_val);
-    const int search_start = Int_val(search_start_val);
-    const int search_end = Int_val(search_end_val);
+    const int string_length = checked_length(string_val);
+    const intnat search_start = Long_val(search_start_val);
+    intnat search_end = Long_val(search_end_val);
 
-    OnigRegion* const region = onig_region_new();
-    region_val = caml_alloc_custom(&region_ops, sizeof(OnigRegion*), 0, 1);
-    Region_val(region_val) = region;
-    /* Oniguruma library should handle out-of-bounds ranges */
+    if (search_start < 0 || search_start > string_length) {
+        CAMLreturn(Val_int(0));
+    }
+    if (search_end < 0) {
+        search_end = 0;
+    } else if (search_end > string_length) {
+        search_end = string_length;
+    }
+
+    region_val = alloc_region();
+    /* String_val must be read after the last allocation: a minor GC moves
+       young strings. */
+    const UChar* const string = (const UChar*)String_val(string_val);
     const int result = onig_search(
         regex,
         string,
         string + string_length,
         string + search_start,
         string + search_end,
-        region,
+        Region_val(region_val),
         Long_val(options_val));
-    if (result == ONIG_MISMATCH) {
-        CAMLreturn(Val_int(0));
-    }
-    if (result < 0) {
-        UChar err_buf[ONIG_MAX_ERROR_MESSAGE_LEN];
-        onig_error_code_to_str(err_buf, result);
-        caml_raise_with_string(*ocaml_onig_Error_exn, (const char*)err_buf);
-    }
-    /* option_val : region option */
-    /* Must store all fields immediately after small allocation! */
-    option_val = caml_alloc_small(1, 0);
-    Field(option_val, 0) = region_val;
-    CAMLreturn(option_val);
+    CAMLreturn(region_result(result, region_val, string_length));
 }
 
 CAMLprim value ocaml_onig_match(
@@ -445,37 +495,26 @@ CAMLprim value ocaml_onig_match(
     value options_val)
 {
     CAMLparam4(regex_val, string_val, search_at_val, options_val);
-    CAMLlocal2(region_val, option_val);
+    CAMLlocal1(region_val);
 
     regex_t* const regex = get_regex(regex_val);
-    const UChar* const string = (const UChar*)String_val(string_val);
-    const uintnat string_length = caml_string_length(string_val);
-    const int search_at = Int_val(search_at_val);
+    const int string_length = checked_length(string_val);
+    const intnat search_at = Long_val(search_at_val);
 
-    OnigRegion* const region = onig_region_new();
-    region_val = caml_alloc_custom(&region_ops, sizeof(OnigRegion*), 0, 1);
-    Region_val(region_val) = region;
-    /* Oniguruma library should handle out-of-bounds ranges */
+    if (search_at < 0 || search_at > string_length) {
+        CAMLreturn(Val_int(0));
+    }
+
+    region_val = alloc_region();
+    const UChar* const string = (const UChar*)String_val(string_val);
     const int result = onig_match(
         regex,
         string,
         string + string_length,
         string + search_at,
-        region,
+        Region_val(region_val),
         Long_val(options_val));
-    if (result == ONIG_MISMATCH) {
-        CAMLreturn(Val_int(0));
-    }
-    if (result < 0) {
-        UChar err_buf[ONIG_MAX_ERROR_MESSAGE_LEN];
-        onig_error_code_to_str(err_buf, result);
-        caml_raise_with_string(*ocaml_onig_Error_exn, (const char*)err_buf);
-    }
-    /* option_val : region option */
-    /* Must store all fields immediately after small allocation! */
-    option_val = caml_alloc_small(1, 0);
-    Field(option_val, 0) = region_val;
-    CAMLreturn(option_val);
+    CAMLreturn(region_result(result, region_val, string_length));
 }
 
 CAMLprim value ocaml_onig_region_length(value region)
@@ -620,37 +659,34 @@ CAMLprim value ocaml_onig_search_with_param(
     CAMLparam5(regex_val, string_val, search_start_val, search_end_val,
                options_val);
     CAMLxparam1(mp_val);
-    CAMLlocal2(region_val, option_val);
+    CAMLlocal1(region_val);
 
     regex_t* const regex = get_regex(regex_val);
-    const UChar* const string = (const UChar*)String_val(string_val);
-    const uintnat string_length = caml_string_length(string_val);
-    const int search_start = Int_val(search_start_val);
-    const int search_end = Int_val(search_end_val);
+    const int string_length = checked_length(string_val);
+    const intnat search_start = Long_val(search_start_val);
+    intnat search_end = Long_val(search_end_val);
 
-    OnigRegion* const region = onig_region_new();
-    region_val = caml_alloc_custom(&region_ops, sizeof(OnigRegion*), 0, 1);
-    Region_val(region_val) = region;
+    if (search_start < 0 || search_start > string_length) {
+        CAMLreturn(Val_int(0));
+    }
+    if (search_end < 0) {
+        search_end = 0;
+    } else if (search_end > string_length) {
+        search_end = string_length;
+    }
+
+    region_val = alloc_region();
+    const UChar* const string = (const UChar*)String_val(string_val);
     const int result = onig_search_with_param(
         regex,
         string,
         string + string_length,
         string + search_start,
         string + search_end,
-        region,
+        Region_val(region_val),
         Long_val(options_val),
         MatchParam_val(mp_val));
-    if (result == ONIG_MISMATCH) {
-        CAMLreturn(Val_int(0));
-    }
-    if (result < 0) {
-        UChar err_buf[ONIG_MAX_ERROR_MESSAGE_LEN];
-        onig_error_code_to_str(err_buf, result);
-        caml_raise_with_string(*ocaml_onig_Error_exn, (const char*)err_buf);
-    }
-    option_val = caml_alloc_small(1, 0);
-    Field(option_val, 0) = region_val;
-    CAMLreturn(option_val);
+    CAMLreturn(region_result(result, region_val, string_length));
 }
 
 CAMLprim value ocaml_onig_search_with_param_bc(value* argv, int argn)
@@ -668,36 +704,35 @@ CAMLprim value ocaml_onig_match_with_param(
     value mp_val)
 {
     CAMLparam5(regex_val, string_val, search_at_val, options_val, mp_val);
-    CAMLlocal2(region_val, option_val);
+    CAMLlocal1(region_val);
 
     regex_t* const regex = get_regex(regex_val);
-    const UChar* const string = (const UChar*)String_val(string_val);
-    const uintnat string_length = caml_string_length(string_val);
-    const int search_at = Int_val(search_at_val);
+    const int string_length = checked_length(string_val);
+    const intnat search_at = Long_val(search_at_val);
 
-    OnigRegion* const region = onig_region_new();
-    region_val = caml_alloc_custom(&region_ops, sizeof(OnigRegion*), 0, 1);
-    Region_val(region_val) = region;
+    if (search_at < 0 || search_at > string_length) {
+        CAMLreturn(Val_int(0));
+    }
+
+    region_val = alloc_region();
+    const UChar* const string = (const UChar*)String_val(string_val);
     const int result = onig_match_with_param(
         regex,
         string,
         string + string_length,
         string + search_at,
-        region,
+        Region_val(region_val),
         Long_val(options_val),
         MatchParam_val(mp_val));
-    if (result == ONIG_MISMATCH) {
-        CAMLreturn(Val_int(0));
-    }
-    if (result < 0) {
-        UChar err_buf[ONIG_MAX_ERROR_MESSAGE_LEN];
-        onig_error_code_to_str(err_buf, result);
-        caml_raise_with_string(*ocaml_onig_Error_exn, (const char*)err_buf);
-    }
-    option_val = caml_alloc_small(1, 0);
-    Field(option_val, 0) = region_val;
-    CAMLreturn(option_val);
+    CAMLreturn(region_result(result, region_val, string_length));
 }
+
+typedef struct {
+    value* callback;
+    value* exn;
+    int raised;
+    int length;
+} scan_state;
 
 static int scan_callback_trampoline(
     int count,
@@ -708,18 +743,19 @@ static int scan_callback_trampoline(
     CAMLparam0();
     CAMLlocal2(region_val, result_val);
 
-    value callback = *(value*)arg;
+    scan_state* const state = (scan_state*)arg;
 
-    OnigRegion* const copied = onig_region_new();
-    if (copied == NULL) {
-        caml_raise_out_of_memory();
+    region_val = alloc_region();
+    onig_region_copy(Region_val(region_val), region);
+    clamp_region(Region_val(region_val), state->length);
+
+    result_val = caml_callback3_exn(
+        *state->callback, Val_int(count), Val_int(pos), region_val);
+    if (Is_exception_result(result_val)) {
+        *state->exn = Extract_exception(result_val);
+        state->raised = 1;
+        CAMLreturnT(int, 1);
     }
-    onig_region_copy(copied, region);
-    region_val = caml_alloc_custom(&region_ops, sizeof(OnigRegion*), 0, 1);
-    Region_val(region_val) = copied;
-
-    result_val = caml_callback3(callback, Val_int(count), Val_int(pos),
-                                region_val);
     CAMLreturnT(int, Bool_val(result_val) ? 0 : 1);
 }
 
@@ -730,15 +766,23 @@ CAMLprim value ocaml_onig_scan(
     value callback_val)
 {
     CAMLparam4(regex_val, string_val, options_val, callback_val);
+    CAMLlocal1(exn_val);
 
     regex_t* const regex = get_regex(regex_val);
-    const UChar* const string = (const UChar*)String_val(string_val);
-    const uintnat string_length = caml_string_length(string_val);
+    const int string_length = checked_length(string_val);
+
+    /* The callback runs OCaml code, so the string may move while Oniguruma
+       reads it. Scan a private copy. */
+    UChar* const string = caml_stat_alloc(string_length + 8);
+    memcpy(string, String_val(string_val), string_length);
+    memset(string + string_length, 0, 8);
 
     OnigRegion* const region = onig_region_new();
     if (region == NULL) {
+        caml_stat_free(string);
         caml_raise_out_of_memory();
     }
+    scan_state state = {&callback_val, &exn_val, 0, string_length};
     const int result = onig_scan(
         regex,
         string,
@@ -746,8 +790,12 @@ CAMLprim value ocaml_onig_scan(
         region,
         Long_val(options_val),
         scan_callback_trampoline,
-        &callback_val);
+        &state);
     onig_region_free(region, 1);
+    caml_stat_free(string);
+    if (state.raised) {
+        caml_raise(exn_val);
+    }
     if (result < 0) {
         UChar err_buf[ONIG_MAX_ERROR_MESSAGE_LEN];
         onig_error_code_to_str(err_buf, result);

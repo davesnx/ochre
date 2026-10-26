@@ -61,15 +61,24 @@ val find_by_filetype : t -> string -> grammar option
 
 val of_plist_exn : plist -> grammar
 (** Reads a TextMate grammar from a PLIST file. Raises {!exception:Error} if the
-    plist does not represent a valid TextMate grammar. *)
+    plist does not represent a valid TextMate grammar, or if a regex in it does
+    not compile. An [end] or [while] regex that uses back-references is built
+    from the text its [begin] matched, so it cannot be checked here: see
+    {!val:tokenize_exn}. *)
 
 val of_ezjsonm_exn : ezjsonm -> grammar
 (** Reads a TextMate grammar from a JSON file. Raises {!exception:Error} if the
-    plist does not represent a valid TextMate grammar. *)
+    plist does not represent a valid TextMate grammar, or if a regex in it does
+    not compile. An [end] or [while] regex that uses back-references is built
+    from the text its [begin] matched, so it cannot be checked here: see
+    {!val:tokenize_exn}. *)
 
 val of_yojson_exn : yojson -> grammar
 (** Reads a TextMate grammar from a JSON file. Raises {!exception:Error} if the
-    plist does not represent a valid TextMate grammar. *)
+    plist does not represent a valid TextMate grammar, or if a regex in it does
+    not compile. An [end] or [while] regex that uses back-references is built
+    from the text its [begin] matched, so it cannot be checked here: see
+    {!val:tokenize_exn}. *)
 
 type stack
 (** The state of the tokenizer. *)
@@ -90,7 +99,14 @@ val ending : token -> int
 val scopes : token -> string list
 (** The token's stack of TextMate grammar scopes. *)
 
-val tokenize_exn : t -> grammar -> stack -> string -> token list * stack
+val tokenize_exn :
+  ?max_line_length:int ->
+  ?time_limit:float ->
+  t ->
+  grammar ->
+  stack ->
+  string ->
+  token list * stack
 (** Usage: [let tokens, stack = tokenize_exn t grammar stack line]
 
     Tokenizes a line of code. Returns the list of tokens [tokens] and the
@@ -106,9 +122,30 @@ val tokenize_exn : t -> grammar -> stack -> string -> token list * stack
     - The ending positions of [tokens] are strictly increasing.
     - The [ending] of the last token in [tokens] is always [String.length line].
 
-    Raises {!exception:Error} if it tries to match a malformed [end] or [while]
-    regex.
+    Never raises for any [line], including one that is not valid UTF-8. A
+    malformed [end] or [while] regex is reported when the grammar is read, see
+    {!val:of_yojson_exn}. An [include] of a repository entry or grammar that
+    does not exist in [t] is ignored, and so is an [include] that leads back to
+    itself.
 
-    Raises {!exception:Error} if it tries to access a local repository that
-    doesn't exist in the file. Currently, it silently ignores [include]s of
-    other grammars that don't exist in [t]. *)
+    A rule whose [end] or [while] regex uses back-references ([\1]) has that
+    regex built from the text its [begin] matched. If the result is not a valid
+    regex, the rule can never end on its own: it stays open until the grammar
+    stops it some other way.
+
+    The time spent on one line is bounded, so that no input can hang the
+    tokenizer. Two limits apply. Past either, the rest of the line becomes a
+    single token with the scopes in force at that point, and the returned
+    [stack] is the one in force there, so the next line starts from a consistent
+    state.
+
+    - [max_line_length] (default [10_000], at least [1]) is the number of bytes
+      of the line that are tokenized. A regex can take time that grows with the
+      square of the line, so only that prefix is matched. A line is cut at a
+      character boundary. This limit does not depend on the machine.
+    - [time_limit] (default [0.25] seconds) is the wall-clock time the regex
+      matching of one line may take. It depends on the machine, but a line that
+      is ordinary code never gets near it. Pass [infinity] to remove it.
+
+    A single regex call is not interrupted. Its cost is bounded by Oniguruma's
+    own retry limit ([Oniguruma.set_retry_limit_in_match]). *)

@@ -29,7 +29,7 @@ type decoration_properties = {
   data : (string * string) list;
 }
 ```
-Format-agnostic properties attached by a decoration. Renderers map them to HTML attributes, ANSI codes, LaTeX commands, or SVG attributes as appropriate.
+Format-agnostic properties attached by a decoration. Only the HTML and SVG renderers apply them, mapping `class_`/`style`/`data` to HTML/SVG attributes; the ANSI and LaTeX renderers ignore decorations.
 
 
 ### styled\_token

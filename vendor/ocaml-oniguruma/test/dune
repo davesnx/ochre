@@ -13,7 +13,10 @@
   test_regset
   test_encodings
   test_advanced
-  test_introspection)
+  test_introspection
+  test_capture_group
+  test_gc_safety
+  test_stub_safety)
  (modules
   test_ascii
   test_utf8
@@ -23,5 +26,8 @@
   test_regset
   test_encodings
   test_advanced
-  test_introspection)
+  test_introspection
+  test_capture_group
+  test_gc_safety
+  test_stub_safety)
  (libraries oniguruma test_util))
