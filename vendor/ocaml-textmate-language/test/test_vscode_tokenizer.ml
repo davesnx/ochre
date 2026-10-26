@@ -385,10 +385,9 @@ let rule_repository_is_not_for_captures =
     [ "<x>\n" ]
     [ [ ("<", []); ("x", [ "outer" ]); (">", []) ] ]
 
-let cut_line_does_not_anchor_next_line =
-  Alcotest.test_case
-    "a begin ending at the cut does not set \\G on the next line" `Quick
-    (fun () ->
+let long_line_leaves_next_line_state =
+  Alcotest.test_case "a line over the cap leaves the next line's state alone"
+    `Quick (fun () ->
       let grammar =
         scoped
         ^ {|"patterns":[{"begin":"<","end":">","name":"blk","patterns":[
@@ -396,7 +395,7 @@ let cut_line_does_not_anchor_next_line =
       in
       let line = String.make 9999 'a' ^ "<bbb\n" in
       Alcotest.check lines_testable "second line"
-        [ [ ("ab", [ "blk"; "w" ]); (" ", [ "blk" ]); ("cd", [ "blk"; "w" ]) ] ]
+        [ [ ("ab cd", []) ] ]
         [ List.nth (tokens [ grammar ] [ line; "ab cd\n" ]) 1 ]
   )
 
@@ -452,7 +451,7 @@ let () =
         [
           base_survives_included_frame;
           rule_repository_is_not_for_captures;
-          cut_line_does_not_anchor_next_line;
+          long_line_leaves_next_line_state;
           deep_nesting_is_fast;
         ]
       );

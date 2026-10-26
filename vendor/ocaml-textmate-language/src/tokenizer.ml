@@ -1027,7 +1027,7 @@ let () = retokenize_ref := retokenize_line
 let default_max_line_length = 10_000
 let default_time_limit = 0.25
 
-let tokenize_prefix ~time_limit ~eol t grammar { first_line; frames } line =
+let tokenize_line ~time_limit ~eol t grammar { first_line; frames } line =
   let state =
     {
       entries = [];
@@ -1099,12 +1099,6 @@ let tokenize_prefix ~time_limit ~eol t grammar { first_line; frames } line =
   in
   (toks, { first_line = false; frames })
 
-let rec utf8_boundary line cut =
-  if cut > 0 && Char.code line.[cut] land 0xC0 = 0x80 then
-    utf8_boundary line (cut - 1)
-  else
-    cut
-
 let tokenize_exn ?(max_line_length = default_max_line_length)
     ?(time_limit = default_time_limit) t grammar stack line =
   let added_newline = not (String.ends_with ~suffix:"\n" line) in
@@ -1118,28 +1112,11 @@ let tokenize_exn ?(max_line_length = default_max_line_length)
   let max_line_length = max 1 max_line_length in
   let toks, stack =
     if len <= max_line_length then
-      tokenize_prefix ~time_limit ~eol:len t grammar stack line
+      tokenize_line ~time_limit ~eol:len t grammar stack line
     else
-      let cut =
-        match utf8_boundary line max_line_length with
-        | 0 ->
-            max_line_length
-        | cut ->
-            cut
-      in
-      let toks, stack =
-        tokenize_prefix ~time_limit ~eol:len t grammar stack
-          (String.sub line 0 cut)
-      in
-      let scopes = end_of_line_scopes grammar stack.frames in
-      let toks =
-        match toks with
-        | last :: before when last.scopes = scopes ->
-            { last with ending = len } :: before
-        | _ ->
-            { scopes; ending = len } :: toks
-      in
-      (toks, stack)
+      ( [ { scopes = end_of_line_scopes grammar stack.frames; ending = len } ],
+        { stack with first_line = false }
+      )
   in
   let toks =
     match toks with
