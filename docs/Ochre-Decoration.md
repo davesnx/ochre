@@ -82,7 +82,7 @@ val apply :
 
 Overlapping decorations are merged: classes are space-concatenated, styles are semicolon-concatenated, data attributes are merged (later wins).
 
-Character positions are Unicode scalar positions; token offsets remain UTF-8 byte-based. Raises `Invalid_argument` if `source` is not valid UTF-8.
+Character positions are Unicode scalar positions; token offsets remain UTF-8 byte-based. Never raises: each byte that is not part of a valid UTF-8 sequence counts as one character.
 
 ```ocaml
   let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in

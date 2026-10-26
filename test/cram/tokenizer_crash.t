@@ -59,7 +59,7 @@ Go program
   line 2:
     "func"  keyword.function.go, source.go
     " "  source.go
-    "main"  source.go
+    "main"  entity.name.function.go, source.go
     "("  punctuation.definition.begin.bracket.round.go, source.go
     ")"  punctuation.definition.end.bracket.round.go, source.go
     " "  source.go
@@ -86,7 +86,9 @@ dotenv
   line 2:
     "BAZ"  variable.key.dotenv, source.dotenv
     "="  keyword.operator.assignment.dotenv, source.dotenv
-    "\"quoted value\""  source.dotenv
+    "\""  string.quoted.double.dotenv, property.value.dotenv, source.dotenv
+    "quoted value"  string.quoted.double.dotenv, property.value.dotenv, source.dotenv
+    "\""  string.quoted.double.dotenv, property.value.dotenv, source.dotenv
     "\n"  source.dotenv
 
 shellsession

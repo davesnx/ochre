@@ -15,4 +15,9 @@ type escaped = {
 }
 
 val escape : Token.decoration_properties -> escaped
-(** Escape the caller-supplied strings in a decoration's properties. *)
+(** Escape the caller-supplied strings in a decoration's properties with
+    {!Escape.html}. *)
+
+val escape_xml : Token.decoration_properties -> escaped
+(** Like {!escape}, with {!Escape.xml_attr}, for attribute values in XML output
+    such as SVG. *)
