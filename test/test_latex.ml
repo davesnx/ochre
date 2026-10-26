@@ -32,7 +32,7 @@ let preamble =
       "\\usepackage[T1]{fontenc}";
       "\\usepackage[utf8]{inputenc}";
       "\\usepackage{xcolor}";
-      "\\usepackage{soul}";
+      "\\usepackage[normalem]{ulem}";
       "\\usepackage{tcolorbox}";
       "\\setlength{\\parindent}{0pt}";
       "\\newenvironment{ochrehighlight}[2]{%";

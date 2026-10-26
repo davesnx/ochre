@@ -346,7 +346,7 @@ end
       configurable class prefixes.
     - {b ANSI} — 24-bit color escape sequences for terminal display.
     - {b LaTeX} — [\textcolor] commands inside an [ochrehighlight] environment.
-      Requires the [xcolor] and [soul] packages.
+      Requires the [xcolor] and [ulem] packages.
     - {b SVG} — Standalone [<svg>] elements with monospace [<text>] and
       per-token [<tspan>] styling.
     - {b Tokens} — Structured token output for full rendering control.
@@ -406,7 +406,9 @@ module Html_options : sig
     | Default_color
         (** Emit inline [color:] and [background-color:]. Default. *)
     | No_default_color
-        (** Suppress inline colors. All colors from CSS custom properties. *)
+        (** Suppress inline colors. Every theme, the primary one included, is
+            emitted as CSS custom properties, and the page supplies [color:] and
+            [background-color:]. Font styles are still applied. *)
 
   (** {2 t} *)
 
@@ -455,6 +457,7 @@ val to_html :
   ?transforms:Transform.t list ->
   ?options:Html_options.t ->
   ?theme:Theme.theme ->
+  ?label:string ->
   ?extra_themes:(string * Theme.theme) list ->
   lang:string ->
   string ->
@@ -462,6 +465,11 @@ val to_html :
 (** Highlight source code to HTML.
 
     Raises [Failure] if the grammar for [lang] cannot be found.
+
+    Raises [Invalid_argument] when two themes share a label. Labels are compared
+    after each byte outside [A-Za-z0-9_-] becomes ['_']. The default theme takes
+    part, under [~label] or its name, only with
+    {!Html_options.No_default_color}.
 
     Raises [Invalid_argument] when [~extra_themes] is non-empty and a transform
     produces a different token structure (different token texts) for the extra
@@ -484,6 +492,21 @@ val to_html :
     custom property prefix ([--ochre-<label>]). The default theme is emitted as
     base fallback variables ([var(--ochre-bg,<bg>)], [var(--ochre,<fg>)]), while
     extra themes are emitted as label-scoped variables.
+
+    A token follows every theme for its colour, background, [font-weight],
+    [font-style] and [text-decoration]. When any theme gives a token a value for
+    one of them, the token reads a variable for it, and every extra theme
+    defines that variable, with the neutral value ([normal], [none],
+    [transparent], the theme colour) where the theme has none. So bold, italic,
+    underline, strikethrough and token backgrounds of one theme neither leak
+    into nor vanish from another. The token background uses [--ochre-token-bg],
+    not the page background [--ochre-bg]. Underline and strikethrough together
+    give [underline line-through].
+
+    [~label] names the default theme for [Html_options.No_default_color], where
+    it is emitted as [--ochre-<label>] like an extra theme. It defaults to the
+    theme name, or to the label of the first entry of [~extra_themes] when
+    [~theme] is omitted.
 
     {@ocaml[
     Ochre.to_html hl ~theme:Ochre.Theme.light
@@ -511,9 +534,11 @@ val to_html :
 
 (** {2 html_theme_css} *)
 
-val html_theme_css : string -> string
+val html_theme_css : ?css_variable_prefix:string -> string -> string
 (** [html_theme_css label] returns a CSS rule that maps base variables
     ([--ochre-*]) to the label-scoped variables ([--ochre-<label>-*]).
+    [~css_variable_prefix] replaces ["--ochre-"]; give the prefix of the
+    {!Html_options.type-t} that rendered the code.
 
     Wrap this in your own selector (a media query, a [.dark] class, a
     [data-theme] attribute selector, etc.) to control when the theme activates.
@@ -525,11 +550,17 @@ val html_theme_css : string -> string
 (** {2 html_render_theme_css} *)
 
 val html_render_theme_css :
-  class_prefix:string -> Theme.theme -> Token.highlighted_code -> string
+  ?css_variable_prefix:string ->
+  class_prefix:string ->
+  Theme.theme ->
+  Token.highlighted_code ->
+  string
 (** [html_render_theme_css ~class_prefix theme code] generates a complete CSS
     stylesheet for the given theme and highlighted code when using
     {!Html_options.Css_classes} mode. Walks all tokens to discover unique styles
     and maps each to a deterministic class name prefixed with [class_prefix].
+    Pass the [css_variable_prefix] of the {!Html_options.type-t} used to render
+    the HTML as [~css_variable_prefix]; the class names depend on it.
 
     {@ocaml[
     let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
@@ -549,8 +580,12 @@ val to_ansi :
   string
 (** Highlight source code to ANSI terminal escape sequences.
 
-    Produces text with embedded 24-bit ANSI color codes for terminal display.
-    Raises [Failure] if the grammar for [lang] cannot be found.
+    Produces text with embedded 24-bit ANSI color codes for terminal display. A
+    terminal has no alpha channel: a translucent background, such as the one of
+    the line-highlight transforms, is blended over the theme background, and a
+    translucent foreground over the background behind it. Colours must be
+    [#rgb], [#rgba], [#rrggbb] or [#rrggbbaa]; a background in any other form is
+    left out. Raises [Failure] if the grammar for [lang] cannot be found.
 
     {@ocaml[
     let ansi = Ochre.to_ansi hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code in
@@ -570,8 +605,18 @@ val to_latex :
 (** Highlight source code to LaTeX with [\textcolor] commands.
 
     Produces a block wrapped in an [ochrehighlight] environment. Requires the
-    [xcolor] and [soul] LaTeX packages. Raises [Failure] if the grammar for
-    [lang] cannot be found.
+    [xcolor] and [ulem] LaTeX packages ([\usepackage[normalem]{ulem}] provides
+    [\sout] for strikethrough). Raises [Failure] if the grammar for [lang]
+    cannot be found.
+
+    A token background, such as the one of the line-highlight transforms, is
+    drawn with [\colorbox] in a group that sets [\fboxsep] to [0pt]. LaTeX has
+    no alpha channel, so a translucent background is blended over the theme
+    background, and a background equal to the theme background is not drawn.
+    Colours must be [#rgb], [#rgba], [#rrggbb] or [#rrggbbaa]. A tab becomes
+    spaces up to the next multiple of 8 columns, a carriage return is dropped,
+    and every other C0 control character and DEL is written in caret notation,
+    like [cat -v]. The output was not compiled with TeX.
 
     {@ocaml[
     let latex = Ochre.to_latex hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code in
@@ -591,8 +636,16 @@ val to_svg :
 (** Highlight source code to a self-contained SVG element.
 
     Produces an [<svg>] with monospace [<text>] elements and per-token [<tspan>]
-    styling. Suitable for embedding in documents or rendering as an image.
-    Raises [Failure] if the grammar for [lang] cannot be found.
+    styling. Suitable for embedding in documents or rendering as an image. The
+    [<text>] has the theme foreground as [fill]. A token background, such as the
+    one of the line-highlight transforms, is drawn as a [<rect>] behind the
+    text; a background equal to the theme background is not drawn.
+
+    The width counts display cells: a Unicode scalar value is one cell, an East
+    Asian wide or fullwidth character two, a combining mark none, and a carriage
+    return none. A tab becomes spaces up to the next multiple of 8 cells, so the
+    indentation survives [xml:space="preserve"]. Raises [Failure] if the grammar
+    for [lang] cannot be found.
 
     {@ocaml[
     let svg = Ochre.to_svg hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
@@ -610,8 +663,9 @@ val to_debug_tokens :
   string
 (** Highlight source code and render each token as [{text}[scope1,scope2,...]].
 
-    Useful for debugging grammar and scope matching. Raises [Failure] if the
-    grammar for [lang] cannot be found.
+    Useful for debugging grammar and scope matching. Colours and backgrounds are
+    not part of this format, so the line-highlight transforms do not show in it.
+    Raises [Failure] if the grammar for [lang] cannot be found.
 
     {@ocaml[
     let debug =
@@ -795,9 +849,25 @@ module Transform_builtin : sig
   (** {2 notation_highlight} *)
 
   val notation_highlight : ?background:string -> unit -> Transform.t
-  (** Notation-based line highlight. Scans token text for [[!code highlight]]
-      comments, removes them, and sets the background color on the entire line.
-      Mirrors Shiki's [transformerNotationHighlight].
+  (** Notation-based line highlight. Finds a [[!code highlight]] or [[!code hl]]
+      marker in the comment that ends a line, removes it, and sets the
+      background color on the entire line. Mirrors Shiki's
+      [transformerNotationHighlight], and so do the rules below, which hold for
+      the three notation transforms.
+
+      The marker must be inside the last comment of the line: a [//], [#], [;],
+      [%] or [--] comment that runs to the end of the line, or a [/* */],
+      [<!-- -->], [(* *)], [{- -}] or [--[[ ]]] comment that closes at the end
+      of the line. A comment is found from its comment scope when the grammar
+      gives one, and from its opener otherwise, so plain text and Markdown work
+      too. A marker in a string, or in a block comment that code follows, is
+      left alone. The whole comment goes, with the blanks before it, when the
+      marker was all it held; other text in the comment stays. The newline
+      stays.
+
+      [[!code highlight:3]] applies to three lines. When the comment is alone on
+      its line, the line is removed and the marker applies to the lines below
+      it.
 
       Default background: ["#ffffff22"].
 
@@ -811,9 +881,10 @@ module Transform_builtin : sig
 
   val notation_diff :
     ?add_background:string -> ?remove_background:string -> unit -> Transform.t
-  (** Notation-based diff markers. Scans token text for [[!code ++]] and
-      [[!code --]] comments, removes them, and applies green or red backgrounds
-      to the entire line. Mirrors Shiki's [transformerNotationDiff].
+  (** Notation-based diff markers. Finds [[!code ++]] and [[!code --]] markers
+      in comments, removes them, and applies green or red backgrounds to the
+      entire line. Mirrors Shiki's [transformerNotationDiff]; see
+      {!val-notation_highlight} for where a marker may sit and what is removed.
 
       Default add background: ["#22883322"]. Default remove background:
       ["#88222222"].
@@ -831,9 +902,13 @@ module Transform_builtin : sig
     ?font_style:Token.font_style list ->
     unit ->
     Transform.t
-  (** Notation-based word highlight. Scans token text for [[!code word:xxx]]
-      comments, removes them, and highlights all occurrences of [xxx] on that
-      line. Mirrors Shiki's [transformerNotationWordHighlight].
+  (** Notation-based word highlight. Finds [[!code word:xxx]] markers in
+      comments, removes them, and highlights all occurrences of [xxx], across
+      token boundaries. Without a count the highlight runs from the line of the
+      marker to the end of the code; [[!code word:xxx:2]] limits it to two
+      lines. A backslash escapes a character of the word. Mirrors Shiki's
+      [transformerNotationWordHighlight]; see {!val-notation_highlight} for
+      where a marker may sit and what is removed.
 
       Default foreground: ["#ffff00"]. Default font style: [[Bold]].
 

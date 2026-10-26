@@ -111,7 +111,7 @@ Ochre can render highlighted code to several output formats. All backends share 
 
 - **HTML** — Self-contained `<pre><code>` blocks with inline styles or CSS classes. Supports multi-theme via CSS custom properties, line numbers, and configurable class prefixes.
 - **ANSI** — 24-bit color escape sequences for terminal display.
-- **LaTeX** — `\textcolor` commands inside an `ochrehighlight` environment. Requires the `xcolor` and `soul` packages.
+- **LaTeX** — `\textcolor` commands inside an `ochrehighlight` environment. Requires the `xcolor` and `ulem` packages.
 - **SVG** — Standalone `<svg>` elements with monospace `<text>` and per-token `<tspan>` styling.
 - **Tokens** — Structured token output for full rendering control.
 - **Debug tokens** — Raw token text for debugging grammar and scope matching.
@@ -162,6 +162,7 @@ val to_html :
   ?transforms:Transform.t list ->
   ?options:Html_options.t ->
   ?theme:Theme.theme ->
+  ?label:string ->
   ?extra_themes:(string * Theme.theme) list ->
   lang:string ->
   string ->
@@ -170,6 +171,8 @@ val to_html :
 Highlight source code to HTML.
 
 Raises `Failure` if the grammar for `lang` cannot be found.
+
+Raises `Invalid_argument` when two themes share a label. Labels are compared after each byte outside `A-Za-z0-9_-` becomes `'_'`. The default theme takes part, under `~label` or its name, only with [`Html_options.default_color.No_default_color`](./Ochre-Html_options.md#type-default_color.No_default_color).
 
 Raises `Invalid_argument` when `~extra_themes` is non-empty and a transform produces a different token structure (different token texts) for the extra themes than for the default theme, for example a transform that splits tokens depending on their colour. Every theme must yield the same tokens, because the renderer emits one element per token with one set of variables per theme.
 
@@ -183,6 +186,10 @@ Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" "let x = 42"
 Multiple themes
 
 Pass `~extra_themes` with labelled extra themes. Each label becomes a CSS custom property prefix (`--ochre-<label>`). The default theme is emitted as base fallback variables (`var(--ochre-bg,<bg>)`, `var(--ochre,<fg>)`), while extra themes are emitted as label-scoped variables.
+
+A token follows every theme for its colour, background, `font-weight`, `font-style` and `text-decoration`. When any theme gives a token a value for one of them, the token reads a variable for it, and every extra theme defines that variable, with the neutral value (`normal`, `none`, `transparent`, the theme colour) where the theme has none. So bold, italic, underline, strikethrough and token backgrounds of one theme neither leak into nor vanish from another. The token background uses `--ochre-token-bg`, not the page background `--ochre-bg`. Underline and strikethrough together give `underline line-through`.
+
+`~label` names the default theme for `Html_options.No_default_color`, where it is emitted as `--ochre-<label>` like an extra theme. It defaults to the theme name, or to the label of the first entry of `~extra_themes` when `~theme` is omitted.
 
 ```ocaml
 Ochre.to_html hl ~theme:Ochre.Theme.light
@@ -208,9 +215,9 @@ Pair with [`html_theme_css`](./#val-html_theme_css) to activate alternate themes
 ### html\_theme\_css
 
 ```ocaml
-val html_theme_css : string -> string
+val html_theme_css : ?css_variable_prefix:string -> string -> string
 ```
-`html_theme_css label` returns a CSS rule that maps base variables (`--ochre-*`) to the label-scoped variables (`--ochre-<label>-*`).
+`html_theme_css label` returns a CSS rule that maps base variables (`--ochre-*`) to the label-scoped variables (`--ochre-<label>-*`). `~css_variable_prefix` replaces `"--ochre-"`; give the prefix of the [`Html_options.t`](./Ochre-Html_options.md#type-t) that rendered the code.
 
 Wrap this in your own selector (a media query, a `.dark` class, a `data-theme` attribute selector, etc.) to control when the theme activates.
 
@@ -222,12 +229,13 @@ Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
 
 ```ocaml
 val html_render_theme_css : 
+  ?css_variable_prefix:string ->
   class_prefix:string ->
   Theme.theme ->
   Token.highlighted_code ->
   string
 ```
-`html_render_theme_css ~class_prefix theme code` generates a complete CSS stylesheet for the given theme and highlighted code when using [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode. Walks all tokens to discover unique styles and maps each to a deterministic class name prefixed with `class_prefix`.
+`html_render_theme_css ~class_prefix theme code` generates a complete CSS stylesheet for the given theme and highlighted code when using [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode. Walks all tokens to discover unique styles and maps each to a deterministic class name prefixed with `class_prefix`. Pass the `css_variable_prefix` of the [`Html_options.t`](./Ochre-Html_options.md#type-t) used to render the HTML as `~css_variable_prefix`; the class names depend on it.
 
 ```ocaml
 let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
@@ -249,7 +257,7 @@ val to_ansi :
 ```
 Highlight source code to ANSI terminal escape sequences.
 
-Produces text with embedded 24-bit ANSI color codes for terminal display. Raises `Failure` if the grammar for `lang` cannot be found.
+Produces text with embedded 24-bit ANSI color codes for terminal display. A terminal has no alpha channel: a translucent background, such as the one of the line-highlight transforms, is blended over the theme background, and a translucent foreground over the background behind it. Colours must be `#rgb`, `#rgba`, `#rrggbb` or `#rrggbbaa`; a background in any other form is left out. Raises `Failure` if the grammar for `lang` cannot be found.
 
 ```ocaml
 let ansi = Ochre.to_ansi hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code in
@@ -270,7 +278,9 @@ val to_latex :
 ```
 Highlight source code to LaTeX with `\textcolor` commands.
 
-Produces a block wrapped in an `ochrehighlight` environment. Requires the `xcolor` and `soul` LaTeX packages. Raises `Failure` if the grammar for `lang` cannot be found.
+Produces a block wrapped in an `ochrehighlight` environment. Requires the `xcolor` and `ulem` LaTeX packages (`\usepackage[normalem]{ulem}` provides `\sout` for strikethrough). Raises `Failure` if the grammar for `lang` cannot be found.
+
+A token background, such as the one of the line-highlight transforms, is drawn with `\colorbox` in a group that sets `\fboxsep` to `0pt`. LaTeX has no alpha channel, so a translucent background is blended over the theme background, and a background equal to the theme background is not drawn. Colours must be `#rgb`, `#rgba`, `#rrggbb` or `#rrggbbaa`. A tab becomes spaces up to the next multiple of 8 columns, a carriage return is dropped, and every other C0 control character and DEL is written in caret notation, like `cat -v`. The output was not compiled with TeX.
 
 ```ocaml
 let latex = Ochre.to_latex hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code in
@@ -291,7 +301,9 @@ val to_svg :
 ```
 Highlight source code to a self-contained SVG element.
 
-Produces an `<svg>` with monospace `<text>` elements and per-token `<tspan>` styling. Suitable for embedding in documents or rendering as an image. Raises `Failure` if the grammar for `lang` cannot be found.
+Produces an `<svg>` with monospace `<text>` elements and per-token `<tspan>` styling. Suitable for embedding in documents or rendering as an image. The `<text>` has the theme foreground as `fill`. A token background, such as the one of the line-highlight transforms, is drawn as a `<rect>` behind the text; a background equal to the theme background is not drawn.
+
+The width counts display cells: a Unicode scalar value is one cell, an East Asian wide or fullwidth character two, a combining mark none, and a carriage return none. A tab becomes spaces up to the next multiple of 8 cells, so the indentation survives `xml:space="preserve"`. Raises `Failure` if the grammar for `lang` cannot be found.
 
 ```ocaml
 let svg = Ochre.to_svg hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
@@ -311,7 +323,7 @@ val to_debug_tokens :
 ```
 Highlight source code and render each token as `{text}[scope1,scope2,...]`.
 
-Useful for debugging grammar and scope matching. Raises `Failure` if the grammar for `lang` cannot be found.
+Useful for debugging grammar and scope matching. Colours and backgrounds are not part of this format, so the line-highlight transforms do not show in it. Raises `Failure` if the grammar for `lang` cannot be found.
 
 ```ocaml
 let debug =

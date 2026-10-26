@@ -49,6 +49,7 @@ CSS for a custom theme label
     --ochre-font-style: var(--ochre-dim-font-style);
     --ochre-font-weight: var(--ochre-dim-font-weight);
     --ochre-text-decoration: var(--ochre-dim-text-decoration);
+    --ochre-token-bg: var(--ochre-dim-token-bg);
   }
 
 Line numbers add data-line attributes
@@ -58,11 +59,11 @@ Line numbers add data-line attributes
 
 No default color suppresses inline color/background
   $ ./test_render_html.exe no-default-color
-  <pre class="ochre" tabindex="0"><code><span class="line">let x = 42</span></code></pre>
+  <pre class="ochre" style="--ochre-test-theme-bg:#1e1e1e;--ochre-test-theme:#d4d4d4" tabindex="0"><code><span class="line"><span style="font-weight:var(--ochre-font-weight);--ochre-test-theme-font-weight:bold;--ochre-test-theme:#ff0000">let</span><span style="--ochre-test-theme:#d4d4d4"> x = </span><span style="--ochre-test-theme:#0000ff">42</span></span></code></pre>
 
 No default color with multi-theme (only CSS vars, no inline color)
   $ ./test_render_html.exe no-default-color-multi
-  <pre class="ochre ochre-themes test-light test-theme" style="--ochre-dark-bg:#1e1e1e;--ochre-dark:#d4d4d4" tabindex="0"><code><span class="line"><span style="--ochre-dark-font-weight:bold;--ochre-dark:#ff0000">let</span><span style="--ochre-dark:#d4d4d4"> x = </span><span style="--ochre-dark:#0000ff">42</span></span></code></pre>
+  <pre class="ochre ochre-themes test-light test-theme" style="--ochre-test-light-bg:#ffffff;--ochre-test-light:#24292e;--ochre-dark-bg:#1e1e1e;--ochre-dark:#d4d4d4" tabindex="0"><code><span class="line"><span style="font-weight:var(--ochre-font-weight);--ochre-test-light-font-weight:bold;--ochre-test-light:#d73a49;--ochre-dark-font-weight:bold;--ochre-dark:#ff0000">let</span><span style="--ochre-test-light:#24292e;--ochre-dark:#d4d4d4"> x = </span><span style="--ochre-test-light:#005cc5;--ochre-dark:#0000ff">42</span></span></code></pre>
 
 CSS classes mode replaces inline styles with class names
   $ ./test_render_html.exe css-classes

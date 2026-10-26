@@ -138,7 +138,10 @@ let render highlighter ~theme ~lang ~format ~options source =
 
 let render_html_multi highlighter ~theme ~extra_themes ~lang ~options source =
   write_stdout
-    (Ochre.to_html highlighter ~options ~theme ~extra_themes ~lang source ^ "\n");
+    (Ochre.to_html highlighter ~options ~theme ~label:"light" ~extra_themes
+       ~lang source
+    ^ "\n"
+    );
   `Ok ()
 
 let resolve_theme ~theme_path ~theme_dark ~theme_light =

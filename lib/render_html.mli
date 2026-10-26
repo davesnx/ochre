@@ -32,6 +32,7 @@ type class_registry
 
 val render :
   ?options:Html_options.t ->
+  ?label:string ->
   Theme.theme ->
   ?extra_themes:(string * Theme.theme * Token.highlighted_code) list ->
   Token.highlighted_code ->
@@ -52,15 +53,29 @@ val render :
 
     {3 Multi-theme output}
 
+    Raises [Invalid_argument] when two themes share a label. Labels are compared
+    after sanitising, and the default theme counts, under its [?label] or its
+    name, only with [Html_options.No_default_color], the only case where it is
+    emitted as variables.
+
     When [~extra_themes] is provided, each [(label, theme, tokens)] entry adds
     CSS custom properties ([--ochre-<label>], [--ochre-<label>-bg], etc.) to
     every token, and the [<pre>] element carries all theme names and variables.
+    A token reads a variable for each of its colour, token background,
+    [font-weight], [font-style] and [text-decoration] that any theme sets, and
+    every extra theme defines it, with a neutral value where the theme has none.
+    The page background is [--ochre-bg]; the token background is
+    [--ochre-token-bg].
 
     {3 Options}
 
     Pass [~options] to control:
     - [style_mode]: inline styles (default) or CSS classes
-    - [default_color]: whether the primary theme gets inline [color:]
+    - [default_color]: whether the primary theme gets inline [color:]. With
+      [No_default_color] the primary theme is emitted as variables under
+      [--ochre-<label>], like an extra theme, and no [color:] or
+      [background-color:] is written; font styles are kept. [?label] names the
+      primary theme; it defaults to the theme name.
     - [line_numbers]: add [data-line="N"] to each line span
     - [css_variable_prefix]: custom prefix for CSS vars (default ["--ochre-"])
     - [pre_class] / [code_class]: extra classes on wrapper elements
@@ -70,7 +85,7 @@ val render :
     {!Html_options.style_mode}); a decoration [style] and the extra-theme custom
     properties stay inline. *)
 
-val theme_css : string -> string
+val theme_css : ?css_variable_prefix:string -> string -> string
 (** [theme_css label] returns a CSS rule that activates the theme stored under
     CSS custom properties with the given label.
 
@@ -88,16 +103,26 @@ val theme_css : string -> string
         --ochre-font-style: var(--ochre-dark-font-style);
         --ochre-font-weight: var(--ochre-dark-font-weight);
         --ochre-text-decoration: var(--ochre-dark-text-decoration);
+        --ochre-token-bg: var(--ochre-dark-token-bg);
       }
     ]}
 
     [label] is sanitised: each byte outside [A-Za-z0-9_-] becomes ['_'].
+    [css_variable_prefix] defaults to ["--ochre-"]; a ['-'] is appended when it
+    is missing.
 
     Wrap this in your own selector (e.g. a media query, a [.dark] class rule, or
     a [data-theme="dark"]) to control when the theme activates. *)
 
 val render_theme_css :
-  class_prefix:string -> Theme.theme -> Token.highlighted_code -> string
+  ?css_variable_prefix:string ->
+  class_prefix:string ->
+  Theme.theme ->
+  Token.highlighted_code ->
+  string
 (** [render_theme_css ~class_prefix theme code] generates a complete CSS
     stylesheet for the given theme and highlighted code. Walks all tokens to
-    discover unique styles and maps each to a deterministic class name. *)
+    discover unique styles and maps each to a deterministic class name.
+    [css_variable_prefix] (default ["--ochre-"]) must be the prefix of the
+    options that rendered the code: the class names are hashes of styles that
+    contain it. *)
