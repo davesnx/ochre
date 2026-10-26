@@ -1,15 +1,5 @@
 open Token
 
-let font_style_to_css_var_fallback prefix = function
-  | Bold ->
-      "font-weight:var(" ^ prefix ^ "font-weight,bold)"
-  | Italic ->
-      "font-style:var(" ^ prefix ^ "font-style,italic)"
-  | Underline ->
-      "text-decoration:var(" ^ prefix ^ "text-decoration,underline)"
-  | Strikethrough ->
-      "text-decoration:var(" ^ prefix ^ "text-decoration,line-through)"
-
 let css_var_foreground_name prefix =
   if String.length prefix > 0 && prefix.[String.length prefix - 1] = '-' then
     String.sub prefix 0 (String.length prefix - 1)
@@ -18,60 +8,198 @@ let css_var_foreground_name prefix =
 
 let css_var_background_name prefix = prefix ^ "bg"
 
-(** [prefix] is expected to end with [-] (e.g. [--ochre-dark-]). *)
-let font_style_to_css_var prefix = function
-  | Bold ->
-      prefix ^ "font-weight:bold"
-  | Italic ->
-      prefix ^ "font-style:italic"
-  | Underline ->
-      prefix ^ "text-decoration:underline"
-  | Strikethrough ->
-      prefix ^ "text-decoration:line-through"
-
 let color_declaration prop color =
   Option.map (fun c -> prop c) (Option.bind color Escape.css_color)
 
-let token_style_to_css ~emit_default ~prefix token =
+type var_kind = Colour | Named of string
+
+type prop = {
+  css : string;
+  kind : var_kind;
+  value : Theme.theme -> styled_token -> string option;
+  neutral : Theme.theme -> string;
+}
+
+let text_decoration styles =
+  match (List.mem Underline styles, List.mem Strikethrough styles) with
+  | true, true ->
+      Some "underline line-through"
+  | true, false ->
+      Some "underline"
+  | false, true ->
+      Some "line-through"
+  | false, false ->
+      None
+
+let when_styled style value (token : styled_token) =
+  if List.mem style token.font_style then
+    Some value
+  else
+    None
+
+let props =
+  [
+    {
+      css = "font-weight";
+      kind = Named "font-weight";
+      value = (fun _ token -> when_styled Bold "bold" token);
+      neutral = (fun _ -> "normal");
+    };
+    {
+      css = "font-style";
+      kind = Named "font-style";
+      value = (fun _ token -> when_styled Italic "italic" token);
+      neutral = (fun _ -> "normal");
+    };
+    {
+      css = "text-decoration";
+      kind = Named "text-decoration";
+      value = (fun _ token -> text_decoration token.font_style);
+      neutral = (fun _ -> "none");
+    };
+    {
+      css = "background-color";
+      kind = Named "token-bg";
+      value = (fun _ token -> Option.bind token.background Escape.css_color);
+      neutral = (fun _ -> "transparent");
+    };
+    {
+      css = "color";
+      kind = Colour;
+      value = (fun _ token -> Option.bind token.foreground Escape.css_color);
+      neutral =
+        (fun (theme : Theme.theme) ->
+          Option.value (Escape.css_color theme.fg) ~default:"inherit"
+        );
+    };
+  ]
+
+let is_colour_prop prop = prop.kind = Colour || prop.css = "background-color"
+
+(** [prefix] ends with [-]. The variable a token reads, set by {!theme_css}. *)
+let read_var ~prefix prop =
+  match prop.kind with
+  | Colour ->
+      css_var_foreground_name prefix
+  | Named name ->
+      prefix ^ name
+
+(** The variable that holds one theme's value of [prop]. *)
+let theme_var ~prefix ~label prop =
+  match prop.kind with
+  | Colour ->
+      prefix ^ label
+  | Named name ->
+      prefix ^ label ^ "-" ^ name
+
+let token_style_to_css ~emit_default ~prefix theme token =
   if not emit_default then
     ""
   else
-    let fg_var = css_var_foreground_name prefix in
-    let bg_var = css_var_background_name prefix in
-    let colors =
-      List.filter_map Fun.id
-        [
-          color_declaration
-            (fun c -> "color:var(" ^ fg_var ^ "," ^ c ^ ")")
-            token.foreground;
-          color_declaration
-            (fun c -> "background-color:var(" ^ bg_var ^ "," ^ c ^ ")")
-            token.background;
-        ]
-    in
     String.concat ";"
-      (List.map (font_style_to_css_var_fallback prefix) token.font_style
-      @ List.rev colors
+      (List.filter_map
+         (fun prop ->
+           Option.map
+             (fun value ->
+               prop.css ^ ":var(" ^ read_var ~prefix prop ^ "," ^ value ^ ")"
+             )
+             (prop.value theme token)
+         )
+         props
       )
 
-(** Generate CSS custom property declarations for a themed token. [prefix] must
-    end with [-] (e.g. [--ochre-dark-]). Produces vars like
-    [--ochre-dark:#color], [--ochre-dark-bg:#color],
-    [--ochre-dark-font-weight:bold]. *)
-let token_style_to_css_vars prefix token =
-  let fg_name = css_var_foreground_name prefix in
-  let vars =
-    List.filter_map Fun.id
-      [
-        color_declaration (fun c -> fg_name ^ ":" ^ c) token.foreground;
-        color_declaration (fun c -> prefix ^ "bg:" ^ c) token.background;
-      ]
+(** The inline declarations that make a token follow every theme. A property is
+    needed when any theme gives the token a value for it. The token then reads
+    its variable, and every theme defines that variable, with the neutral value
+    where the theme has none, so no value leaks from one theme into another. The
+    primary theme reads from its own fallback, unless [emit_default] is false:
+    then it defines variables like the extra themes, and colours are left to the
+    page. *)
+let token_theme_declarations ~prefix ~emit_default ~label (theme, token) extras
+    =
+  let themed = (label, theme, token) :: extras in
+  let needed =
+    List.filter
+      (fun prop ->
+        List.exists
+          (fun (_, theme, token) -> prop.value theme token <> None)
+          themed
+      )
+      props
   in
-  let vars = List.rev vars in
-  let vars = List.map (font_style_to_css_var prefix) token.font_style @ vars in
-  vars
+  let reads =
+    List.filter_map
+      (fun prop ->
+        let read = read_var ~prefix prop in
+        if emit_default then
+          if prop.value theme token = None then
+            Some (prop.css ^ ":var(" ^ read ^ "," ^ prop.neutral theme ^ ")")
+          else
+            None
+        else if is_colour_prop prop then
+          None
+        else
+          Some (prop.css ^ ":var(" ^ read ^ ")")
+      )
+      needed
+  in
+  let defined =
+    if emit_default then
+      extras
+    else
+      themed
+  in
+  let definitions =
+    List.concat_map
+      (fun (label, theme, token) ->
+        List.map
+          (fun prop ->
+            theme_var ~prefix ~label prop
+            ^ ":"
+            ^ Option.value (prop.value theme token) ~default:(prop.neutral theme)
+          )
+          needed
+      )
+      defined
+  in
+  reads @ definitions
 
 let escape_text = Escape.to_string Escape.html
+
+(** A carriage return directly before a line feed stays raw: an HTML parser
+    reads the pair as one newline. Any other carriage return is written as a
+    character reference, because a raw one would be read as a newline. *)
+let escape_token_text text =
+  let escaped = escape_text text in
+  let length = String.length escaped in
+  let buf = Buffer.create length in
+  String.iteri
+    (fun i c ->
+      if c = '\r' && not (i + 1 < length && escaped.[i + 1] = '\n') then
+        Buffer.add_string buf "&#13;"
+      else
+        Buffer.add_char buf c
+    )
+    escaped;
+  Buffer.contents buf
+
+(** Moves a carriage return that ends a token into the token that starts with
+    the line feed, so the pair is never split between two elements. *)
+let rec join_crlf = function
+  | (first : styled_token) :: (second : styled_token) :: rest
+    when String.ends_with ~suffix:"\r" first.text
+         && String.starts_with ~prefix:"\n" second.text ->
+      let length = String.length first.text in
+      let kept = String.sub first.text 0 (length - 1) in
+      let second = { second with text = "\r" ^ second.text } in
+      if kept = "" then
+        join_crlf (second :: rest)
+      else
+        { first with text = kept } :: join_crlf (second :: rest)
+  | token :: rest ->
+      token :: join_crlf rest
+  | [] ->
+      []
 
 let style_hash s = String.sub (Digest.to_hex (Digest.string s)) 0 16
 
@@ -181,15 +309,17 @@ let render_span_attrs ~options ~registry ~style ~extra_style decoration scopes =
   else
     Some (String.concat " " parts)
 
-let render_token ~options ~registry ~extras ~emit_default primary =
+let render_token ~options ~registry ~extras ~emit_default ~label
+    (primary_theme, primary) =
   let prefix = options.Html_options.css_variable_prefix in
-  let primary_style = token_style_to_css ~emit_default ~prefix primary in
-  let extra_vars =
-    List.concat_map
-      (fun (label, tok) -> token_style_to_css_vars (prefix ^ label ^ "-") tok)
-      extras
+  let primary_style =
+    token_style_to_css ~emit_default ~prefix primary_theme primary
   in
-  let text = escape_text primary.text in
+  let extra_vars =
+    token_theme_declarations ~prefix ~emit_default ~label
+      (primary_theme, primary) extras
+  in
+  let text = escape_token_text primary.text in
   match
     render_span_attrs ~options ~registry ~style:primary_style
       ~extra_style:(String.concat ";" extra_vars)
@@ -200,15 +330,24 @@ let render_token ~options ~registry ~extras ~emit_default primary =
   | Some attrs ->
       Printf.sprintf "<span %s>%s</span>" attrs text
 
-let render_line ~options ~registry ~extras_line ~emit_default primary_line =
+let render_line ~options ~registry ~extras_line ~emit_default ~label
+    ~primary_theme primary_line =
+  let primary_line = join_crlf primary_line in
   let extras_arrays =
-    List.map (fun (label, line) -> (label, Array.of_list line)) extras_line
+    List.map
+      (fun (label, theme, line) ->
+        (label, theme, Array.of_list (join_crlf line))
+      )
+      extras_line
   in
   let render_one i tok =
     let extras =
-      List.map (fun (label, arr) -> (label, Array.get arr i)) extras_arrays
+      List.map
+        (fun (label, theme, arr) -> (label, theme, Array.get arr i))
+        extras_arrays
     in
-    render_token ~options ~registry ~extras ~emit_default tok
+    render_token ~options ~registry ~extras ~emit_default ~label
+      (primary_theme, tok)
   in
   String.concat "" (List.mapi render_one primary_line)
 
@@ -224,7 +363,8 @@ let dedupe_preserving_order items =
   in
   loop [] [] items
 
-let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
+let render ?(options = Html_options.default) ?label theme ?(extra_themes = [])
+    code =
   let options =
     {
       options with
@@ -245,7 +385,34 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
       (fun (label, theme, tokens) -> (Escape.css_ident label, theme, tokens))
       extra_themes
   in
+  let label = Escape.css_ident (Option.value label ~default:theme.Theme.name) in
   let has_extras = extra_themes <> [] in
+  let emit_default_color = options.default_color = Html_options.Default_color in
+  let labels =
+    List.map (fun (label, _, _) -> label) extra_themes
+    @
+    if emit_default_color then
+      []
+    else
+      [ label ]
+  in
+  ( match
+      List.find_opt
+        (fun label -> List.length (List.filter (String.equal label) labels) > 1)
+        labels
+    with
+  | Some label ->
+      invalid_arg
+        (Printf.sprintf
+           "Render_html.render: the theme label %S is used twice (after \
+            replacing characters outside A-Za-z0-9_-); each theme needs its \
+            own label, and the default theme is labelled by ?label or its name \
+            when default_color is No_default_color"
+           label
+        )
+  | None ->
+      ()
+  );
   let prefix = options.css_variable_prefix in
   let registry =
     match options.style_mode with
@@ -261,19 +428,22 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
     | Html_options.No_default_color ->
         false
   in
-  let extras_arrays =
+  let extra_lines =
     List.map
-      (fun (label, _theme, tokens) -> (label, Array.of_list tokens))
+      (fun (label, theme, tokens) -> (label, theme, Array.of_list tokens))
       extra_themes
   in
   let lines =
     List.mapi
       (fun i line ->
         let extras_line =
-          List.map (fun (label, arr) -> (label, Array.get arr i)) extras_arrays
+          List.map
+            (fun (label, theme, tokens) -> (label, theme, tokens.(i)))
+            extra_lines
         in
         let content =
-          render_line ~options ~registry ~extras_line ~emit_default line
+          render_line ~options ~registry ~extras_line ~emit_default ~label
+            ~primary_theme:theme line
         in
         if options.line_numbers then
           Printf.sprintf "<span class=\"line\" data-line=\"%d\">%s</span>"
@@ -305,6 +475,21 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
     dedupe_preserving_order classes
   in
   let pre_class_attr = escape_text (String.concat " " pre_classes) in
+  let page_variables (label, (theme : Theme.theme)) =
+    List.filter_map Fun.id
+      [
+        color_declaration (fun c -> prefix ^ label ^ "-bg:" ^ c) (Some theme.bg);
+        color_declaration (fun c -> prefix ^ label ^ ":" ^ c) (Some theme.fg);
+      ]
+  in
+  let themes_as_variables =
+    ( if emit_default then
+        []
+      else
+        [ (label, theme) ]
+    )
+    @ List.map (fun (label, theme, _tokens) -> (label, theme)) extra_themes
+  in
   let pre_style_parts =
     ( if emit_default then
         List.filter_map Fun.id
@@ -325,23 +510,7 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
       else
         []
     )
-    @
-    if has_extras then
-      List.concat_map
-        (fun (label, theme, _tokens) ->
-          List.filter_map Fun.id
-            [
-              color_declaration
-                (fun c -> prefix ^ label ^ "-bg:" ^ c)
-                (Some theme.Theme.bg);
-              color_declaration
-                (fun c -> prefix ^ label ^ ":" ^ c)
-                (Some theme.Theme.fg);
-            ]
-        )
-        extra_themes
-    else
-      []
+    @ List.concat_map page_variables themes_as_variables
   in
   let pre_style =
     if pre_style_parts <> [] then
@@ -359,27 +528,31 @@ let render ?(options = Html_options.default) theme ?(extra_themes = []) code =
   Printf.sprintf "<pre class=\"%s\"%s tabindex=\"0\"><code%s>%s</code></pre>"
     pre_class_attr pre_style code_attrs code_content
 
-let theme_css label =
+let theme_css ?(css_variable_prefix = "--ochre-") label =
   let label = Escape.css_ident label in
-  let prefix = "--ochre-" in
-  let base_fg = css_var_foreground_name prefix in
-  let base_bg = css_var_background_name prefix in
-  let base_font_style = prefix ^ "font-style" in
-  let base_font_weight = prefix ^ "font-weight" in
-  let base_text_decoration = prefix ^ "text-decoration" in
-  let themed_fg = prefix ^ label in
-  let themed_prefix = prefix ^ label ^ "-" in
-  Printf.sprintf
-    {|.ochre,
-.ochre span {
-  %s: var(%s);
-  %s: var(%sbg);
-  %s: var(%sfont-style);
-  %s: var(%sfont-weight);
-  %s: var(%stext-decoration);
-}|}
-    base_fg themed_fg base_bg themed_prefix base_font_style themed_prefix
-    base_font_weight themed_prefix base_text_decoration themed_prefix
+  let prefix =
+    Escape.css_ident
+      (Html_options.normalize_css_variable_prefix css_variable_prefix)
+  in
+  let rule prop =
+    Printf.sprintf "  %s: var(%s);" (read_var ~prefix prop)
+      (theme_var ~prefix ~label prop)
+  in
+  let prop css = List.find (fun prop -> prop.css = css) props in
+  String.concat "\n"
+    [
+      ".ochre,";
+      ".ochre span {";
+      rule (prop "color");
+      Printf.sprintf "  %s: var(%s%s-bg);"
+        (css_var_background_name prefix)
+        prefix label;
+      rule (prop "font-style");
+      rule (prop "font-weight");
+      rule (prop "text-decoration");
+      rule (prop "background-color");
+      "}";
+    ]
 
 let collect_classes registry =
   let buf = Buffer.create 256 in
@@ -390,15 +563,18 @@ let collect_classes registry =
     (List.rev registry.order);
   Buffer.contents buf
 
-let render_theme_css ~class_prefix (theme : Theme.theme) code =
+let render_theme_css ?(css_variable_prefix = "--ochre-") ~class_prefix
+    (theme : Theme.theme) code =
+  let prefix =
+    Escape.css_ident
+      (Html_options.normalize_css_variable_prefix css_variable_prefix)
+  in
   let reg = create_registry (Escape.css_ident class_prefix) in
   List.iter
     (fun line ->
       List.iter
         (fun (tok : styled_token) ->
-          let style =
-            token_style_to_css ~emit_default:true ~prefix:"--ochre-" tok
-          in
+          let style = token_style_to_css ~emit_default:true ~prefix theme tok in
           if style <> "" then ignore (class_for_style reg style)
         )
         line

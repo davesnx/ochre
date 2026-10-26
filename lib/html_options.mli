@@ -34,9 +34,12 @@ type default_color =
       (** Emit [color:] and [background-color:] inline for the primary theme.
           This is the default. *)
   | No_default_color
-      (** Suppress inline colors on the primary theme. All colors come from CSS
-          custom properties only. Useful when the consumer controls all theme
-          switching via CSS and wants to avoid [!important] overrides. *)
+      (** Suppress inline colors on the primary theme. Every theme, the primary
+          one included, is emitted as CSS custom properties ([--ochre-<label>],
+          [--ochre-<label>-bg], ...); the page supplies [color:] and
+          [background-color:] from them. Font styles of the primary theme are
+          kept. Useful when the consumer controls all theme switching via CSS
+          and wants to avoid [!important] overrides. *)
 
 type t = {
   style_mode : style_mode;
@@ -60,6 +63,9 @@ type t = {
       replaces each byte outside [A-Za-z0-9_-] by ['_'], because the prefix is
       part of CSS property names.
     - [scopes_as_data_attrs]: emit [data-scope="..."] on token [<span>]s. *)
+
+val normalize_css_variable_prefix : string -> string
+(** Appends a ['-'] when the prefix does not end with one. *)
 
 val default : t
 (** Default options. Produces output identical to the legacy renderer: inline

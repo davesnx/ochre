@@ -4,7 +4,7 @@ independent of the terminal environment.
 Bundled grammar with zero flags
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord
-  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#81A1C1)">let</span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)"> </span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#88C0D0)">x</span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)"> </span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#81A1C1)">=</span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)"> </span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#B48EAD)">1</span><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)">
+  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#81A1C1)">let</span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)"> </span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#88C0D0)">x</span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)"> </span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#81A1C1)">=</span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)"> </span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#B48EAD)">1</span><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)">
   </span></span></code></pre>
 
 File input instead of stdin
@@ -27,7 +27,7 @@ Plaintext works without any grammar
   line 1:
     "no grammar here\n"  
   $ printf 'hello\n' | ochre text --theme nord
-  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span style="background-color:var(--ochre-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)">hello
+  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span style="background-color:var(--ochre-token-bg,#2e3440ff);color:var(--ochre,#d8dee9ff)">hello
   </span></span></code></pre>
 
 ANSI output
@@ -51,27 +51,27 @@ SVG output (header only)
 
 Dual-theme HTML emits dark CSS custom properties with light as default
 
-  $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord | grep -o -- '--ochre-dark-bg:[^;"]*' | sort -u
+  $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord | grep -o -- '--ochre-dark-[a-z-]*bg:[^;"]*' | sort -u
   --ochre-dark-bg:#2e3440
-  --ochre-dark-bg:#2e3440ff
+  --ochre-dark-token-bg:#2e3440ff
   $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord | grep -o 'background-color:var(--ochre-bg,#[0-9A-Fa-f]*)' | sort -u
   background-color:var(--ochre-bg,#FFFFFF)
 
 Custom CSS variable prefix
 
-  $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord --css-var-prefix=--hl- | grep -o -- '--hl-dark-bg:[^;"]*' | sort -u
+  $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord --css-var-prefix=--hl- | grep -o -- '--hl-dark-[a-z-]*bg:[^;"]*' | sort -u
   --hl-dark-bg:#2e3440
-  --hl-dark-bg:#2e3440ff
+  --hl-dark-token-bg:#2e3440ff
 
-No default color suppresses inline colors
+No default color suppresses inline colors and emits every theme as variables
 
   $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord --no-default-color | head -1
-  <pre class="ochre ochre-themes light nord" style="--ochre-dark-bg:#2e3440;--ochre-dark:#d8dee9" tabindex="0"><code><span class="line"><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#81A1C1">let</span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#88C0D0">x</span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#81A1C1">=</span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#B48EAD">1</span><span style="--ochre-dark-bg:#2e3440ff;--ochre-dark:#d8dee9ff">
+  <pre class="ochre ochre-themes light nord" style="--ochre-light-bg:#FFFFFF;--ochre-light:#000000;--ochre-dark-bg:#2e3440;--ochre-dark:#d8dee9" tabindex="0"><code><span class="line"><span style="--ochre-light-token-bg:transparent;--ochre-light:#0000ff;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#81A1C1">let</span><span style="--ochre-light-token-bg:transparent;--ochre-light:#000000;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-light-token-bg:transparent;--ochre-light:#795E26;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#88C0D0">x</span><span style="--ochre-light-token-bg:transparent;--ochre-light:#000000;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-light-token-bg:transparent;--ochre-light:#000000;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#81A1C1">=</span><span style="--ochre-light-token-bg:transparent;--ochre-light:#000000;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#d8dee9ff"> </span><span style="--ochre-light-token-bg:transparent;--ochre-light:#098658;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#B48EAD">1</span><span style="--ochre-light-token-bg:transparent;--ochre-light:#000000;--ochre-dark-token-bg:#2e3440ff;--ochre-dark:#d8dee9ff">
 
 CSS classes mode
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord --html-css-classes
-  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span class="ochre-e235a20ca1cb1117">let</span><span class="ochre-9a91402e327de2c5"> </span><span class="ochre-1e8b07019ea8aab0">x</span><span class="ochre-9a91402e327de2c5"> </span><span class="ochre-e235a20ca1cb1117">=</span><span class="ochre-9a91402e327de2c5"> </span><span class="ochre-a6b89ebf05d16eb9">1</span><span class="ochre-9a91402e327de2c5">
+  <pre class="ochre" style="background-color:var(--ochre-bg,#2e3440);color:var(--ochre,#d8dee9)" tabindex="0"><code><span class="line"><span class="ochre-dc0973e3ff43905f">let</span><span class="ochre-fe1225fb9540083e"> </span><span class="ochre-e8da3adeb7e6385a">x</span><span class="ochre-fe1225fb9540083e"> </span><span class="ochre-dc0973e3ff43905f">=</span><span class="ochre-fe1225fb9540083e"> </span><span class="ochre-712566744e866431">1</span><span class="ochre-fe1225fb9540083e">
   </span></span></code></pre>
 
 Line numbers
@@ -205,3 +205,31 @@ A missing LANG is a user/input error (not a parse-time value error)
   exit: 1
   $ head -2 missing-lang.log | tail -1
   ochre: required argument LANG is missing
+
+No default color on one theme emits that theme as variables
+
+  $ printf 'let x = 1\n' | ochre ocaml --theme nord --no-default-color | grep -o -- '--ochre-[a-z-]*:#[0-9A-Fa-f]*' | sort -u
+  --ochre-nord-bg:#2e3440
+  --ochre-nord-token-bg:#2e3440ff
+  --ochre-nord:#81A1C1
+  --ochre-nord:#88C0D0
+  --ochre-nord:#B48EAD
+  --ochre-nord:#d8dee9
+  --ochre-nord:#d8dee9ff
+
+No default color on two themes emits the light theme as variables too
+
+  $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord --no-default-color | grep -o -- '--ochre-[a-z-]*:[#0-9A-Za-z]*' | sort -u
+  --ochre-dark-bg:#2e3440
+  --ochre-dark-token-bg:#2e3440ff
+  --ochre-dark:#81A1C1
+  --ochre-dark:#88C0D0
+  --ochre-dark:#B48EAD
+  --ochre-dark:#d8dee9
+  --ochre-dark:#d8dee9ff
+  --ochre-light-bg:#FFFFFF
+  --ochre-light-token-bg:transparent
+  --ochre-light:#000000
+  --ochre-light:#0000ff
+  --ochre-light:#098658
+  --ochre-light:#795E26
