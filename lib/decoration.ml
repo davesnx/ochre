@@ -160,7 +160,7 @@ let apply_to_line ~line_idx ~source_lines ~boundaries_of decorations tokens =
                 let line_boundaries = boundaries_of line_idx in
                 line_boundaries.(Array.length line_boundaries - 1) + 1
               else
-                1000000
+                max_int
             else
               resolve_character boundaries_of d.end_
           in

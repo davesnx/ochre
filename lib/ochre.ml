@@ -33,6 +33,8 @@ let output_formats =
     (fun f -> (string_of_output_format f, f))
     [ Html; Ansi; Latex; Svg; Tokens ]
 
+(* Oniguruma defaults are 10_000_000 retries and an unlimited match stack. Both
+   limits are process-wide, so they are set once for every Ochre instance. *)
 let oniguruma_limits =
   lazy
     ( Oniguruma.set_retry_limit_in_match 1_000_000;
@@ -161,14 +163,14 @@ let apply_theme theme tokens_per_line =
     )
     tokens_per_line
 
-let plaintext_langs = [ "plaintext"; "text"; "txt" ]
+let is_plaintext_lang lang = List.mem lang [ "plaintext"; "text"; "txt" ]
 
 let raw_tokenize t ~lang source =
   match Grammar_loader.find_grammar t.grammar_loader lang with
   | Some grammar ->
       let tm_collection = Grammar_loader.tm_collection t.grammar_loader in
       tokenize_with_grammar tm_collection grammar source
-  | None when List.mem lang plaintext_langs ->
+  | None when is_plaintext_lang lang ->
       List.map (fun line -> [ (line, []) ]) (split_lines source)
   | None ->
       failwith (Printf.sprintf "Grammar not found for language: %s" lang)

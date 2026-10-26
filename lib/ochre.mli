@@ -25,6 +25,10 @@ type t
 
 (** {2 load} *)
 
+val is_plaintext_lang : string -> bool
+(** [is_plaintext_lang lang] is true for ["plaintext"], ["text"] and ["txt"],
+    which need no grammar. *)
+
 val load : (string * string) list -> (t, string) result
 (** Load a highlighter from grammar JSON strings.
 
@@ -808,7 +812,7 @@ module Transform_builtin : sig
   (** Highlights the given line indices (0-based) by setting every token's
       background color.
 
-      Default background: ["#ffffff22"].
+      Default background: ["#8888883a"].
 
       {@ocaml[
       Ochre.to_html hl
@@ -869,7 +873,7 @@ module Transform_builtin : sig
       its line, the line is removed and the marker applies to the lines below
       it.
 
-      Default background: ["#ffffff22"].
+      Default background: ["#8888883a"].
 
       {@ocaml[
       let code = "let x = 42 // [!code highlight]\nlet y = 10" in

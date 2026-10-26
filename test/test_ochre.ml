@@ -322,10 +322,21 @@ let test_transform_line_highlight () =
   match result with
   | [ [ tok0 ]; [ tok1 ] ] ->
       Alcotest.(check (option string))
-        "line 0 highlighted" (Some "#ffffff22") tok0.background;
+        "line 0 highlighted" (Some "#8888883a") tok0.background;
       Alcotest.(check (option string)) "line 1 unchanged" None tok1.background
   | _ ->
       Alcotest.fail "expected 2 lines with 1 token each"
+
+let test_default_highlight_shows_on_light_and_dark () =
+  let highlighter = highlight () in
+  let transforms = [ Ochre.Transform_builtin.line_highlight [ 0 ] ] in
+  List.iter
+    (fun (name, theme) ->
+      let plain = Ochre.to_ansi highlighter ~theme ~lang:"test" "x" in
+      let lit = Ochre.to_ansi highlighter ~transforms ~theme ~lang:"test" "x" in
+      Alcotest.(check bool) (name ^ ": highlight is visible") true (plain <> lit)
+    )
+    [ ("dark", Ochre.Theme.dark); ("light", Ochre.Theme.light) ]
 
 let test_transform_before_render_then_line () =
   let doc : Ochre.Token.highlighted_code =
@@ -1348,7 +1359,7 @@ let test_notation_highlight_basic () =
           if String.trim tok.text <> "" && tok.text <> "\n" then
             Alcotest.(check (option string))
               (Printf.sprintf "line0 token %S highlighted" tok.text)
-              (Some "#ffffff22") tok.background
+              (Some "#8888883a") tok.background
         )
         line0;
       (* Verify the comment token is removed *)
@@ -1538,7 +1549,7 @@ let test_notation_highlight_with_highlighter () =
         (fun (tok : Ochre.Token.styled_token) ->
           Alcotest.(check (option string))
             (Printf.sprintf "%S bg" tok.text)
-            (Some "#ffffff22") tok.background
+            (Some "#8888883a") tok.background
         )
         visible0;
       (* Verify no comment token in output *)
@@ -1859,6 +1870,8 @@ let () =
           test_case "Transform determinism" `Quick test_transform_determinism;
           test_case "Line highlight builtin" `Quick
             test_transform_line_highlight;
+          test_case "Default highlight shows on light and dark" `Quick
+            test_default_highlight_shows_on_light_and_dark;
           test_case "Hook execution order" `Quick
             test_transform_before_render_then_line;
         ]

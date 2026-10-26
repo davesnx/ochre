@@ -27,6 +27,11 @@ Highlighter instance. Holds loaded grammars and tokenization state.
 ### load
 
 ```ocaml
+val is_plaintext_lang : string -> bool
+```
+`is_plaintext_lang lang` is true for `"plaintext"`, `"text"` and `"txt"`, which need no grammar.
+
+```ocaml
 val load : (string * string) list -> (t, string) Stdlib.result
 ```
 Load a highlighter from grammar JSON strings.

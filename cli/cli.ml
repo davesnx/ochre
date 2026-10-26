@@ -59,6 +59,8 @@ let detect_theme_mode () =
         theme_mode_of_string (String.lowercase_ascii (String.trim value))
     )
   in
+  (* rxvt sets COLORFGBG to "fg;bg" with ANSI colour numbers. Vim reads
+     background 0-6 and 8 as dark, 7 and 9-15 as light. *)
   let from_colorfgbg () =
     let parse_bg value =
       let parts = String.split_on_char ';' value in
@@ -69,14 +71,14 @@ let detect_theme_mode () =
           None
     in
     Option.bind (getenv_opt "COLORFGBG") (fun value ->
-        Option.map
-          (fun bg ->
-            if bg = 7 || bg = 15 || bg >= 250 then
-              Light
+        Option.bind (parse_bg value) (fun bg ->
+            if bg = 7 || (bg >= 9 && bg <= 15) then
+              Some Light
+            else if (bg >= 0 && bg <= 6) || bg = 8 then
+              Some Dark
             else
-              Dark
-          )
-          (parse_bg value)
+              None
+        )
     )
   in
   match from_env "OCHRE_THEME_MODE" with
@@ -280,7 +282,7 @@ let highlight lang theme_path theme_dark theme_light grammars includes format
                 let lang_is_covered =
                   List.exists (fun (id, _) -> id = lang) file_grammars
                   || List.exists (fun (id, _) -> id = lang) include_grammars
-                  || List.mem lang [ "plaintext"; "text"; "txt" ]
+                  || Ochre.is_plaintext_lang lang
                 in
                 if not lang_is_covered then
                   Error
@@ -297,7 +299,7 @@ let highlight lang theme_path theme_dark theme_light grammars includes format
                 match Tm_grammars.find lang with
                 | Some json ->
                     Ochre.load ([ (lang, json) ] @ include_grammars)
-                | None when List.mem lang [ "plaintext"; "text"; "txt" ] ->
+                | None when Ochre.is_plaintext_lang lang ->
                     Ochre.load include_grammars
                 | None ->
                     Error

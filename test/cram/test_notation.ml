@@ -21,6 +21,8 @@ let highlighter =
         "css";
         "html";
         "markdown";
+        "xml";
+        "latex";
       ]
   in
   Ochre.load_exn grammars
@@ -31,7 +33,7 @@ let mark (line : Ochre.Token.styled_token list) =
       "."
   | first :: _ -> (
       match first.background with
-      | Some "#ffffff22" ->
+      | Some "#8888883a" ->
           "hl"
       | Some "#22883322" ->
           "++"
@@ -102,6 +104,17 @@ let line_comment_cases =
     ("html", "<p>x</p> <!-- [!code highlight] -->\n<p>y</p>\n");
     ("markdown", "foo # [!code highlight]\nbar\n");
     ("plaintext", "foo // [!code highlight]\nbar\n");
+    ("plaintext", "foo ;; [!code highlight]\nbar\n");
+    ("plaintext", "foo %% [!code highlight]\nbar\n");
+    ("plaintext", "foo \" [!code highlight]\nbar\n");
+    ("plaintext", "foo ' [!code highlight]\nbar\n");
+    ("plaintext", "foo * [!code highlight]\nbar\n");
+    ("plaintext", "say \"hi\" [!code highlight]\nbar\n");
+    ("html", "foo # [!code highlight]\nbar\n");
+    ("xml", "foo # [!code highlight]\nbar\n");
+    ("xml", "foo ;; [!code highlight]\nbar\n");
+    ("latex", "foo % [!code highlight]\nbar\n");
+    ("latex", "foo %% [!code highlight]\nbar\n");
   ]
 
 let non_comment_text line =
@@ -180,7 +193,6 @@ let property () =
       "java";
       "ocaml";
       "css";
-      "html";
     ]
   in
   let transforms =
