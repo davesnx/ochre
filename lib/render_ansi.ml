@@ -21,7 +21,7 @@ let font_style_to_ansi v =
 
 let replacement = "\xEF\xBF\xBD"
 
-let neutralise text =
+let neutralise ?(cr_before_lf = false) text =
   let length = String.length text in
   let buf = Buffer.create length in
   let rec loop i =
@@ -31,7 +31,9 @@ let neutralise text =
       | '\t' | '\n' ->
           Buffer.add_char buf c;
           loop (i + 1)
-      | '\r' when i + 1 < length && text.[i + 1] = '\n' ->
+      | '\r'
+        when (i + 1 < length && text.[i + 1] = '\n')
+             || (i + 1 = length && cr_before_lf) ->
           Buffer.add_char buf c;
           loop (i + 1)
       | '\000' .. '\031' | '\127' ->
@@ -55,42 +57,65 @@ let neutralise text =
   loop 0;
   Buffer.contents buf
 
-let render_token ~theme_bg (token : Token.styled_token) =
+let render_token ?cr_before_lf ~theme_bg (token : Token.styled_token) =
+  let page = Color.page_background theme_bg in
+  let background =
+    Option.bind token.background (fun color ->
+        match Color.parse_rgba color with
+        | Some (_, alpha) when alpha = 0. ->
+            None
+        | Some (rgb, alpha) ->
+            Some (Color.blend ~over:page rgb alpha)
+        | None ->
+            None
+    )
+  in
+  let behind = Option.value background ~default:page in
   let codes = [] in
-  let bg_rgb = Color.effective_background_rgb theme_bg token in
   let codes =
     match token.foreground with
     | Some color -> (
-        match Color.parse_hex_color color with
+        match Color.resolve ~over:behind color with
         | Some rgb ->
             foreground_color_ansi rgb :: codes
         | None ->
-            foreground_color_ansi (Color.contrast_fallback_fg bg_rgb) :: codes
+            foreground_color_ansi (Color.contrast_fallback_fg behind) :: codes
       )
     | None ->
         codes
   in
   let codes =
-    match token.background with
-    | Some color -> (
-        match Color.parse_hex_color color with
-        | Some rgb ->
-            background_color_ansi rgb :: codes
-        | None ->
-            codes
-      )
+    match background with
+    | Some rgb ->
+        background_color_ansi rgb :: codes
     | None ->
         codes
   in
   let codes = List.map font_style_to_ansi token.font_style @ codes in
-  let text = neutralise token.text in
+  let text = neutralise ?cr_before_lf token.text in
   if codes = [] then
     text
   else
     String.concat "" codes ^ text ^ reset
 
 let render_line ~theme_bg (line : Token.line) =
-  String.concat "" (List.map (render_token ~theme_bg) line)
+  let rec next_starts_with_lf = function
+    | [] ->
+        false
+    | (token : Token.styled_token) :: rest ->
+        if token.text = "" then
+          next_starts_with_lf rest
+        else
+          token.text.[0] = '\n'
+  in
+  let rec render = function
+    | [] ->
+        []
+    | token :: rest ->
+        let cr_before_lf = next_starts_with_lf rest in
+        render_token ~cr_before_lf ~theme_bg token :: render rest
+  in
+  String.concat "" (render line)
 
 let render (theme : Theme.theme) (code : Token.highlighted_code) =
   let lines = List.map (render_line ~theme_bg:theme.bg) code in

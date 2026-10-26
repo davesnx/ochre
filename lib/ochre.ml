@@ -148,13 +148,22 @@ let apply_theme theme tokens_per_line =
           let settings = Scope.resolve resolver scopes in
           let foreground =
             match settings with
-            | Some s ->
-                s.Theme.foreground
-            | None ->
+            | Some { Theme.foreground = Some color; _ } ->
+                Some color
+            | _ ->
                 Some theme.fg
           in
           let background =
-            match settings with Some s -> s.Theme.background | None -> None
+            match settings with
+            | Some { Theme.background = Some color; _ }
+              when not
+                     (String.equal
+                        (String.lowercase_ascii color)
+                        (String.lowercase_ascii theme.bg)
+                     ) ->
+                Some color
+            | _ ->
+                None
           in
           let font_style =
             match settings with
@@ -196,24 +205,26 @@ let to_tokens t ?(decorations = []) ?(transforms = []) ~theme ~lang source =
   let tokens = Decoration.apply ~source decorations tokens in
   Transform.run transforms tokens
 
-let resolve_themes ?theme ?(extra_themes = []) () =
+let resolve_themes ?theme ?label ?(extra_themes = []) () =
   match (theme, extra_themes) with
   | Some t, _ ->
-      (t, extra_themes)
-  | None, (_, first_theme) :: rest ->
-      (first_theme, rest)
+      (label, t, extra_themes)
+  | None, (first_label, first_theme) :: rest ->
+      (Some (Option.value label ~default:first_label), first_theme, rest)
   | None, [] ->
-      (Theme.dark, [])
+      (label, Theme.dark, [])
 
-let to_html t ?(decorations = []) ?(transforms = []) ?options ?theme
+let to_html t ?(decorations = []) ?(transforms = []) ?options ?theme ?label
     ?extra_themes ~lang source =
-  let default_theme, extras = resolve_themes ?theme ?extra_themes () in
+  let label, default_theme, extras =
+    resolve_themes ?theme ?label ?extra_themes ()
+  in
   match extras with
   | [] ->
       let tokens =
         to_tokens t ~decorations ~transforms ~theme:default_theme ~lang source
       in
-      Render_html.render ?options default_theme tokens
+      Render_html.render ?options ?label default_theme tokens
   | _ ->
       let raw_tokens = raw_tokenize t ~lang source in
       let apply_pipeline theme_val =
@@ -244,8 +255,8 @@ let to_html t ?(decorations = []) ?(transforms = []) ?options ?theme
       then
         invalid_arg
           "Ochre.to_html: multi-theme transforms must preserve token structure";
-      Render_html.render ?options default_theme ~extra_themes:themed_extras
-        default_code
+      Render_html.render ?options ?label default_theme
+        ~extra_themes:themed_extras default_code
 
 let html_theme_css = Render_html.theme_css
 let html_render_theme_css = Render_html.render_theme_css

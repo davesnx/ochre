@@ -41,10 +41,12 @@ let run transforms doc =
   let doc = apply_before_render transforms doc in
   let doc =
     List.mapi
-      (fun line_index line ->
-        let line = apply_before_line transforms ~line_index line in
-        apply_after_line transforms ~line_index line
-      )
+      (fun line_index line -> apply_before_line transforms ~line_index line)
+      doc
+  in
+  let doc =
+    List.mapi
+      (fun line_index line -> apply_after_line transforms ~line_index line)
       doc
   in
   apply_after_render transforms doc

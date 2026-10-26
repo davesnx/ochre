@@ -9,11 +9,6 @@ let font_family =
   "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, \
    Courier New, monospace"
 
-let line_char_count line =
-  List.fold_left
-    (fun acc (tok : styled_token) -> acc + String.length tok.text)
-    0 line
-
 let font_style_attrs styles =
   let attrs = [] in
   let attrs =
@@ -99,33 +94,102 @@ let strip_trailing_newline line =
       else
         line
 
-let render_line ~y line =
-  let tokens = String.concat "" (List.map render_token line) in
+type placed = { token : styled_token; column : int; cells : int }
+
+let place_line line =
+  let rec go column = function
+    | [] ->
+        ([], column)
+    | (token : styled_token) :: rest ->
+        let text, next = Render_cells.expand_tabs ~column token.text in
+        let placed =
+          { token = { token with text }; column; cells = next - column }
+        in
+        let others, last = go next rest in
+        (placed :: others, last)
+  in
+  go 0 line
+
+let cell_width = font_size *. char_width
+
+let render_background ~page ~row_top { token; column; cells } =
+  match token.background with
+  | None ->
+      None
+  | Some color -> (
+      let fill =
+        match Color.parse_rgba color with
+        | Some (rgb, alpha) when alpha = 0. || rgb = page ->
+            None
+        | Some ((r, g, b), alpha) ->
+            let opacity =
+              if alpha >= 1. then
+                ""
+              else
+                Printf.sprintf " fill-opacity=\"%.3g\"" alpha
+            in
+            Some (Printf.sprintf "fill=\"#%02X%02X%02X\"%s" r g b opacity)
+        | None ->
+            Option.map (Printf.sprintf "fill=\"%s\"") (Escape.css_color color)
+      in
+      match fill with
+      | Some fill when cells > 0 ->
+          Some
+            (Printf.sprintf
+               "  <rect x=\"%.1f\" y=\"%.1f\" width=\"%.1f\" height=\"%.1f\" \
+                %s/>"
+               (padding +. (float_of_int column *. cell_width))
+               row_top
+               (float_of_int cells *. cell_width)
+               (font_size *. line_height) fill
+            )
+      | _ ->
+          None
+    )
+
+let render_text ~y ~fill placed =
+  let tokens =
+    String.concat "" (List.map (fun p -> render_token p.token) placed)
+  in
   Printf.sprintf
-    "  <text x=\"%.0f\" y=\"%.1f\" font-family=\"%s\" font-size=\"%.0fpx\" \
+    "  <text x=\"%.0f\" y=\"%.1f\" font-family=\"%s\" font-size=\"%.0fpx\"%s \
      xml:space=\"preserve\">%s</text>"
-    padding y font_family font_size tokens
+    padding y font_family font_size fill tokens
 
 let render theme (code : highlighted_code) =
   let code = List.map strip_trailing_newline code in
   let row_height = font_size *. line_height in
   let num_lines = List.length code in
-  let max_chars =
-    List.fold_left (fun acc line -> max acc (line_char_count line)) 0 code
+  let placed = List.map place_line code in
+  let max_cells =
+    List.fold_left (fun acc (_, cells) -> max acc cells) 0 placed
   in
-  let width =
-    (float_of_int max_chars *. font_size *. char_width) +. (padding *. 2.0)
-  in
+  let width = (float_of_int max_cells *. cell_width) +. (padding *. 2.0) in
   let height = (float_of_int num_lines *. row_height) +. (padding *. 2.0) in
-  let lines =
-    List.mapi
-      (fun i line ->
-        let y = padding +. (float_of_int i *. row_height) +. font_size in
-        render_line ~y line
+  let row_top i = padding +. (float_of_int i *. row_height) in
+  let page = Color.page_background theme.Theme.bg in
+  let backgrounds =
+    List.concat
+      (List.mapi
+         (fun i (line, _) ->
+           List.filter_map (render_background ~page ~row_top:(row_top i)) line
+         )
+         placed
       )
-      code
   in
-  let body = String.concat "\n" lines in
+  let fill =
+    match Escape.css_color theme.Theme.fg with
+    | Some color ->
+        Printf.sprintf " fill=\"%s\"" color
+    | None ->
+        ""
+  in
+  let texts =
+    List.mapi
+      (fun i (line, _) -> render_text ~y:(row_top i +. font_size) ~fill line)
+      placed
+  in
+  let body = String.concat "\n" (backgrounds @ texts) in
   let background =
     Option.value (Escape.css_color theme.Theme.bg) ~default:"none"
   in

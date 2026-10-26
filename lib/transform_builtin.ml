@@ -23,35 +23,31 @@ let word_highlight ?(foreground = "#ffff00") ?(font_style = [ Token.Bold ])
         line
   )
 
+let strip_marker (first : Token.styled_token) rest =
+  let text = String.sub first.text 1 (String.length first.text - 1) in
+  if text = "" then
+    rest
+  else
+    { first with text } :: rest
+
 let diff_markers =
   Transform.make "diff-markers" ~before_render:(fun doc ->
       List.map
         (fun line ->
+          let with_background background line =
+            List.map
+              (fun (tok : Token.styled_token) ->
+                { tok with background = Some background }
+              )
+              line
+          in
           match line with
           | ({ Token.text; _ } as first) :: rest
             when String.length text > 0 && text.[0] = '+' ->
-              List.map
-                (fun (tok : Token.styled_token) ->
-                  { tok with background = Some "#22883322" }
-                )
-                ({
-                   first with
-                   text = String.sub text 1 (String.length text - 1);
-                 }
-                :: rest
-                )
+              with_background "#22883322" (strip_marker first rest)
           | ({ Token.text; _ } as first) :: rest
             when String.length text > 0 && text.[0] = '-' ->
-              List.map
-                (fun (tok : Token.styled_token) ->
-                  { tok with background = Some "#88222222" }
-                )
-                ({
-                   first with
-                   text = String.sub text 1 (String.length text - 1);
-                 }
-                :: rest
-                )
+              with_background "#88222222" (strip_marker first rest)
           | line ->
               line
         )
@@ -77,310 +73,555 @@ let scope_marker ?(background = "#ffff0033") scope_prefix =
         line
   )
 
-(* Notation-based transforms scan token text for magic comment patterns like
-   [// [!code highlight]], remove the comment, and apply styling to the line.
-   They mirror Shiki's transformerNotationHighlight, transformerNotationDiff,
-   and transformerNotationWordHighlight. *)
+(* Notation transforms mirror Shiki's [createCommentNotationTransformer]: a
+   marker such as [[!code highlight]] must sit inside the last comment of a
+   line, and the comment goes away when nothing else is left in it. *)
 
-(** Check if a string contains a substring, returning the index. *)
-let string_find_opt ~pattern s =
-  let plen = String.length pattern in
-  let slen = String.length s in
-  if plen > slen then
-    None
-  else
-    let found = ref None in
-    let i = ref 0 in
-    while !found = None && !i <= slen - plen do
-      if String.sub s !i plen = pattern then found := Some !i;
-      incr i
-    done;
-    !found
+let block_comments =
+  [ ("--[[", "]]"); ("<!--", "-->"); ("/*", "*/"); ("(*", "*)"); ("{-", "-}") ]
 
-(** Trim trailing whitespace from a string. *)
-let rtrim s =
-  let len = String.length s in
-  let i = ref (len - 1) in
-  while !i >= 0 && (s.[!i] = ' ' || s.[!i] = '\t') do
-    decr i
-  done;
-  if !i < len - 1 then
-    String.sub s 0 (!i + 1)
-  else
-    s
+let line_comments = [ "//"; ";;"; "%%"; "--"; ";"; "%"; "#"; "\""; "'"; "*" ]
+let search_openers = [ "//"; "#"; ";"; "%"; "--" ]
+let is_blank = function ' ' | '\t' -> true | _ -> false
 
-(** Check if a string consists only of whitespace. *)
-let is_whitespace_only s =
-  let len = String.length s in
-  let rec check i =
-    if i >= len then
-      true
+let starts_at text i prefix =
+  let n = String.length prefix in
+  let rec same k = k >= n || (text.[i + k] = prefix.[k] && same (k + 1)) in
+  i >= 0 && i + n <= String.length text && same 0
+
+let find_from text i pattern =
+  let last = String.length text - String.length pattern in
+  let rec go i =
+    if i > last then
+      None
+    else if starts_at text i pattern then
+      Some i
     else
-      match s.[i] with ' ' | '\t' -> check (i + 1) | _ -> false
+      go (i + 1)
   in
-  check 0
+  go i
 
-(** Scan a line of tokens for a notation pattern. Returns [Some token_index] or
-    [None]. *)
-let find_notation_in_line ~pattern line =
-  let rec scan i = function
+let skip_blanks_back text i =
+  let rec go i =
+    if i > 0 && is_blank text.[i - 1] then
+      go (i - 1)
+    else
+      i
+  in
+  go i
+
+let skip_blanks text i =
+  let rec go i =
+    if i < String.length text && is_blank text.[i] then
+      go (i + 1)
+    else
+      i
+  in
+  go i
+
+let line_text line =
+  String.concat "" (List.map (fun (tok : Token.styled_token) -> tok.text) line)
+
+let body_length text =
+  let n = String.length text in
+  let n =
+    if n > 0 && text.[n - 1] = '\n' then
+      n - 1
+    else
+      n
+  in
+  if n > 0 && text.[n - 1] = '\r' then
+    n - 1
+  else
+    n
+
+(** Applies [f] to the pieces of tokens inside the sorted, disjoint [ranges]; a
+    [None] drops the piece. One pass over the line. *)
+let edit_ranges line ranges f =
+  let rec go offset ranges = function
     | [] ->
-        None
-    | (tok : Token.styled_token) :: rest -> (
-        match string_find_opt ~pattern tok.text with
-        | Some _ ->
-            Some i
-        | None ->
-            scan (i + 1) rest
-      )
+        []
+    | (tok : Token.styled_token) :: rest ->
+        let next = offset + String.length tok.text in
+        let rec drop = function
+          | (_, stop) :: more when stop <= offset ->
+              drop more
+          | ranges ->
+              ranges
+        in
+        let ranges = drop ranges in
+        if next = offset then
+          tok :: go next ranges rest
+        else
+          let piece a b inside =
+            if a >= b then
+              []
+            else
+              let tok =
+                { tok with text = String.sub tok.text (a - offset) (b - a) }
+              in
+              if inside then
+                Option.to_list (f tok)
+              else
+                [ tok ]
+          in
+          let rec split cursor ranges =
+            match ranges with
+            | (start, stop) :: more when start < next ->
+                let low = max start cursor and high = min stop next in
+                let before = piece cursor low false in
+                let inside = piece low high true in
+                if stop > next then
+                  (before @ inside, ranges)
+                else
+                  let pieces, remaining = split high more in
+                  (before @ inside @ pieces, remaining)
+            | _ ->
+                (piece cursor next false, ranges)
+          in
+          let pieces, ranges = split offset ranges in
+          pieces @ go next ranges rest
   in
-  scan 0 line
+  go 0 ranges line
 
-(** Remove the notation comment from a line of tokens.
+let edit_range line ~start ~stop f = edit_ranges line [ (start, stop) ] f
 
-    When a token contains the magic comment pattern (e.g.
-    [// [!code highlight]]), the entire token is removed (since it's typically a
-    comment token whose sole purpose is the notation). Any preceding
-    whitespace-only tokens are also removed, and trailing whitespace on the new
-    last visible token is trimmed. Trailing tokens that are pure whitespace or
-    newlines after the removed notation are preserved (newlines) or dropped
-    (spaces). *)
-let remove_notation ~pattern line =
-  match find_notation_in_line ~pattern line with
+let has_scope ~prefix (tok : Token.styled_token) =
+  List.exists
+    (fun scope ->
+      scope = prefix || String.starts_with ~prefix:(prefix ^ ".") scope
+    )
+    tok.scopes
+
+let is_comment tok = has_scope ~prefix:"comment" tok
+
+(** Plain text and Markdown give no comment scopes, so there a comment is found
+    from its opener. Every other grammar must mark its comments. *)
+let is_prose (tok : Token.styled_token) =
+  tok.scopes = []
+  || List.mem "text.html.markdown" tok.scopes
+     && not (has_scope ~prefix:"string" tok || is_comment tok)
+
+type context = {
+  text : string;
+  tokens : Token.styled_token array;
+  offsets : int array;
+  stop : int;
+  run_start : int array;
+  tail_is_comment : bool array;
+  mutable last_opener : int array option;
+  closers : (string, int * int option) Hashtbl.t;
+}
+(** What the notation scan needs to know about one line, built once, after a
+    marker was seen on it. *)
+
+let make_context line =
+  let tokens = Array.of_list line in
+  let count = Array.length tokens in
+  let offsets = Array.make count 0 in
+  let run_start = Array.make count 0 in
+  let offset = ref 0 in
+  Array.iteri
+    (fun k (tok : Token.styled_token) ->
+      offsets.(k) <- !offset;
+      run_start.(k) <-
+        ( if is_comment tok then
+            if k > 0 && is_comment tokens.(k - 1) then
+              run_start.(k - 1)
+            else
+              !offset
+          else
+            -1
+        );
+      offset := !offset + String.length tok.text
+    )
+    tokens;
+  let tail_is_comment = Array.make (count + 1) true in
+  for k = count - 1 downto 0 do
+    tail_is_comment.(k) <-
+      tail_is_comment.(k + 1)
+      && (is_comment tokens.(k) || String.trim tokens.(k).text = "")
+  done;
+  let text = line_text line in
+  let stop =
+    let rec back i =
+      if i > 0 && is_blank text.[i - 1] then
+        back (i - 1)
+      else
+        i
+    in
+    back (body_length text)
+  in
+  {
+    text;
+    tokens;
+    offsets;
+    stop;
+    run_start;
+    tail_is_comment;
+    last_opener = None;
+    closers = Hashtbl.create 5;
+  }
+
+let holder ctx position =
+  let low = ref 0 and high = ref (Array.length ctx.offsets - 1) in
+  if !high < 0 then
+    None
+  else (
+    while !low < !high do
+      let middle = (!low + !high + 1) / 2 in
+      if ctx.offsets.(middle) <= position then
+        low := middle
+      else
+        high := middle - 1
+    done;
+    Some !low
+  )
+
+(** For each offset, the start of the last line-comment opener before it. *)
+let last_opener ctx =
+  match ctx.last_opener with
+  | Some table ->
+      table
+  | None ->
+      let n = String.length ctx.text in
+      let table = Array.make (n + 1) (-1) in
+      for i = 1 to n do
+        table.(i) <-
+          ( if List.exists (starts_at ctx.text (i - 1)) search_openers then
+              i - 1
+            else
+              table.(i - 1)
+          )
+      done;
+      ctx.last_opener <- Some table;
+      table
+
+let closes_after ctx position closer =
+  let cached = Hashtbl.find_opt ctx.closers closer in
+  match cached with
+  | Some (from, found)
+    when from <= position
+         && match found with Some c -> c >= position | None -> true ->
+      found <> None
+  | _ ->
+      let found = find_from ctx.text position closer in
+      Hashtbl.replace ctx.closers closer (position, found);
+      found <> None
+
+let nearest_comment_start ctx position =
+  let text = ctx.text in
+  let block =
+    List.filter_map
+      (fun (opener, closer) ->
+        let rec back i =
+          if i < 0 then
+            None
+          else if starts_at text i opener then
+            Some i
+          else
+            back (i - 1)
+        in
+        match back (position - 1) with
+        | Some i when closes_after ctx position closer ->
+            Some i
+        | _ ->
+            None
+      )
+      block_comments
+  in
+  match List.sort (fun a b -> compare b a) block with
+  | start :: _ ->
+      Some start
+  | [] ->
+      let start = (last_opener ctx).(position) in
+      if start < 0 then
+        None
+      else
+        Some start
+
+type comment = {
+  start : int;
+  content_start : int;
+  content_stop : int;
+  stop : int;
+}
+
+(** The comment of the line that holds [position] and ends the line, as Shiki
+    sees it: a block comment must close at the end of the line, any other
+    comment runs to the end. Text that is not in a comment token is never part
+    of it, except in plain text and Markdown. *)
+let comment_around ctx position =
+  let text = ctx.text and stop = ctx.stop in
+  let start =
+    match holder ctx position with
+    | None ->
+        None
+    | Some k ->
+        let tok = ctx.tokens.(k) in
+        if is_comment tok then
+          if ctx.tail_is_comment.(k + 1) then
+            Some (skip_blanks text ctx.run_start.(k))
+          else
+            None
+        else if is_prose tok then
+          Option.map (skip_blanks text) (nearest_comment_start ctx position)
+        else
+          None
+  in
+  match start with
   | None ->
       None
-  | Some tok_idx ->
-      let tokens = Array.of_list line in
-      let len = Array.length tokens in
-      (* Collect tokens: skip the matched token and any preceding
-         whitespace-only tokens *)
-      let skip_before = ref tok_idx in
-      while
-        !skip_before > 0
-        && is_whitespace_only tokens.(!skip_before - 1).Token.text
-      do
-        decr skip_before
-      done;
-      let result = ref [] in
-      for i = 0 to len - 1 do
-        if i >= !skip_before && i <= tok_idx then
-          ()
-        (* skip the notation token and preceding whitespace *)
-        else
-          let tok = tokens.(i) in
-          (* Skip pure-whitespace tokens that immediately follow the removed
-             notation, but keep newlines *)
-          if
-            i = tok_idx + 1
-            && is_whitespace_only tok.Token.text
-            && String.length tok.text > 0
-          then
-            ()
-          else
-            result := tok :: !result
-      done;
-      let cleaned = List.rev !result in
-      (* Trim trailing whitespace from the last non-newline token *)
-      let rec trim_last = function
-        | [] ->
-            []
-        | [ tok ] ->
-            let t = rtrim tok.Token.text in
-            if String.length t > 0 then
-              [ { tok with Token.text = t } ]
-            else
-              []
-        | [ tok; nl ] when nl.Token.text = "\n" ->
-            let t = rtrim tok.Token.text in
-            if String.length t > 0 then
-              [ { tok with Token.text = t }; nl ]
-            else
-              [ nl ]
-        | tok :: rest ->
-            tok :: trim_last rest
+  | Some start when start >= position || start >= stop ->
+      None
+  | Some start -> (
+      let block =
+        List.find_opt
+          (fun (opener, _) -> starts_at text start opener)
+          block_comments
       in
-      Some (trim_last cleaned)
+      match block with
+      | Some (opener, closer) ->
+          let content_start = start + String.length opener in
+          let content_stop = stop - String.length closer in
+          if
+            content_stop > content_start
+            && starts_at text content_stop closer
+            && position >= content_start
+          then
+            Some { start; content_start; content_stop; stop }
+          else
+            None
+      | None -> (
+          match List.find_opt (starts_at text start) line_comments with
+          | Some opener when position >= start + String.length opener ->
+              Some
+                {
+                  start;
+                  content_start = start + String.length opener;
+                  content_stop = stop;
+                  stop;
+                }
+          | _ ->
+              None
+        )
+    )
+
+type 'a marker = {
+  payload : 'a;
+  range : int option;
+  comment_only : bool;
+  deletion : (int * int) option;
+}
+
+(** The marker that [parse] reads in the comment that ends [line].
+    [parse text i] reads a marker that starts at [i] and gives its end, a
+    payload and the optional number of lines. *)
+let find_marker ~parse line =
+  let text = line_text line in
+  match find_from text 0 "[!code " with
+  | None ->
+      None
+  | Some first_position ->
+      let ctx = make_context line in
+      let rec search from =
+        match find_from text from "[!code " with
+        | None ->
+            None
+        | Some position -> (
+            match parse text position with
+            | None ->
+                search (position + 1)
+            | Some (stop, payload, range) -> (
+                match comment_around ctx position with
+                | Some comment when stop <= comment.content_stop ->
+                    let first = skip_blanks_back text position in
+                    let first = max first comment.content_start in
+                    let rest =
+                      String.sub text comment.content_start
+                        (first - comment.content_start)
+                      ^ String.sub text stop (comment.content_stop - stop)
+                    in
+                    let comment_only =
+                      String.trim (String.sub text 0 comment.start) = ""
+                    in
+                    let deletion =
+                      if String.trim rest = "" then
+                        if comment_only then
+                          None
+                        else
+                          Some
+                            (skip_blanks_back text comment.start, comment.stop)
+                      else
+                        Some (first, stop)
+                    in
+                    Some { payload; range; comment_only; deletion }
+                | _ ->
+                    search (position + 1)
+              )
+          )
+      in
+      search first_position
+
+let run_notation ~parse ~default_count ~apply doc =
+  let lines = Array.of_list doc in
+  let count = Array.length lines in
+  let markers =
+    List.filter_map Fun.id
+      (List.mapi
+         (fun i line -> Option.map (fun m -> (i, m)) (find_marker ~parse line))
+         doc
+      )
+  in
+  let removed = Array.make count false in
+  List.iter
+    (fun (i, marker) ->
+      match marker.deletion with
+      | Some (start, stop) ->
+          lines.(i) <- edit_range lines.(i) ~start ~stop (fun _ -> None)
+      | None ->
+          removed.(i) <- true
+    )
+    markers;
+  List.iter
+    (fun (i, marker) ->
+      let first =
+        if marker.comment_only then
+          i + 1
+        else
+          i
+      in
+      let last =
+        min count
+          (first + Option.value marker.range ~default:(default_count count))
+      in
+      for j = first to last - 1 do
+        lines.(j) <- apply marker.payload lines.(j)
+      done
+    )
+    markers;
+  List.filteri (fun i _ -> not removed.(i)) (Array.to_list lines)
+
+let is_digit = function '0' .. '9' -> true | _ -> false
+
+let read_range text i =
+  if i < String.length text && text.[i] = ':' then
+    let rec digits j =
+      if j < String.length text && is_digit text.[j] then
+        digits (j + 1)
+      else
+        j
+    in
+    let stop = digits (i + 1) in
+    if stop > i + 1 then
+      Some (stop, int_of_string_opt (String.sub text (i + 1) (stop - i - 1)))
+    else
+      None
+  else
+    Some (i, None)
+
+let parse_keyword keywords text position =
+  let i = position + String.length "[!code " in
+  List.find_map
+    (fun keyword ->
+      if starts_at text i keyword then
+        match read_range text (i + String.length keyword) with
+        | Some (j, range) when j < String.length text && text.[j] = ']' ->
+            Some (j + 1, keyword, range)
+        | _ ->
+            None
+      else
+        None
+    )
+    keywords
+
+let set_background background line =
+  List.map
+    (fun (tok : Token.styled_token) -> { tok with background = Some background })
+    line
 
 let notation_highlight ?(background = "#ffffff22") () =
-  let pattern = "[!code highlight]" in
   Transform.make "notation-highlight" ~before_render:(fun doc ->
-      List.map
-        (fun line ->
-          match remove_notation ~pattern line with
-          | Some cleaned ->
-              List.map
-                (fun (tok : Token.styled_token) ->
-                  { tok with background = Some background }
-                )
-                cleaned
-          | None ->
-              line
-        )
+      run_notation
+        ~parse:(parse_keyword [ "highlight"; "hl" ])
+        ~default_count:(fun _ -> 1)
+        ~apply:(fun _ line -> set_background background line)
         doc
   )
 
 let notation_diff ?(add_background = "#22883322")
     ?(remove_background = "#88222222") () =
-  let add_pattern = "[!code ++]" in
-  let remove_pattern = "[!code --]" in
   Transform.make "notation-diff" ~before_render:(fun doc ->
-      List.map
-        (fun line ->
-          match remove_notation ~pattern:add_pattern line with
-          | Some cleaned ->
-              List.map
-                (fun (tok : Token.styled_token) ->
-                  { tok with background = Some add_background }
-                )
-                cleaned
-          | None -> (
-              match remove_notation ~pattern:remove_pattern line with
-              | Some cleaned ->
-                  List.map
-                    (fun (tok : Token.styled_token) ->
-                      { tok with background = Some remove_background }
-                    )
-                    cleaned
-              | None ->
-                  line
+      run_notation
+        ~parse:(parse_keyword [ "++"; "--" ])
+        ~default_count:(fun _ -> 1)
+        ~apply:(fun keyword line ->
+          set_background
+            ( if keyword = "++" then
+                add_background
+              else
+                remove_background
             )
+            line
         )
         doc
   )
 
-(** Extract the word from a [!code word:xxx] pattern in a token. Returns
-    [Some word] if found. *)
-let extract_word_from_token (tok : Token.styled_token) =
-  let pattern = "[!code word:" in
-  match string_find_opt ~pattern tok.text with
-  | None ->
-      None
-  | Some idx ->
-      let after_pattern = idx + String.length pattern in
-      let text = tok.text in
-      let len = String.length text in
-      (* Find the closing ] *)
-      let rec find_close i =
-        if i >= len then
-          None
-        else if text.[i] = ']' then
-          Some (String.sub text after_pattern (i - after_pattern))
-        else
-          find_close (i + 1)
-      in
-      find_close after_pattern
-
-(** Scan a line for [!code word:xxx] and extract the word. *)
-let find_word_notation line =
-  let rec scan = function
-    | [] ->
+let parse_word text position =
+  let start = position + String.length "[!code word:" in
+  if not (starts_at text position "[!code word:") then
+    None
+  else
+    let buf = Buffer.create 16 in
+    let rec word i =
+      if i >= String.length text then
         None
-    | tok :: rest -> (
-        match extract_word_from_token tok with
-        | Some word ->
-            Some word
-        | None ->
-            scan rest
+      else
+        match text.[i] with
+        | '\\' when i + 1 < String.length text ->
+            Buffer.add_char buf text.[i + 1];
+            word (i + 2)
+        | ':' | ']' ->
+            Some i
+        | c ->
+            Buffer.add_char buf c;
+            word (i + 1)
+    in
+    match word start with
+    | Some stop when stop > start -> (
+        match read_range text stop with
+        | Some (j, range) when j < String.length text && text.[j] = ']' ->
+            Some (j + 1, Buffer.contents buf, range)
+        | _ ->
+            None
       )
+    | _ ->
+        None
+
+let highlight_word ~foreground ~font_style word line =
+  let text = line_text line in
+  let length = String.length word in
+  let limit = body_length text in
+  let rec occurrences from =
+    match find_from text from word with
+    | Some i when i + length <= limit ->
+        (i, i + length) :: occurrences (i + length)
+    | _ ->
+        []
   in
-  scan line
+  if length = 0 then
+    line
+  else
+    edit_ranges line (occurrences 0) (fun tok ->
+        Some { tok with foreground = Some foreground; font_style }
+    )
 
 let notation_word_highlight ?(foreground = "#ffff00")
     ?(font_style = [ Token.Bold ]) () =
-  let base_pattern = "[!code word:" in
   Transform.make "notation-word-highlight" ~before_render:(fun doc ->
-      (* First pass: collect words from all lines, then process *)
-      List.map
-        (fun line ->
-          match find_word_notation line with
-          | Some word ->
-              (* Build the full pattern to remove: [!code word:xxx] *)
-              let full_pattern = base_pattern ^ word ^ "]" in
-              let cleaned =
-                match remove_notation ~pattern:full_pattern line with
-                | Some c ->
-                    c
-                | None ->
-                    line
-              in
-              (* Highlight all occurrences of the word in this line *)
-              List.concat_map
-                (fun (tok : Token.styled_token) ->
-                  (* Split token text on the word and highlight matches *)
-                  let word_len = String.length word in
-                  let text = tok.text in
-                  let text_len = String.length text in
-                  if word_len = 0 || text_len = 0 then
-                    [ tok ]
-                  else
-                    let parts = ref [] in
-                    let pos = ref 0 in
-                    while !pos <= text_len - word_len do
-                      if String.sub text !pos word_len = word then begin
-                        (* Emit any text before this match *)
-                          if
-                            !pos
-                            >
-                            match !parts with
-                            | [] ->
-                                0
-                            | _ ->
-                                let rec sum = function
-                                  | [] ->
-                                      0
-                                  | (t : Token.styled_token) :: rest ->
-                                      String.length t.text + sum rest
-                                in
-                                sum (List.rev !parts)
-                          then begin
-                            let start =
-                              let rec sum = function
-                                | [] ->
-                                    0
-                                | (t : Token.styled_token) :: rest ->
-                                    String.length t.text + sum rest
-                              in
-                              sum (List.rev !parts)
-                            in
-                            let before_text =
-                              String.sub text start (!pos - start)
-                            in
-                            parts := { tok with text = before_text } :: !parts
-                          end;
-                          parts :=
-                            {
-                              tok with
-                              text = word;
-                              foreground = Some foreground;
-                              font_style;
-                            }
-                            :: !parts;
-                          pos := !pos + word_len
-                      end else
-                        incr pos
-                    done;
-                    (* Emit remaining text *)
-                    let consumed =
-                      let rec sum = function
-                        | [] ->
-                            0
-                        | (t : Token.styled_token) :: rest ->
-                            String.length t.text + sum rest
-                      in
-                      sum !parts
-                    in
-                    if consumed < text_len then
-                      parts :=
-                        {
-                          tok with
-                          text = String.sub text consumed (text_len - consumed);
-                        }
-                        :: !parts;
-                    List.rev !parts
-                )
-                cleaned
-          | None ->
-              line
-        )
+      run_notation
+        ~parse:(fun text position -> parse_word text position)
+        ~default_count:Fun.id
+        ~apply:(highlight_word ~foreground ~font_style)
         doc
   )

@@ -19,7 +19,7 @@ How token colors are expressed in the output.
 ```ocaml
 type default_color = 
   | Default_color (* Emit inline color: and background-color:. Default. *)
-  | No_default_color (* Suppress inline colors. All colors from CSS custom properties. *)
+  | No_default_color (* Suppress inline colors. Every theme, the primary one included, is emitted as CSS custom properties, and the page supplies color: and background-color:. Font styles are still applied. *)
 ```
 Whether the primary theme's colors are emitted inline.
 
