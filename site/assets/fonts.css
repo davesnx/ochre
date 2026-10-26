@@ -1,0 +1,16 @@
+/* JetBrains Mono, SIL OFL 1.1, https://github.com/JetBrains/JetBrainsMono (latin subset via @fontsource/jetbrains-mono 5.3.0) */
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("jetbrains-mono-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("jetbrains-mono-600.woff2") format("woff2");
+}

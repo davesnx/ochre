@@ -22,6 +22,9 @@ depends: [
   "html_of_jsx" {>= "0.0.9" & with-test}
   "tiny_httpd" {with-test}
   "odoc" {>= "3.1.0" & with-doc}
+  "omd" {>= "2.0.0~alpha4" & with-dev-setup}
+  "yocaml" {>= "3.0.0" & with-dev-setup}
+  "yocaml_unix" {>= "3.0.0" & with-dev-setup}
   "tm-grammars" {>= "2.0.0" & with-test}
   "alcotest" {with-test}
   "mlx" {with-test}

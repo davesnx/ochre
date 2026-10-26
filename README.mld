@@ -36,6 +36,8 @@ let highlighter = Ochre.load_exn [ ("ocaml", Tm_grammars.ocaml) ] in
 let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" "let x = 42"
 ]}
 
+Try every built-in theme with several grammars in the {{:https://davesnx.github.io/ochre/playground.html} playground}.
+
 {1 Output formats}
 
 [ochre] can render highlighted code to several output formats (also called backends):

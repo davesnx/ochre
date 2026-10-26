@@ -1,0 +1,750 @@
+open Yocaml
+
+let languages =
+  [
+    ( "ocaml",
+      Tm_grammars.ocaml,
+      {|type shape = Circle of float | Rect of float * float
+
+(* Area of a shape *)
+let area = function
+  | Circle r -> Float.pi *. r *. r
+  | Rect (w, h) -> w *. h
+
+let () = Printf.printf "%.2f\n" (area (Circle 1.5))|}
+    );
+    ( "mlx",
+      Tm_grammars.mlx,
+      {|(* A greeting card component *)
+let card ~title ~children () =
+  <section class_="card">
+    <h2>(JSX.string title)</h2>
+    children
+  </section>
+
+let page ~name () =
+  <card title="Hello">
+    <p>(JSX.string ("Welcome, " ^ name))</p>
+    <button type_=`button disabled=false>(JSX.string "OK")</button>
+  </card>|}
+    );
+    ( "reason",
+      Tm_grammars.reason,
+      {|type shape = Circle(float) | Rect(float, float);
+
+/* Area of a shape */
+let area = fun
+  | Circle(r) => Float.pi *. r *. r
+  | Rect(w, h) => w *. h;
+
+Printf.printf("%.2f\n", area(Circle(1.5)));|}
+    );
+    ( "dune",
+      Tm_grammars.dune,
+      {|; Build the demo executable
+(executable
+ (name demo)
+ (libraries ochre tm-grammars)
+ (preprocess (pps ppx_deriving.show)))|}
+    );
+    ( "rust",
+      Tm_grammars.rust,
+      {|enum Shape { Circle(f64), Rect(f64, f64) }
+
+// Area of a shape
+fn area(s: &Shape) -> f64 {
+    match s {
+        Shape::Circle(r) => std::f64::consts::PI * r * r,
+        Shape::Rect(w, h) => w * h,
+    }
+}
+
+fn main() { println!("{:.2}", area(&Shape::Circle(1.5))); }|}
+    );
+    ( "typescript",
+      Tm_grammars.typescript,
+      {|type Shape = { kind: "circle"; r: number } | { kind: "rect"; w: number; h: number };
+
+// Area of a shape
+const area = (s: Shape): number =>
+  s.kind === "circle" ? Math.PI * s.r ** 2 : s.w * s.h;
+
+console.log(area({ kind: "circle", r: 1.5 }).toFixed(2));|}
+    );
+    ( "python",
+      Tm_grammars.python,
+      {|from dataclasses import dataclass
+import math
+
+@dataclass
+class Circle:
+    r: float
+
+    def area(self) -> float:
+        # Area of a circle
+        return math.pi * self.r ** 2
+
+print(f"{Circle(1.5).area():.2f}")|}
+    );
+    ( "json",
+      Tm_grammars.json,
+      {|{
+  "name": "ochre",
+  "version": "1.1.0",
+  "themes": ["nord", "gruvbox"],
+  "lineNumbers": true,
+  "tabSize": 2
+}|}
+    );
+    ( "shellscript",
+      Tm_grammars.shellscript,
+      {|#!/usr/bin/env bash
+set -euo pipefail
+
+# Highlight every OCaml file
+for f in src/*.ml; do
+  ochre --theme nord --lang ocaml "$f" > "${f%.ml}.html"
+done
+echo "done: $(ls src/*.html | wc -l) files"|}
+    );
+    ( "html",
+      Tm_grammars.html,
+      {|<!-- A greeting card -->
+<section class="card" id="greeting">
+  <h2>Hello</h2>
+  <p>Welcome, <em>friend</em>.</p>
+  <button type="button" disabled>OK</button>
+</section>
+
+<style>
+  section { padding: 1rem; color: #333; }
+</style>
+
+<script>
+  const card = document.getElementById("greeting");
+  card.addEventListener("click", () => console.log(42));
+</script>|}
+    );
+    ( "css",
+      Tm_grammars.css,
+      {|/* A greeting card */
+:root {
+  --accent: #c2410c;
+}
+
+.card {
+  padding: 1rem 2rem;
+  border: 1px solid var(--accent);
+  font-family: "Georgia", serif;
+}
+
+#greeting:hover > h2 {
+  color: rgb(0 0 0 / 80%);
+}
+
+@media (max-width: 600px) {
+  .card { padding: 0.5rem; }
+}|}
+    );
+    ( "javascript",
+      Tm_grammars.javascript,
+      {|// Area of a shape
+class Circle {
+  constructor(r) {
+    this.r = r;
+  }
+
+  get area() {
+    return Math.PI * this.r ** 2;
+  }
+}
+
+const shapes = [new Circle(1.5), new Circle(2)];
+for (const s of shapes) {
+  console.log(`area: ${s.area.toFixed(2)}`);
+}|}
+    );
+    ( "ruby",
+      Tm_grammars.ruby,
+      {|# Area of a shape
+class Circle
+  attr_reader :r
+
+  def initialize(r)
+    @r = r
+  end
+
+  def area
+    Math::PI * r**2
+  end
+end
+
+shapes = [Circle.new(1.5), Circle.new(2)]
+shapes.each { |s| puts "area: #{format('%.2f', s.area)}" }|}
+    );
+    ( "go",
+      Tm_grammars.go,
+      {|package main
+
+import (
+	"fmt"
+	"math"
+)
+
+// Area of a shape
+type Circle struct {
+	R float64
+}
+
+func (c Circle) Area() float64 {
+	return math.Pi * c.R * c.R
+}
+
+func main() {
+	shapes := []Circle{{R: 1.5}, {R: 2}}
+	for _, s := range shapes {
+		fmt.Printf("area: %.2f\n", s.Area())
+	}
+}|}
+    );
+  ]
+
+let markdown_root = Path.rel [ "_build"; "default"; "_doc"; "_markdown" ]
+let api_dir = Path.(markdown_root / "ochre")
+let readme_source = Path.(api_dir / "README.md")
+let cli_source = Path.(markdown_root / "ochre-cli" / "cli.md")
+let assets_dir = Path.rel [ "site"; "assets" ]
+let target_dir = Path.rel [ "docs"; "_site" ]
+let target_assets_dir = Path.(target_dir / "assets")
+let cache_file = Path.rel [ "docs"; "_cache" ]
+let pages_url = "https://davesnx.github.io/ochre/"
+let repo_url = "https://github.com/davesnx/ochre"
+
+type section = Guide | Api
+
+type page = {
+  source_name : string;
+  output_name : string;
+  label : string;
+  section : section;
+  content : [ `Markdown of string | `Html of string ];
+}
+
+let highlighter =
+  Ochre.load_exn (List.map (fun (lang, json, _) -> (lang, json)) languages)
+
+let themes =
+  List.filter_map
+    (fun name -> Option.map (fun t -> (name, t)) (Ochre.Theme.find name))
+    Ochre.Theme.available_names
+
+(* Theme and grammar names use '-'; the matching OCaml values use '_'. *)
+let ocaml_ident name = String.map (function '-' -> '_' | c -> c) name
+
+let basename_exn path =
+  match Path.basename path with
+  | Some name ->
+      name
+  | None ->
+      invalid_arg ("Expected a basename for path: " ^ Path.to_string path)
+
+(* Odoc also documents the vendored Oniguruma and TmLanguage libraries; only
+   the Ochre modules are public API. *)
+let is_api_source path =
+  let name = basename_exn path in
+  Path.has_extension "md" path && String.starts_with ~prefix:"Ochre" name
+
+(* "Ochre-Theme.md" -> "Ochre.Theme": keep the module path visible. *)
+let api_label source_name =
+  Filename.remove_extension source_name
+  |> String.map (function '-' -> '.' | c -> c)
+
+let api_page source_name markdown =
+  {
+    source_name;
+    output_name = Filename.remove_extension source_name ^ ".html";
+    label = api_label source_name;
+    section = Api;
+    content = `Markdown markdown;
+  }
+
+let trim_trailing_newlines text =
+  let rec last index =
+    if index >= 0 && (text.[index] = '\n' || text.[index] = '\r') then
+      last (index - 1)
+    else
+      index
+  in
+  String.sub text 0 (last (String.length text - 1) + 1)
+
+(* README code blocks follow the site light/dark toggle. *)
+let doc_light = Ochre.Theme.light
+let doc_dark = ("doc-dark", Ochre.Theme.gruvbox)
+
+let doc_theme_css =
+  Printf.sprintf ":root[data-doc-theme=\"dark\"] {\n%s\n}"
+    (Ochre.html_theme_css (fst doc_dark))
+
+let lang_of_label label =
+  match String.lowercase_ascii (String.trim label) with
+  | "bash" | "sh" | "shell" ->
+      Some "shellscript"
+  | "" ->
+      None
+  | label when List.exists (fun (lang, _, _) -> lang = label) languages ->
+      Some label
+  | _ ->
+      None
+
+let code_figure ~label ~code () =
+  let lang = lang_of_label label in
+  let options =
+    Ochre.Html_options.make ~pre_class:"doc-code__pre"
+      ~code_class:"doc-code__code" ()
+  in
+  let highlighted =
+    Ochre.to_html highlighter ~options ~theme:doc_light
+      ~extra_themes:[ doc_dark ]
+      ~lang:(Option.value lang ~default:"plaintext")
+      (trim_trailing_newlines code)
+  in
+  <figure class_="doc-code">(JSX.unsafe highlighted)</figure>
+
+(* Markdown links target GitHub paths (README.md, docs/*.md) or odoc pages
+   (./Ochre-Theme.md, ./#val-load). On the site they become site pages; other
+   repository paths go to GitHub. *)
+let resolve_url ~pages ~current ~attr url =
+  let has prefix = String.starts_with ~prefix url in
+  let drop prefix s =
+    if String.starts_with ~prefix s then
+      String.sub s (String.length prefix)
+        (String.length s - String.length prefix)
+    else
+      s
+  in
+  let file, fragment =
+    match String.index_opt url '#' with
+    | Some i ->
+        (String.sub url 0 i, String.sub url i (String.length url - i))
+    | None ->
+        (url, "")
+  in
+  (* Odoc markdown has no item anchors; "### load" headings get id="load". *)
+  let fragment =
+    Str.replace_first
+      (Str.regexp "^#\\(val\\|type\\|exception\\|module\\)-")
+      "#" fragment
+  in
+  let file =
+    match drop "./" file with
+    | "docs/README.md" ->
+        "Ochre.md"
+    | f ->
+        drop "docs/" f
+  in
+  if has pages_url then
+    match drop pages_url url with "" -> "index.html" | path -> path
+  else if has "http:" || has "https:" || has "mailto:" then
+    url
+  else if file = "" then
+    current.output_name ^ fragment
+  else
+    match List.find_opt (fun p -> p.source_name = file) pages with
+    | Some page ->
+        page.output_name ^ fragment
+    | None when attr = "src" ->
+        "https://raw.githubusercontent.com/davesnx/ochre/main/" ^ url
+    | None ->
+        repo_url ^ "/blob/main/" ^ url
+
+let rewrite_urls ~pages ~current html =
+  Str.global_substitute
+    (Str.regexp {|\(href\|src\)="\([^"]*\)"|})
+    (fun s ->
+      let attr = Str.matched_group 1 s in
+      Printf.sprintf "%s=\"%s\"" attr
+        (resolve_url ~pages ~current ~attr (Str.matched_group 2 s))
+    )
+    html
+
+let markdown_body ~pages ~current markdown =
+  markdown |> Omd.of_string
+  |> List.filter_map (function
+    | Omd.Html_block (_, html) when String.starts_with ~prefix:"<!--" html ->
+        None
+    | Omd.Code_block (_, label, code) ->
+        Some (code_figure ~label ~code ())
+    | block ->
+        Some (JSX.unsafe (Omd.to_html [ block ]))
+    )
+  |> JSX.list |> JSX.render
+  |> rewrite_urls ~pages ~current
+
+let playground_html =
+  let highlight ~lang source =
+    Ochre.to_html highlighter
+      ~theme:(snd (List.hd themes))
+      ~extra_themes:themes ~lang source
+  in
+  let options items =
+    items
+    |> List.map (fun value ->
+        Printf.sprintf "<option value=%S>%s</option>" value value
+    )
+    |> String.concat ""
+  in
+  let block lang html =
+    Printf.sprintf "<div class=\"playground__block\" data-lang=%S>%s</div>" lang
+      html
+  in
+  let samples =
+    languages
+    |> List.map (fun (lang, _, source) -> block lang (highlight ~lang source))
+    |> String.concat "\n"
+  in
+  (* The theme id is only known in the browser, so each snippet is rendered
+     with a placeholder identifier that JS fills in. *)
+  let placeholder = "theme_placeholder" in
+  let snippets =
+    languages
+    |> List.map (fun (lang, _, _) ->
+        let html =
+          highlight ~lang:"ocaml"
+            (Printf.sprintf
+               "let hl = Ochre.load_exn [ (%S, Tm_grammars.%s) ] in\n\
+                Ochre.to_html hl ~theme:Ochre.Theme.%s ~lang:%S source"
+               lang (ocaml_ident lang) placeholder lang
+            )
+        in
+        match Str.split_delim (Str.regexp_string placeholder) html with
+        | [ before; after ] ->
+            block lang (before ^ "<span class=\"theme-id\"></span>" ^ after)
+        | _ ->
+            failwith ("theme placeholder not found exactly once for " ^ lang)
+    )
+    |> String.concat "\n"
+  in
+  let theme_css =
+    themes
+    |> List.map (fun (name, _) ->
+        Printf.sprintf ".playground[data-theme=%S] {\n%s\n}" name
+          (Ochre.html_theme_css name)
+    )
+    |> String.concat "\n"
+  in
+  let theme_ids =
+    themes
+    |> List.map (fun (name, _) -> Printf.sprintf "%S:%S" name (ocaml_ident name))
+    |> String.concat ","
+  in
+  Printf.sprintf
+    {|<style>
+%s
+</style>
+<h1>Playground</h1>
+<p>Every built-in theme of <code>Ochre.Theme</code> with grammars from <a href="https://github.com/davesnx/tm-grammars">tm-grammars</a>. Pick a theme and a language; the code below produces the block above.</p>
+<div class="playground" id="playground">
+<div class="playground__toolbar">
+<label>Theme <select id="playground-theme">%s</select></label>
+<label>Language <select id="playground-lang">%s</select></label>
+</div>
+%s
+<h2>Code</h2>
+%s
+</div>
+<script>
+(function () {
+  var themeIds = {%s};
+  var root = document.getElementById('playground');
+  var theme = document.getElementById('playground-theme');
+  var lang = document.getElementById('playground-lang');
+  function render() {
+    root.dataset.theme = theme.value;
+    root.querySelectorAll('.playground__block').forEach(function (b) {
+      b.classList.toggle('is-active', b.dataset.lang === lang.value);
+    });
+    root.querySelectorAll('.theme-id').forEach(function (s) {
+      s.textContent = themeIds[theme.value];
+    });
+    history.replaceState(null, '', '#' + theme.value + '/' + lang.value);
+  }
+  var hash = location.hash.slice(1).split('/');
+  if (Object.hasOwn(themeIds, hash[0])) theme.value = hash[0];
+  if (lang.querySelector('option[value="' + hash[1] + '"]')) lang.value = hash[1];
+  theme.onchange = lang.onchange = render;
+  render();
+})();
+</script>|}
+    theme_css
+    (options (List.map fst themes))
+    (options (List.map (fun (lang, _, _) -> lang) languages))
+    samples snippets theme_ids
+
+let playground_page =
+  {
+    source_name = "playground";
+    output_name = "playground.html";
+    label = "Playground";
+    section = Guide;
+    content = `Html playground_html;
+  }
+
+let github_icon () =
+  <svg class_="site-brand__github-icon" viewBox="0 0 128 128" aria_hidden=true>
+    <path
+      d="M56.7937 84.9688C44.4187 83.4688 35.7 74.5625 35.7 63.0313C35.7 \
+         58.3438 37.3875 53.2813 40.2 49.9063C38.9812 46.8125 39.1687 40.25 \
+         40.575 37.5313C44.325 37.0625 49.3875 39.0313 52.3875 41.75C55.95 \
+         40.625 59.7 40.0625 64.2937 40.0625C68.8875 40.0625 72.6375 40.625 \
+         76.0125 41.6563C78.9187 39.0313 84.075 37.0625 87.825 37.5313C89.1375 \
+         40.0625 89.325 46.625 88.1062 49.8125C91.1062 53.375 92.7 58.1563 \
+         92.7 63.0313C92.7 74.5625 83.9812 83.2813 71.4187 84.875C74.6062 \
+         86.9375 76.7625 91.4375 76.7625 96.5938L76.7625 106.344C76.7625 \
+         109.156 79.1062 110.75 81.9187 109.625C98.8875 103.156 112.2 86.1875 \
+         112.2 65.1875C112.2 38.6563 90.6375 17 64.1062 17C37.575 17 16.2 \
+         38.6562 16.2 65.1875C16.2 86 29.4187 103.25 47.2312 109.719C49.7625 \
+         110.656 52.2 108.969 52.2 106.438L52.2 98.9375C50.8875 99.5 49.2 \
+         99.875 47.7 99.875C41.5125 99.875 37.8562 96.5 35.2312 90.2188C34.2 \
+         87.6875 33.075 86.1875 30.9187 85.9063C29.7937 85.8125 29.4187 \
+         85.3438 29.4187 84.7813C29.4187 83.6563 31.2937 82.8125 33.1687 \
+         82.8125C35.8875 82.8125 38.2312 84.5 40.6687 87.9688C42.5437 90.6875 \
+         44.5125 91.9063 46.8562 91.9063C49.2 91.9063 50.7 91.0625 52.8562 \
+         88.9063C54.45 87.3125 55.6687 85.9063 56.7937 84.9688Z"
+    />
+  </svg>
+
+let sidebar_link ~page ~current () =
+  if page.output_name = current.output_name then
+    <li>
+      <a
+        class_="doc-sidebar__link doc-sidebar__link--active"
+        aria_current=`page
+        href=page.output_name>
+        <span class_="doc-sidebar__label">(JSX.string page.label)</span>
+      </a>
+    </li>
+  else
+    <li>
+      <a class_="doc-sidebar__link" href=page.output_name>
+        <span class_="doc-sidebar__label">(JSX.string page.label)</span>
+      </a>
+    </li>
+
+let sidebar_group ~heading ~section ~pages ~current () =
+  let items =
+    pages
+    |> List.filter (fun page -> page.section = section)
+    |> List.map (fun page -> sidebar_link ~page ~current ())
+  in
+  <div class_="doc-sidebar__group">
+    <h2 class_="doc-sidebar__heading">(JSX.string heading)</h2>
+    <ul class_="doc-sidebar__list">(JSX.list items)</ul>
+  </div>
+
+let sidebar ~pages ~current () =
+  <aside class_="doc-sidebar" id="doc-sidebar" aria_label="Documentation">
+    <div class_="doc-sidebar__inner">
+      <sidebar_group heading="Guides" section=Guide pages current />
+      <sidebar_group heading="API" section=Api pages current />
+    </div>
+  </aside>
+
+let hamburger_button () =
+  <label
+    class_="nav-hamburger"
+    for_="nav-toggle"
+    aria_label="Toggle navigation"
+    title="Toggle navigation">
+    <span class_="nav-hamburger__bar" aria_hidden=true />
+    <span class_="nav-hamburger__bar" aria_hidden=true />
+    <span class_="nav-hamburger__bar" aria_hidden=true />
+  </label>
+
+let theme_init_script =
+  {|
+(function () {
+  try {
+    var theme = localStorage.getItem("ochre.docs.theme");
+    var resolved =
+      theme === "light" || theme === "dark"
+        ? theme
+        : window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+    document.documentElement.setAttribute("data-doc-theme", resolved);
+  } catch (_error) {}
+})();
+|}
+
+let page ~pages ~current () =
+  let article_html =
+    match current.content with
+    | `Markdown markdown ->
+        markdown_body ~pages ~current markdown
+    | `Html html ->
+        html
+  in
+  let page_title = current.label ^ " - ochre documentation" in
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>(JSX.string page_title)</title>
+      <meta name="description" content="ochre documentation" />
+      <script>(JSX.unsafe theme_init_script)</script>
+      <link rel="stylesheet" href="assets/fonts.css" />
+      <style>(JSX.unsafe doc_theme_css)</style>
+      <link rel="stylesheet" href="assets/index.css" />
+      <script src="assets/index.js" defer=true />
+    </head>
+    <body>
+      <a class_="skip-link" href="#main-content">
+        (JSX.string "Skip to content")
+      </a>
+      <input
+        id="nav-toggle" class_="nav-toggle" type_=`checkbox aria_hidden=true
+      />
+      <label class_="nav-backdrop" for_="nav-toggle" aria_hidden=true />
+      <header class_="site-header">
+        <div class_="site-header__inner">
+          <div class_="site-header__leading">
+            <hamburger_button />
+            <a class_="site-brand" href="index.html">
+              <span class_="site-brand__name">(JSX.string "ochre")</span>
+            </a>
+            <a
+              target=`_blank
+              rel="noopener noreferrer"
+              class_="site-brand__github"
+              href=repo_url
+              aria_label="Open ochre GitHub repository"
+              title="GitHub repository">
+              <github_icon />
+            </a>
+          </div>
+          <div class_="site-controls">
+            <button
+              class_="theme-toggle"
+              type_=`button
+              dataDocThemeToggle=""
+              aria_label="Toggle color theme"
+              title="Toggle color theme">
+              <span class_="theme-toggle__sun" aria_hidden=true>"✹"</span>
+              <span class_="theme-toggle__moon" aria_hidden=true>"⏾"</span>
+            </button>
+          </div>
+        </div>
+      </header>
+      <div class_="doc-shell">
+        <sidebar pages current />
+        <main id="main-content" class_="doc-main">
+          <article class_="doc-prose">(JSX.unsafe article_html)</article>
+        </main>
+      </div>
+    </body>
+  </html>
+
+let load_pages api_sources =
+  let open Eff in
+  let read path = read_file ~snapshot:true ~on:`Source path in
+  let* readme = read readme_source in
+  let* cli = read cli_source in
+  let rec collect acc = function
+    | [] ->
+        return (Stdlib.List.rev acc)
+    | source :: rest ->
+        let* markdown = read source in
+        collect (api_page (basename_exn source) markdown :: acc) rest
+  in
+  let+ api_pages = collect [] api_sources in
+  let guide source_name output_name label markdown =
+    {
+      source_name;
+      output_name;
+      label;
+      section = Guide;
+      content = `Markdown markdown;
+    }
+  in
+  [
+    guide "README.md" "index.html" "Overview" readme;
+    guide "cli.md" "cli.html" "CLI" cli;
+    playground_page;
+  ]
+  @ api_pages
+
+let copy_assets cache =
+  let open Eff in
+  let* files =
+    read_directory ~on:`Source ~only:`Files
+      ~where:(Path.one_of_extensions [ "css"; "js"; "woff2" ])
+      assets_dir
+  in
+  let rec copy_all cache = function
+    | [] ->
+        return cache
+    | source :: rest ->
+        let* cache = Action.copy_file ~into:target_assets_dir source cache in
+        copy_all cache rest
+  in
+  copy_all cache files
+
+let write_pages pages source_files cache =
+  let open Eff in
+  let deps = Deps.from_list (Path.rel [ "site"; "main.mlx" ] :: source_files) in
+  let rec write_all cache = function
+    | [] ->
+        return cache
+    | current :: rest ->
+        let target = Path.(target_dir / current.output_name) in
+        let task =
+          Task.make deps (fun () ->
+              Eff.return (JSX.render <page pages current />)
+          )
+        in
+        let* cache = Action.Static.write_file target task cache in
+        write_all cache rest
+  in
+  write_all cache pages
+
+(* Ochre.md first, then its submodules in alphabetical order. *)
+let compare_api left right =
+  String.compare
+    (String.lowercase_ascii (api_label (basename_exn left)))
+    (String.lowercase_ascii (api_label (basename_exn right)))
+
+let process_all () =
+  let open Eff in
+  let* api_sources =
+    read_directory ~on:`Source ~only:`Files ~where:is_api_source api_dir
+  in
+  if api_sources = [] then
+    invalid_arg "No markdown files found. Run `dune build @doc-markdown` first.";
+  let api_sources = Stdlib.List.sort compare_api api_sources in
+  let* pages = load_pages api_sources in
+  let source_files = readme_source :: cli_source :: api_sources in
+  Action.with_cache ~on:`Source cache_file (fun cache ->
+      let* cache = write_pages pages source_files cache in
+      let* cache = copy_assets cache in
+      Action.remove_residuals ~target:target_dir cache
+  )
+
+let usage = "Usage: main.exe build | serve [--port PORT]"
+
+let () =
+  match List.tl (Array.to_list Sys.argv) with
+  | [ "build" ] ->
+      Yocaml_unix.run ~level:`Info process_all
+  | [ "serve" ] ->
+      Yocaml_unix.serve ~level:`Info ~target:target_dir ~port:8080 process_all
+  | [ "serve"; "--port"; value ] -> (
+      match int_of_string_opt value with
+      | Some port when port > 0 && port < 65536 ->
+          Yocaml_unix.serve ~level:`Info ~target:target_dir ~port process_all
+      | _ ->
+          prerr_endline usage;
+          exit 2
+    )
+  | _ ->
+      prerr_endline usage;
+      exit 2

@@ -93,3 +93,13 @@ subst: ## Run dune substitute
 .PHONY: docs
 docs: ## Generate markdown documentation from mli files
 	$(DUNE) build --root . @doc-markdown
+
+.PHONY: docs-site
+docs-site: ## Build the docs site into docs/_site
+	$(DUNE) build --root . @doc-markdown
+	DOCS_SITE=true $(DUNE) exec --root . ./site/main.exe -- build
+
+.PHONY: docs-site-serve
+docs-site-serve: ## Build and serve the docs site on $$PORT (default 8080)
+	$(DUNE) build --root . @doc-markdown
+	DOCS_SITE=true $(DUNE) exec --root . ./site/main.exe -- serve --port $${PORT:-8080}

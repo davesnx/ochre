@@ -47,6 +47,18 @@
    (and
     (>= 3.1.0)
     :with-doc))
+  (omd
+   (and
+    (>= 2.0.0~alpha4)
+    :with-dev-setup))
+  (yocaml
+   (and
+    (>= 3.0.0)
+    :with-dev-setup))
+  (yocaml_unix
+   (and
+    (>= 3.0.0)
+    :with-dev-setup))
   (tm-grammars
    (and
     (>= 2.0.0)
