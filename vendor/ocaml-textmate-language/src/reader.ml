@@ -136,12 +136,20 @@ and patterns_of_plist obj =
           Include_base
       | "$self" ->
           Include_self
-      | s ->
+      | s -> (
           let len = String.length s in
-          if len > 0 && s.[0] = '#' then
-            Include_local (String.sub s 1 (len - 1))
-          else
-            Include_scope s
+          match String.index_opt s '#' with
+          | Some 0 ->
+              Include_local (String.sub s 1 (len - 1))
+          | Some i ->
+              Include_scope_rule
+                {
+                  scope = String.sub s 0 i;
+                  rule = String.sub s (i + 1) (len - i - 1);
+                }
+          | None ->
+              Include_scope s
+        )
     )
   | None -> (
       let non_empty key =
@@ -263,7 +271,7 @@ and patterns_of_plist obj =
             | Some v ->
                 get_pattern_list v
           in
-          Scope_patterns { scope_name = None; child_patterns }
+          Scope_patterns child_patterns
     )
 
 let parse_injection_selector raw =

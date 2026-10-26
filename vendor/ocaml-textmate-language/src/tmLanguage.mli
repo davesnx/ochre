@@ -84,7 +84,8 @@ type stack
 (** The state of the tokenizer. *)
 
 val empty : stack
-(** The initial state of the tokenizer. *)
+(** The initial state of the tokenizer. The line tokenized from it is the first
+    line: [\A] matches only there. *)
 
 type token
 (** A token of code. *)
@@ -121,6 +122,10 @@ val tokenize_exn :
     - [tokens] is nonempty.
     - The ending positions of [tokens] are strictly increasing.
     - The [ending] of the last token in [tokens] is always [String.length line].
+
+    As in vscode-textmate, [\z] never matches before a newline, and a rule that
+    would loop at one position without advancing ends the line instead: the rest
+    of the line gets the scopes in force at that point.
 
     Never raises for any [line], including one that is not valid UTF-8. A
     malformed [end] or [while] regex is reported when the grammar is read, see
