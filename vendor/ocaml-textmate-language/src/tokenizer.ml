@@ -71,14 +71,8 @@ let add_scope scopes = function
         (String.split_on_char ' ' x)
 
 let add_scopes scopes names = List.fold_left add_scope scopes names
-let has_progress start ending = ending > start
 
 type matched_region = { region : Oniguruma.Region.t; regex : regex; end_ : int }
-
-type match_result =
-  | No_match
-  | Empty_match of matched_region
-  | Nonempty_match of matched_region
 
 (* Oniguruma cannot interrupt a match in progress, so one call can run past
    the deadline. *)
@@ -129,20 +123,16 @@ let capture_span ~len region idx =
 let classify_match ~pos ~len regex region =
   match capture_span ~len region 0 with
   | Some (start, end_) when start = pos ->
-      let matched = { region; regex; end_ } in
-      if has_progress start end_ then
-        Nonempty_match matched
-      else
-        Empty_match matched
+      Some { region; regex; end_ }
   | Some _ | None ->
-      No_match
+      None
 
 let match_pattern ~first_line clock regex line pos anchor =
   match
     match_regex clock regex line pos (anchor_options ~first_line ~anchor ~pos)
   with
   | None ->
-      No_match
+      None
   | Some region ->
       classify_match ~pos ~len:(String.length line) regex region
 
@@ -573,27 +563,16 @@ let rec collect_candidates ~t ~base_grammar ?(seen = ref []) repos cur_grammar =
           child_patterns
       in
       inner @ collect_candidates ~t ~base_grammar ~seen repos cur_grammar pats
-  | Include_scope name :: pats -> (
-      match find_by_scope_name t name with
-      | None ->
-          collect_candidates ~t ~base_grammar ~seen repos cur_grammar pats
-      | Some g ->
-          let included = collect_grammar_patterns ~t ~base_grammar ~seen g in
-          included
-          @ collect_candidates ~t ~base_grammar ~seen repos cur_grammar pats
-    )
-  | Include_scope_rule { scope; rule } :: pats -> (
-      match find_by_scope_name t scope with
-      | None ->
-          collect_candidates ~t ~base_grammar ~seen repos cur_grammar pats
-      | Some g ->
-          let included =
-            collect_candidates ~t ~base_grammar ~seen [ g.repository ] g
-              [ Include_local rule ]
-          in
-          included
-          @ collect_candidates ~t ~base_grammar ~seen repos cur_grammar pats
-    )
+  | Include_scope name :: pats ->
+      collect_from_scope ~t ~base_grammar ~seen repos cur_grammar pats name
+        (fun g -> collect_grammar_patterns ~t ~base_grammar ~seen g
+      )
+  | Include_scope_rule { scope; rule } :: pats ->
+      collect_from_scope ~t ~base_grammar ~seen repos cur_grammar pats scope
+        (fun g ->
+          collect_candidates ~t ~base_grammar ~seen [ g.repository ] g
+            [ Include_local rule ]
+      )
   | Include_base :: pats ->
       let included =
         collect_grammar_patterns ~t ~base_grammar ~seen base_grammar
@@ -635,6 +614,16 @@ let rec collect_candidates ~t ~base_grammar ?(seen = ref []) repos cur_grammar =
                     pats
         )
     )
+
+and collect_from_scope ~t ~base_grammar ~seen repos cur_grammar pats name
+    collect =
+  match find_by_scope_name t name with
+  | None ->
+      collect_candidates ~t ~base_grammar ~seen repos cur_grammar pats
+  | Some g ->
+      let included = collect g in
+      included
+      @ collect_candidates ~t ~base_grammar ~seen repos cur_grammar pats
 
 and collect_grammar_patterns ~t ~base_grammar ~seen g =
   let expansion = Expanding_patterns g in
@@ -760,9 +749,9 @@ let search_candidates_at_pos ~first_line ~clock ~line ~pos ~anchor candidates =
               match
                 classify_match ~pos ~len:(String.length line) regex region
               with
-              | No_match ->
+              | None ->
                   go rest
-              | Empty_match matched | Nonempty_match matched ->
+              | Some matched ->
                   Some (candidate, matched)
             )
       )
@@ -826,12 +815,14 @@ let end_of_line_scopes grammar stack =
   | se :: _ ->
       se.stack_scopes
 
-let safe_pop = function [] -> [] | _ :: rest -> rest
+type end_rule =
+  | No_end
+  | End_first of stack_elem * stack_elem list
+  | End_last of stack_elem * stack_elem list
 
 let rec match_line ~t ~state ~grammar ~stack ~anchor ~line_pos ~pos ~toks ~line
     rem_pats =
   let len = String.length line in
-  let first_line = state.first_line in
   let scopes = frame_scopes grammar stack in
   let stop toks stack =
     (produce toks (end_of_line_scopes grammar stack) len, stack)
@@ -870,8 +861,8 @@ let rec match_line ~t ~state ~grammar ~stack ~anchor ~line_pos ~pos ~toks ~line
   in
   let try_candidates candidates ~k =
     match
-      search_candidates_at_pos ~first_line ~clock:state.clock ~line ~pos ~anchor
-        candidates
+      search_candidates_at_pos ~first_line:state.first_line ~clock:state.clock
+        ~line ~pos ~anchor candidates
     with
     | None ->
         k ()
@@ -893,7 +884,7 @@ let rec match_line ~t ~state ~grammar ~stack ~anchor ~line_pos ~pos ~toks ~line
               match_line ~t ~state ~grammar ~stack ~anchor ~line_pos:end_
                 ~pos:end_ ~toks ~line (next_pats grammar stack)
             else
-              stop toks (safe_pop stack)
+              stop toks (match stack with [] -> [] | _ :: rest -> rest)
         | Candidate_delim d ->
             let toks = produce toks scopes pos in
             if
@@ -942,34 +933,16 @@ let rec match_line ~t ~state ~grammar ~stack ~anchor ~line_pos ~pos ~toks ~line
                 d.delim_patterns
       )
   in
-  let try_pats repos cur_grammar pats ~steps =
-    let groups = lazy (candidate_groups repos cur_grammar pats) in
-    let left k = try_candidates (Lazy.force groups).left ~k in
-    let base k = try_candidates (Lazy.force groups).base ~k in
-    let right k = try_candidates (Lazy.force groups).right ~k in
-    let continue () =
-      match_line ~t ~state ~grammar ~stack ~anchor ~line_pos
-        ~pos:(next_pos line pos) ~toks ~line
-        ( match stack with
-        | [] ->
-            rem_pats
-        | se :: _ ->
-            se.stack_delim.delim_patterns
-        )
-    in
-    List.fold_right
-      (fun step next () -> step next)
-      (steps ~left ~base ~right) continue ()
-  in
   let try_delim_end se stack_tail ~k =
     let delim = se.stack_delim in
     let end_match =
-      match_pattern ~first_line state.clock se.stack_end_re line pos anchor
+      match_pattern ~first_line:state.first_line state.clock se.stack_end_re
+        line pos anchor
     in
     match (delim.delim_kind, end_match) with
-    | End, No_match ->
+    | End, None ->
         k ()
-    | End, (Empty_match matched | Nonempty_match matched) ->
+    | End, Some matched ->
         let toks =
           produce toks
             (add_scopes se.stack_prev_scopes
@@ -1000,30 +973,46 @@ let rec match_line ~t ~state ~grammar ~stack ~anchor ~line_pos ~pos ~toks ~line
         k ()
   in
   if pos > len || state.clock.expired then
-    (produce toks (end_of_line_scopes grammar stack) len, stack)
+    stop toks stack
   else
-    match stack with
-    | [] ->
-        try_pats (frame_repos grammar stack) grammar rem_pats
-          ~steps:(fun ~left ~base ~right -> [ left; base; right ]
+    let cur_grammar, end_rule =
+      match stack with
+      | [] ->
+          (grammar, No_end)
+      | se :: stack' -> (
+          match se.stack_delim.delim_kind with
+          | While ->
+              (se.stack_grammar, No_end)
+          | End when se.stack_delim.delim_apply_end_pattern_last ->
+              (se.stack_grammar, End_last (se, stack'))
+          | End ->
+              (se.stack_grammar, End_first (se, stack'))
         )
-    | se :: stack' -> (
-        let repos = frame_repos grammar stack in
-        match se.stack_delim.delim_kind with
-        | While ->
-            try_pats repos se.stack_grammar rem_pats
-              ~steps:(fun ~left ~base ~right -> [ left; base; right ]
-            )
-        | End ->
-            try_pats repos se.stack_grammar rem_pats
-              ~steps:(fun ~left ~base ~right ->
-                let end_ k = try_delim_end se stack' ~k in
-                if se.stack_delim.delim_apply_end_pattern_last then
-                  [ left; base; end_; right ]
-                else
-                  [ left; end_; base; right ]
-            )
-      )
+    in
+    let { left; base; right } =
+      candidate_groups (frame_repos grammar stack) cur_grammar rem_pats
+    in
+    let continue () =
+      match_line ~t ~state ~grammar ~stack ~anchor ~line_pos
+        ~pos:(next_pos line pos) ~toks ~line
+        ( match stack with
+        | [] ->
+            rem_pats
+        | se :: _ ->
+            se.stack_delim.delim_patterns
+        )
+    in
+    let try_right () = try_candidates right ~k:continue in
+    let try_base ~k = try_candidates base ~k in
+    try_candidates left ~k:(fun () ->
+        match end_rule with
+        | No_end ->
+            try_base ~k:try_right
+        | End_first (se, stack') ->
+            try_delim_end se stack' ~k:(fun () -> try_base ~k:try_right)
+        | End_last (se, stack') ->
+            try_base ~k:(fun () -> try_delim_end se stack' ~k:try_right)
+    )
 
 let empty_captures = Hashtbl.create 0
 
@@ -1103,12 +1092,12 @@ let tokenize_prefix ~time_limit ~eol t grammar { first_line; frames } line =
                 (toks, pos, anchor, rem_stack)
               else
                 match
-                  match_pattern ~first_line state.clock se.stack_end_re line
-                    pos' anchor
+                  match_pattern ~first_line:state.first_line state.clock
+                    se.stack_end_re line pos' anchor
                 with
-                | No_match ->
+                | None ->
                     loop (next_pos line pos')
-                | Empty_match matched | Nonempty_match matched ->
+                | Some matched ->
                     let toks =
                       let toks =
                         if pos' > pos then
@@ -1153,31 +1142,48 @@ let rec utf8_boundary line cut =
 
 let tokenize_exn ?(max_line_length = default_max_line_length)
     ?(time_limit = default_time_limit) t grammar stack line =
+  let added_newline = not (String.ends_with ~suffix:"\n" line) in
+  let line =
+    if added_newline then
+      line ^ "\n"
+    else
+      line
+  in
   let len = String.length line in
   let max_line_length = max 1 max_line_length in
-  if len <= max_line_length then
-    let toks, stack =
+  let toks, stack =
+    if len <= max_line_length then
       tokenize_prefix ~time_limit ~eol:len t grammar stack line
-    in
-    (List.rev toks, stack)
-  else
-    let cut =
-      match utf8_boundary line max_line_length with
-      | 0 ->
-          max_line_length
-      | cut ->
-          cut
-    in
-    let toks, stack =
-      tokenize_prefix ~time_limit ~eol:len t grammar stack
-        (String.sub line 0 cut)
-    in
-    let scopes = end_of_line_scopes grammar stack.frames in
-    let toks =
-      match toks with
-      | last :: before when last.scopes = scopes ->
-          { last with ending = len } :: before
-      | _ ->
-          { scopes; ending = len } :: toks
-    in
-    (List.rev toks, stack)
+    else
+      let cut =
+        match utf8_boundary line max_line_length with
+        | 0 ->
+            max_line_length
+        | cut ->
+            cut
+      in
+      let toks, stack =
+        tokenize_prefix ~time_limit ~eol:len t grammar stack
+          (String.sub line 0 cut)
+      in
+      let scopes = end_of_line_scopes grammar stack.frames in
+      let toks =
+        match toks with
+        | last :: before when last.scopes = scopes ->
+            { last with ending = len } :: before
+        | _ ->
+            { scopes; ending = len } :: toks
+      in
+      (toks, stack)
+  in
+  let toks =
+    match toks with
+    | last :: before when added_newline ->
+        if last_ending before >= len - 1 then
+          before
+        else
+          { last with ending = len - 1 } :: before
+    | _ ->
+        toks
+  in
+  (List.rev toks, stack)
