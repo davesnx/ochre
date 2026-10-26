@@ -1,10 +1,10 @@
 Output docs/video/ochre-examples.gif
 
 Set Shell "zsh"
-Set FontSize 16
+Set FontSize 20
 Set FontFamily "JetBrains Mono"
-Set Width 1280
-Set Height 780
+Set Width 1600
+Set Height 940
 Set CursorBlink false
 
 Hide
