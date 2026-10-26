@@ -632,76 +632,43 @@ and collect_grammar_patterns ~t ~base_grammar ~seen g =
   else
     collect_candidates ~t ~base_grammar ~seen [ g.repository ] g g.patterns
 
-let scope_matches_selector_part scope part =
-  scope = part
-  || String.length part < String.length scope
-     && String.starts_with ~prefix:part scope
-     && scope.[String.length part] = '.'
-
-let injection_selector_matches ~scope_set scopes (sel : injection_selector) =
-  List.for_all (fun seg -> Scope_set.mem seg scope_set) sel.selector_segments
-  &&
-  match sel.selector_segments with
-  | [ _ ] ->
-      true
-  | _ ->
-      let rev_scopes = List.rev scopes in
-      let rec go segments scope_list =
-        match segments with
-        | [] ->
-            true
-        | seg :: rest_segs -> (
-            match scope_list with
-            | [] ->
-                false
-            | scope :: rest_scopes ->
-                if scope_matches_selector_part scope seg then
-                  go rest_segs rest_scopes
-                else
-                  go segments rest_scopes
-          )
-      in
-      go sel.selector_segments rev_scopes
-
-let collect_injection_candidates ~t ~base_grammar ~scope_set scopes =
+let collect_injection_candidates ~t ~base_grammar scopes =
+  let names = lazy (List.rev scopes) in
+  let own =
+    List.map
+      (fun (sel, patterns) -> (sel, base_grammar, patterns))
+      base_grammar.injections
+  in
+  let injected =
+    List.concat_map
+      (fun (g : grammar) ->
+        List.map (fun sel -> (sel, g, g.patterns)) g.parsed_injection_selector
+      )
+      (injection_grammars t base_grammar.scope_name)
+  in
+  let sorted =
+    List.stable_sort
+      (fun ((a : injection_selector), _, _) ((b : injection_selector), _, _) ->
+        compare a.priority b.priority
+      )
+      (own @ injected)
+  in
   let left = ref [] in
   let right = ref [] in
-  let check_injections injections grammar =
-    List.iter
-      (fun (sel, patterns) ->
-        if injection_selector_matches ~scope_set scopes sel then begin
-          let cs =
-            collect_candidates ~t ~base_grammar [ grammar.repository ] grammar
-              patterns
-          in
-          if sel.selector_left then
-            left := List.rev_append cs !left
-          else
-            right := List.rev_append cs !right
-        end
-      )
-      injections
-  in
-  check_injections base_grammar.injections base_grammar;
-  Hashtbl.iter
-    (fun _name (g : grammar) ->
-      if g.scope_name <> base_grammar.scope_name then
-        match g.parsed_injection_selector with
-        | None ->
-            ()
-        | Some sel ->
-            if injection_selector_matches ~scope_set scopes sel then begin
-              let cs =
-                collect_candidates ~t ~base_grammar [ g.repository ] g
-                  g.patterns
-              in
-              if sel.selector_left then
-                left := List.rev_append cs !left
-              else
-                right := List.rev_append cs !right
-            end
+  List.iter
+    (fun ((sel : injection_selector), grammar, patterns) ->
+      if Selector.matches sel.expr (Lazy.force names) then begin
+        let cs =
+          collect_candidates ~t ~base_grammar [ grammar.repository ] grammar
+            patterns
+        in
+        if sel.priority = -1 then
+          left := List.rev_append cs !left
+        else
+          right := List.rev_append cs !right
+      end
     )
-    t.by_scope_name;
+    sorted;
   (List.rev !left, List.rev !right)
 
 (* Each candidate is checked with an anchored, single-position
@@ -848,9 +815,7 @@ let rec match_line ~t ~state ~grammar ~stack ~anchor ~line_pos ~pos ~toks ~line
           collect_candidates ~t ~base_grammar:grammar repos cur_grammar pats
         in
         let left, right =
-          collect_injection_candidates ~t ~base_grammar:grammar
-            ~scope_set:(frame_scope_set grammar stack)
-            scopes
+          collect_injection_candidates ~t ~base_grammar:grammar scopes
         in
         let groups = { left; base; right } in
         let kept =
