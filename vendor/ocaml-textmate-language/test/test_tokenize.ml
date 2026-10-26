@@ -127,12 +127,12 @@ let check_positive_g_anchor_fails_without_parent_anchor () =
     make_grammar
       (ganchor_grammar ~scope_name:"source.ganchor.pos" ~end_pattern:"\\G\"")
   in
-  let _, stack = TmLanguage.tokenize_exn t grammar TmLanguage.empty "\"" in
-  let toks, _ = TmLanguage.tokenize_exn t grammar stack "\"x" in
+  let _, stack = TmLanguage.tokenize_exn t grammar TmLanguage.empty "\"\n" in
+  let toks, _ = TmLanguage.tokenize_exn t grammar stack "\"x\n" in
   (* \G end pattern can't match without parent anchor, so string stays open *)
   Alcotest.(check (list (pair int (list string))))
     "positive \\G end fails without parent anchor"
-    [ (2, [ "string.quoted.test"; "source.ganchor.pos" ]) ]
+    [ (3, [ "string.quoted.test"; "source.ganchor.pos" ]) ]
     (toks_to_list toks)
 
 let check_negative_g_anchor_matches_without_parent_anchor () =
@@ -142,14 +142,15 @@ let check_negative_g_anchor_matches_without_parent_anchor () =
          ~end_pattern:"(?<!\\G)\""
       )
   in
-  let _, stack = TmLanguage.tokenize_exn t grammar TmLanguage.empty "\"" in
-  let toks, _ = TmLanguage.tokenize_exn t grammar stack "\"x" in
+  let _, stack = TmLanguage.tokenize_exn t grammar TmLanguage.empty "\"\n" in
+  let toks, _ = TmLanguage.tokenize_exn t grammar stack "\"x\n" in
   (* Negative \G matches when anchor is unavailable, so string closes *)
   Alcotest.(check (list (pair int (list string))))
     "negative \\G end matches without parent anchor"
     [
       (1, [ "string.quoted.test"; "source.ganchor.neg" ]);
       (2, [ "word.test"; "source.ganchor.neg" ]);
+      (3, [ "source.ganchor.neg" ]);
     ]
     (toks_to_list toks)
 
@@ -191,12 +192,15 @@ let check_positive_g_anchor_while_fails_without_anchor () =
          ~while_pattern:"\\G."
       )
   in
-  let _, stack = TmLanguage.tokenize_exn t grammar TmLanguage.empty "A" in
-  let toks, _ = TmLanguage.tokenize_exn t grammar stack "x" in
+  let _, stack = TmLanguage.tokenize_exn t grammar TmLanguage.empty "A\n" in
+  let toks, _ = TmLanguage.tokenize_exn t grammar stack "x\n" in
   (* \G while can't match without anchor, so while-scope is exited *)
   Alcotest.(check (list (pair int (list string))))
     "positive \\G while fails without anchor"
-    [ (1, [ "word.test"; "source.ganchor.while.pos" ]) ]
+    [
+      (1, [ "word.test"; "source.ganchor.while.pos" ]);
+      (2, [ "source.ganchor.while.pos" ]);
+    ]
     (toks_to_list toks)
 
 let check_negative_g_anchor_while_matches_without_anchor () =
@@ -206,12 +210,15 @@ let check_negative_g_anchor_while_matches_without_anchor () =
          ~while_pattern:"(?<!\\G)."
       )
   in
-  let _, stack = TmLanguage.tokenize_exn t grammar TmLanguage.empty "A" in
-  let toks, _ = TmLanguage.tokenize_exn t grammar stack "x" in
+  let _, stack = TmLanguage.tokenize_exn t grammar TmLanguage.empty "A\n" in
+  let toks, _ = TmLanguage.tokenize_exn t grammar stack "x\n" in
   (* Negative \G while matches when anchor unavailable, so while-scope stays *)
   Alcotest.(check (list (pair int (list string))))
     "negative \\G while matches without anchor"
-    [ (1, [ "while.test"; "source.ganchor.while.neg" ]) ]
+    [
+      (1, [ "while.test"; "source.ganchor.while.neg" ]);
+      (2, [ "while.test"; "source.ganchor.while.neg" ]);
+    ]
     (toks_to_list toks)
 
 let _one_token line scopes = [ { line; expected = [ (1, scopes) ] } ]
@@ -723,13 +730,29 @@ let () =
           ];
         ];
       test_tokenize_json "data/zero_width_loop.json" "source.zero-width-loop"
-        [ [ { line = "a"; expected = [ (1, [ "source.zero-width-loop" ]) ] } ] ];
+        [
+          [
+            {
+              line = "a";
+              expected =
+                [ (1, [ "meta.zero.width"; "source.zero-width-loop" ]) ];
+            };
+          ];
+        ];
       test_tokenize_json "data/zero_width_end_loop.json"
         "source.zero-width-end-loop"
         [
           [
-            { line = "a"; expected = [ (1, [ "source.zero-width-end-loop" ]) ] };
-            { line = "z"; expected = [ (1, [ "source.zero-width-end-loop" ]) ] };
+            {
+              line = "a";
+              expected =
+                [ (1, [ "meta.zero.width"; "source.zero-width-end-loop" ]) ];
+            };
+            {
+              line = "z";
+              expected =
+                [ (1, [ "meta.zero.width"; "source.zero-width-end-loop" ]) ];
+            };
           ];
         ];
       test_tokenize_json "data/zero_width_match_loop.json"
