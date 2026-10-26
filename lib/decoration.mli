@@ -80,10 +80,10 @@ val apply :
     Character positions, including negative positions, are resolved in Unicode
     scalar values. Token offsets and splitting remain UTF-8 byte-based.
 
-    Raises [Invalid_argument] if [source] is not valid UTF-8.
-
-    For valid UTF-8 source, an empty decoration list returns the tokens
-    unchanged.
+    Never raises. [source] is not validated: each byte that is not part of a
+    valid UTF-8 sequence counts as one character, so ranges still resolve on
+    invalid input. An empty decoration list returns the tokens unchanged without
+    reading [source].
 
     {[
       let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in

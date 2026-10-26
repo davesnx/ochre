@@ -584,10 +584,26 @@ let test_decoration_unicode_negative_character () =
 let test_decoration_invalid_utf8 () =
   let source = "\195\040" in
   let tokens = [ [ make_tok source ] ] in
-  try
-    ignore (Ochre.Decoration.apply ~source [] tokens);
-    Alcotest.fail "invalid UTF-8 should raise Invalid_argument"
-  with Invalid_argument _ -> ()
+  Alcotest.(check bool)
+    "no decorations returns tokens unchanged" true
+    (Ochre.Decoration.apply ~source [] tokens = tokens)
+
+let test_decoration_invalid_utf8_scalars () =
+  let source = "a\255b\n" in
+  let tokens = [ [ make_tok "a\255b\n" ] ] in
+  let decoration =
+    Ochre.Decoration.make ~class_:"hl" ~start:(Ochre.Decoration.pos 0 1)
+      ~end_:(Ochre.Decoration.pos 0 2) ()
+  in
+  let texts =
+    Ochre.Decoration.apply ~source [ decoration ] tokens
+    |> List.concat
+    |> List.filter_map (fun (tok : Ochre.Token.styled_token) ->
+        Option.map (fun _ -> tok.text) tok.decoration
+    )
+  in
+  Alcotest.(check (list string))
+    "invalid byte is one character" [ "\255" ] texts
 
 let test_decoration_invalid_data_key () =
   (* A data key becomes part of a data-* attribute name, so characters that
@@ -750,6 +766,264 @@ let min_time_of trials f =
     if dt < !best then best := dt
   done;
   !best
+
+let tokens_text tokens =
+  tokens
+  |> List.concat_map (fun line ->
+      List.map (fun (tok : Ochre.Token.styled_token) -> tok.text) line
+  )
+  |> String.concat ""
+
+let invalid_utf8_cases =
+  [
+    ("plaintext", "caf\xe9\n");
+    ("plaintext", "\xff");
+    ("go", "\xff\n");
+    ("go", "package \xC3");
+    ("shellscript", "C \xf4");
+    ("shellscript", "<<\x90'");
+    ("bibtex", "\xc3");
+    ("bibtex", "@article{k\xc3,\n}\n");
+    ("perl", "<<E\xc6D");
+    ("ruby", "<<HEREDD\xe7C\n");
+    ("php", "<<<\xb1OT");
+    ("reason", "{\xc3js|");
+    ("cpp", "R\"\x80(");
+    ("ocaml", "let caf\xe9 = \"\xff\xfe\" (* \xc0\xaf *)\n");
+    ("json", "[\"\xed\xa0\x80\", \"\xf4\x90\x80\x80\"]\n");
+  ]
+
+let invalid_utf8_highlighter =
+  lazy
+    (Ochre.load_exn
+       [
+         ("go", Tm_grammars.go);
+         ("shellscript", Tm_grammars.shellscript);
+         ("bibtex", Tm_grammars.bibtex);
+         ("perl", Tm_grammars.perl);
+         ("ruby", Tm_grammars.ruby);
+         ("php", Tm_grammars.php);
+         ("reason", Tm_grammars.reason);
+         ("cpp", Tm_grammars.cpp);
+         ("ocaml", Tm_grammars.ocaml);
+         ("json", Tm_grammars.json);
+       ]
+    )
+
+let test_invalid_utf8_keeps_bytes () =
+  let hl = Lazy.force invalid_utf8_highlighter in
+  let theme = Ochre.Theme.dark in
+  List.iter
+    (fun (lang, source) ->
+      let label = Printf.sprintf "%s %S" lang source in
+      Alcotest.(check string)
+        (label ^ " token text") source
+        (tokens_text (Ochre.to_tokens hl ~theme ~lang source));
+      let decoration =
+        Ochre.Decoration.make ~class_:"hl" ~start:(Ochre.Decoration.pos 0 0)
+          ~end_:(Ochre.Decoration.pos 0 (-1))
+          ()
+      in
+      Alcotest.(check string)
+        (label ^ " decorated token text")
+        source
+        (tokens_text
+           (Ochre.to_tokens hl ~decorations:[ decoration ] ~theme ~lang source)
+        );
+      List.iter
+        (fun render -> ignore (render hl ~theme ~lang source : string))
+        [
+          (fun hl ~theme ~lang s -> Ochre.to_html hl ~theme ~lang s);
+          (fun hl ~theme ~lang s -> Ochre.to_ansi hl ~theme ~lang s);
+          (fun hl ~theme ~lang s -> Ochre.to_latex hl ~theme ~lang s);
+          (fun hl ~theme ~lang s -> Ochre.to_svg hl ~theme ~lang s);
+          (fun hl ~theme ~lang s -> Ochre.to_debug_tokens hl ~theme ~lang s);
+        ]
+    )
+    invalid_utf8_cases
+
+let test_invalid_utf8_does_not_split_valid_text () =
+  let hl = Lazy.force invalid_utf8_highlighter in
+  let tokens =
+    Ochre.to_tokens hl ~theme:Ochre.Theme.dark ~lang:"json"
+      "{\"a\": \"\xff\", \"b\": 12}\n"
+  in
+  let texts =
+    List.concat tokens
+    |> List.map (fun (tok : Ochre.Token.styled_token) -> tok.text)
+  in
+  Alcotest.(check bool)
+    "string with an invalid byte stays one token" true
+    (List.mem "\"\xff\"" texts || List.mem "\xff" texts);
+  Alcotest.(check bool) "number after it is intact" true (List.mem "12" texts)
+
+let styles_of ~theme ~lang source =
+  let hl = Lazy.force invalid_utf8_highlighter in
+  Ochre.to_tokens hl ~theme ~lang source
+  |> List.concat_map
+       (List.map (fun (tok : Ochre.Token.styled_token) ->
+            (tok.text, tok.foreground, tok.background, tok.font_style)
+        )
+       )
+
+let selector_theme rules =
+  Ochre.Theme.make ~name:"selectors"
+    ~token_colors:
+      (List.map
+         (fun (scope, foreground) ->
+           Ochre.Theme.rule ~scope ~foreground ~font_style:[ Ochre.Token.Bold ]
+             ()
+         )
+         rules
+      )
+    ()
+
+let test_theme_selector_resolution () =
+  let source = "{\"k\": [1, \"s\"]}\n" in
+  let theme =
+    selector_theme
+      [
+        ([ "source.json" ], "#000001");
+        ([ "string" ], "#000002");
+        ([ "string source.json" ], "#000003");
+        ( [
+            "support.type.property-name string.json \
+             meta.structure.dictionary.json";
+          ],
+          "#000004"
+        );
+        ([ "string.quoted.double.json meta.structure.array.json" ], "#000005");
+        ([ "meta.structure.array.json, constant.numeric" ], "#000006");
+        ([ "meta.structure.array.json meta.structure.array.json" ], "#000007");
+        ([ "string.quoted.double.json string.quoted.double.json" ], "#000008");
+        ([ "punctuation" ], "#000009");
+        ([ "source.json string" ], "#00000a");
+      ]
+  in
+  let expected =
+    [
+      ("{", Some "#000009");
+      ("\"", Some "#000004");
+      ("k", Some "#000004");
+      ("\"", Some "#000004");
+      (":", Some "#000009");
+      (" ", Some "#000001");
+      ("[", Some "#000009");
+      ("1", Some "#000006");
+      (",", Some "#000009");
+      (" ", Some "#000006");
+      ("\"", Some "#000005");
+      ("s", Some "#000005");
+      ("\"", Some "#000005");
+      ("]", Some "#000009");
+      ("}", Some "#000009");
+      ("\n", Some "#000001");
+    ]
+  in
+  let got =
+    styles_of ~theme ~lang:"json" source
+    |> List.map (fun (text, fg, _, _) -> (text, fg))
+  in
+  Alcotest.(check (list (pair string (option string))))
+    "resolved foregrounds" expected got
+
+let deep_json_objects n =
+  String.concat "" (List.init n (fun _ -> "{\"a\":"))
+  ^ "1" ^ String.make n '}' ^ "\n"
+
+let check_under ~seconds label f =
+  let start = Unix.gettimeofday () in
+  f ();
+  let elapsed = Unix.gettimeofday () -. start in
+  Alcotest.(check bool)
+    (Printf.sprintf "%s took %.2fs, budget %.0fs" label elapsed seconds)
+    true (elapsed < seconds)
+
+let test_deep_nesting_theme_matching () =
+  let hl = Lazy.force invalid_utf8_highlighter in
+  check_under ~seconds:30.0 "json 1600 deep" (fun () ->
+      ignore
+        ( Ochre.to_tokens hl ~theme:Ochre.Theme.nord ~lang:"json"
+            (deep_json_objects 1600)
+          : Ochre.Token.highlighted_code
+          )
+  )
+
+let test_many_part_selector () =
+  let hl = Lazy.force invalid_utf8_highlighter in
+  let nested n = String.make n '[' ^ "1" ^ String.make n ']' ^ "\n" in
+  let selector =
+    String.concat " " (List.init 12 (fun _ -> "meta.structure.array.json"))
+  in
+  let theme = selector_theme [ ([ selector ], "#ffffff") ] in
+  check_under ~seconds:10.0 "12-part selector on 40 deep arrays" (fun () ->
+      ignore
+        ( Ochre.to_tokens hl ~theme ~lang:"json" (nested 40)
+          : Ochre.Token.highlighted_code
+          )
+  )
+
+let test_decorations_scale () =
+  let hl = Lazy.force invalid_utf8_highlighter in
+  let lines = 40_000 and count = 4_000 in
+  let source =
+    String.concat "\n" (List.init lines (fun i -> string_of_int i))
+  in
+  let decorations =
+    List.init count (fun i ->
+        Ochre.Decoration.make ~class_:"hl"
+          ~start:(Ochre.Decoration.pos (i * 10) 0)
+          ~end_:(Ochre.Decoration.pos (i * 10) 1)
+          ()
+    )
+  in
+  check_under ~seconds:10.0 "40k lines x 4k decorations" (fun () ->
+      let tokens =
+        Ochre.to_tokens hl ~decorations ~theme:Ochre.Theme.nord
+          ~lang:"plaintext" source
+      in
+      let decorated =
+        List.concat tokens
+        |> List.filter (fun (tok : Ochre.Token.styled_token) ->
+            tok.decoration <> None
+        )
+      in
+      Alcotest.(check int) "decorated tokens" count (List.length decorated)
+  )
+
+let test_multi_theme_transform_shape_mismatch () =
+  let hl = Lazy.force invalid_utf8_highlighter in
+  let split_light =
+    Ochre.Transform.make "split-by-colour"
+      ~after_line:(fun ~line_index:_ line ->
+        List.concat_map
+          (fun (tok : Ochre.Token.styled_token) ->
+            if
+              tok.foreground <> Some Ochre.Theme.dark.fg
+              && String.length tok.text > 1
+            then
+              [
+                { tok with text = String.sub tok.text 0 1 };
+                {
+                  tok with
+                  text = String.sub tok.text 1 (String.length tok.text - 1);
+                };
+              ]
+            else
+              [ tok ]
+          )
+          line
+    )
+  in
+  match
+    Ochre.to_html hl ~transforms:[ split_light ] ~theme:Ochre.Theme.dark
+      ~extra_themes:[ ("nord", Ochre.Theme.nord) ]
+      ~lang:"plaintext" "hello\n"
+  with
+  | _ ->
+      Alcotest.fail "expected Invalid_argument for differing token structure"
+  | exception Invalid_argument _ ->
+      ()
 
 let test_long_line_is_not_quadratic () =
   (* A single long line (e.g. "let x = 0 + 1 + ... + n") used to take
@@ -1365,6 +1639,8 @@ let () =
           test_case "Unicode scalar negative positions" `Quick
             test_decoration_unicode_negative_character;
           test_case "Invalid UTF-8" `Quick test_decoration_invalid_utf8;
+          test_case "Invalid UTF-8 counts one character per byte" `Quick
+            test_decoration_invalid_utf8_scalars;
           test_case "Invalid data key" `Quick test_decoration_invalid_data_key;
           test_case "Empty data key" `Quick test_decoration_empty_data_key;
           test_case "Overlapping decorations" `Quick test_decoration_overlapping;
@@ -1377,6 +1653,27 @@ let () =
         [
           test_case "Long single line tokenizes in near-linear time" `Quick
             test_long_line_is_not_quadratic;
+          test_case "Deep nesting resolves theme styles in time" `Quick
+            test_deep_nesting_theme_matching;
+          test_case "Many-part selector matches in time" `Quick
+            test_many_part_selector;
+          test_case "Decorations scale with lines plus decorations" `Quick
+            test_decorations_scale;
+        ]
+      );
+      ( "invalid utf-8",
+        [
+          test_case "Bytes are kept in token texts and renderers do not raise"
+            `Quick test_invalid_utf8_keeps_bytes;
+          test_case "Valid text around invalid bytes tokenizes normally" `Quick
+            test_invalid_utf8_does_not_split_valid_text;
+        ]
+      );
+      ( "theme matching",
+        [
+          test_case "Selector resolution" `Quick test_theme_selector_resolution;
+          test_case "Multi-theme shape mismatch raises Invalid_argument" `Quick
+            test_multi_theme_transform_shape_mismatch;
         ]
       );
     ]
