@@ -104,3 +104,38 @@ let test_tokenize_plist filename scope_name cases =
         (check_tokenize (read_plist filename) scope_name cases);
     ]
   )
+
+let spans line toks =
+  let _, rev =
+    List.fold_left
+      (fun (start, spans) tok ->
+        let ending = TmLanguage.ending tok in
+        ( ending,
+          ( String.sub line start (ending - start),
+            List.tl (List.rev (TmLanguage.scopes tok))
+          )
+          :: spans
+        )
+      )
+      (0, []) toks
+  in
+  List.rev rev
+
+let tokens grammar_jsons lines =
+  let t = TmLanguage.create () in
+  List.iter
+    (fun json ->
+      TmLanguage.add_grammar t
+        (TmLanguage.of_yojson_exn (Yojson.Basic.from_string json))
+    )
+    grammar_jsons;
+  let root = Option.get (TmLanguage.find_by_scope_name t "source.t") in
+  let _, rev =
+    List.fold_left
+      (fun (stack, acc) line ->
+        let toks, stack = TmLanguage.tokenize_exn t root stack line in
+        (stack, spans line toks :: acc)
+      )
+      (TmLanguage.empty, []) lines
+  in
+  List.rev rev

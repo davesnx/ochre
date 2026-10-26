@@ -116,25 +116,28 @@ exception Error of string
 (* As vscode-textmate's RegExpSource: [\z] becomes a pattern that only matches
    at the end of a line that does not end with a newline. *)
 let rewrite_end_of_text re =
-  let len = String.length re in
-  let buf = Buffer.create len in
-  let rec go i =
-    if i < len then
-      if re.[i] = '\\' && i + 1 < len then (
-        if re.[i + 1] = 'z' then
-          Buffer.add_string buf "$(?!\\n)(?<!\\n)"
-        else (
-          Buffer.add_char buf '\\';
-          Buffer.add_char buf re.[i + 1]
-        );
-        go (i + 2)
-      ) else (
-        Buffer.add_char buf re.[i];
-        go (i + 1)
-      )
-  in
-  go 0;
-  Buffer.contents buf
+  if not (String.contains re 'z') then
+    re
+  else
+    let len = String.length re in
+    let buf = Buffer.create len in
+    let rec go i =
+      if i < len then
+        if re.[i] = '\\' && i + 1 < len then (
+          if re.[i + 1] = 'z' then
+            Buffer.add_string buf "$(?!\\n)(?<!\\n)"
+          else (
+            Buffer.add_char buf '\\';
+            Buffer.add_char buf re.[i + 1]
+          );
+          go (i + 2)
+        ) else (
+          Buffer.add_char buf re.[i];
+          go (i + 1)
+        )
+    in
+    go 0;
+    Buffer.contents buf
 
 let compile_regex ?error_context re =
   (* TextMate/Oniguruma grammars routinely mix numbered groups with named

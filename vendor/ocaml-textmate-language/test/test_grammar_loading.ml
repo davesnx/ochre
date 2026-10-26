@@ -1,32 +1,4 @@
-let tokens grammar_json lines =
-  let t = TmLanguage.create () in
-  let grammar =
-    TmLanguage.of_yojson_exn (Yojson.Basic.from_string grammar_json)
-  in
-  TmLanguage.add_grammar t grammar;
-  let grammar = Option.get (TmLanguage.find_by_scope_name t "source.t") in
-  let _, rev =
-    List.fold_left
-      (fun (stack, acc) line ->
-        let toks, stack = TmLanguage.tokenize_exn t grammar stack line in
-        let _, spans =
-          List.fold_left
-            (fun (start, spans) tok ->
-              let e = TmLanguage.ending tok in
-              ( e,
-                ( String.sub line start (e - start),
-                  List.tl (List.rev (TmLanguage.scopes tok))
-                )
-                :: spans
-              )
-            )
-            (0, []) toks
-        in
-        (stack, spans @ acc)
-      )
-      (TmLanguage.empty, []) lines
-  in
-  List.rev rev
+let tokens grammar_json lines = List.concat (Util.tokens [ grammar_json ] lines)
 
 let scopes_testable = Alcotest.(list (pair string (list string)))
 

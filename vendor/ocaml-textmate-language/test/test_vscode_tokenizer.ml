@@ -1,16 +1,3 @@
-let strip_newline spans =
-  match List.rev spans with
-  | (text, scopes) :: rest ->
-      let text = String.sub text 0 (String.length text - 1) in
-      List.rev
-        ( if text = "" then
-            rest
-          else
-            (text, scopes) :: rest
-        )
-  | [] ->
-      []
-
 let merge spans =
   List.fold_left
     (fun acc (text, scopes) ->
@@ -23,40 +10,14 @@ let merge spans =
     [] spans
   |> List.rev
 
+let chomp line =
+  if String.ends_with ~suffix:"\n" line then
+    String.sub line 0 (String.length line - 1)
+  else
+    line
+
 let tokens grammars lines =
-  let t = TmLanguage.create () in
-  List.iter
-    (fun json ->
-      TmLanguage.add_grammar t
-        (TmLanguage.of_yojson_exn (Yojson.Basic.from_string json))
-    )
-    grammars;
-  let root = Option.get (TmLanguage.find_by_scope_name t "source.t") in
-  let spans line toks =
-    let _, spans =
-      List.fold_left
-        (fun (start, spans) tok ->
-          let ending = TmLanguage.ending tok in
-          ( ending,
-            ( String.sub line start (ending - start),
-              List.tl (List.rev (TmLanguage.scopes tok))
-            )
-            :: spans
-          )
-        )
-        (0, []) toks
-    in
-    List.rev spans
-  in
-  let _, rev =
-    List.fold_left
-      (fun (stack, acc) line ->
-        let toks, stack = TmLanguage.tokenize_exn t root stack line in
-        (stack, (spans line toks |> strip_newline |> merge) :: acc)
-      )
-      (TmLanguage.empty, []) lines
-  in
-  List.rev rev
+  List.map merge (Util.tokens grammars (List.map chomp lines))
 
 let lines_testable = Alcotest.(list (list (pair string (list string))))
 
