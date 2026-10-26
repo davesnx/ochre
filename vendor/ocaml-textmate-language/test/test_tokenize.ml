@@ -116,7 +116,7 @@ let check_end_pattern_g_anchor () =
       (4, [ "source.ganchor" ]);
       (5, [ "string.quoted.test"; "source.ganchor" ]);
       (6, [ "string.quoted.test"; "source.ganchor" ]);
-      (7, [ "string.quoted.test"; "string.quoted.test"; "source.ganchor" ]);
+      (7, [ "string.quoted.test"; "source.ganchor" ]);
       (8, [ "source.ganchor" ]);
       (10, [ "word.test"; "source.ganchor" ]);
     ]
@@ -132,9 +132,7 @@ let check_positive_g_anchor_fails_without_parent_anchor () =
   (* \G end pattern can't match without parent anchor, so string stays open *)
   Alcotest.(check (list (pair int (list string))))
     "positive \\G end fails without parent anchor"
-    [
-      (2, [ "string.quoted.test"; "string.quoted.test"; "source.ganchor.pos" ]);
-    ]
+    [ (2, [ "string.quoted.test"; "source.ganchor.pos" ]) ]
     (toks_to_list toks)
 
 let check_negative_g_anchor_matches_without_parent_anchor () =
@@ -150,7 +148,7 @@ let check_negative_g_anchor_matches_without_parent_anchor () =
   Alcotest.(check (list (pair int (list string))))
     "negative \\G end matches without parent anchor"
     [
-      (1, [ "string.quoted.test"; "string.quoted.test"; "source.ganchor.neg" ]);
+      (1, [ "string.quoted.test"; "source.ganchor.neg" ]);
       (2, [ "word.test"; "source.ganchor.neg" ]);
     ]
     (toks_to_list toks)
@@ -166,7 +164,7 @@ let check_parent_g_anchor_in_nested_patterns () =
         [ "punctuation.parenthesis.open"; "source.test-lang"; "source.tmtest" ]
       );
       (2, [ "keyword.control.test-lang"; "source.test-lang"; "source.tmtest" ]);
-      (4, [ "source.test-lang"; "source.test-lang"; "source.tmtest" ]);
+      (4, [ "source.test-lang"; "source.tmtest" ]);
     ]
     (toks_to_list toks)
 

@@ -25,7 +25,7 @@ Markdown inline link
     "("  punctuation.definition.metadata.markdown, meta.link.inline.markdown, meta.paragraph.markdown, text.html.markdown
     "http://x.com"  markup.underline.link.markdown, meta.link.inline.markdown, meta.paragraph.markdown, text.html.markdown
     ")"  punctuation.definition.metadata.markdown, meta.link.inline.markdown, meta.paragraph.markdown, text.html.markdown
-    "\n"  meta.paragraph.markdown, meta.paragraph.markdown, text.html.markdown
+    "\n"  meta.paragraph.markdown, text.html.markdown
 
 CSS rule
 
@@ -35,7 +35,7 @@ CSS rule
     "foo"  entity.other.attribute-name.class.css, meta.selector.css, source.css
     " "  source.css
     "{"  punctuation.section.property-list.begin.bracket.curly.css, meta.property-list.css, source.css
-    "\n"  meta.property-list.css, meta.property-list.css, source.css
+    "\n"  meta.property-list.css, source.css
   line 2:
     "  "  meta.property-list.css, source.css
     "color"  support.type.property-name.css, meta.property-name.css, meta.property-list.css, source.css
@@ -43,7 +43,7 @@ CSS rule
     " "  meta.property-list.css, source.css
     "red"  support.constant.color.w3c-standard-color-name.css, meta.property-value.css, meta.property-list.css, source.css
     ";"  punctuation.terminator.rule.css, meta.property-list.css, source.css
-    "\n"  meta.property-list.css, meta.property-list.css, source.css
+    "\n"  meta.property-list.css, source.css
   line 3:
     "}"  punctuation.section.property-list.end.bracket.curly.css, meta.property-list.css, source.css
     "\n"  source.css
