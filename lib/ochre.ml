@@ -88,12 +88,32 @@ let split_lines source =
         )
         parts
 
+let drop_last_char tokens =
+  match List.rev tokens with
+  | (text, scopes) :: rest ->
+      let text = String.sub text 0 (String.length text - 1) in
+      List.rev
+        ( if text = "" then
+            rest
+          else
+            (text, scopes) :: rest
+        )
+  | [] ->
+      []
+
 let tokenize_with_grammar tm_collection grammar source =
   let lines = split_lines source in
   let stack = ref TmLanguage.empty in
   let tokenized_lines =
     List.map
       (fun line ->
+        let added_newline = not (String.ends_with ~suffix:"\n" line) in
+        let line =
+          if added_newline then
+            line ^ "\n"
+          else
+            line
+        in
         let tokens, new_stack =
           TmLanguage.tokenize_exn tm_collection grammar !stack
             (Utf8.mask_invalid line)
@@ -109,7 +129,11 @@ let tokenize_with_grammar tm_collection grammar source =
               let scopes = TmLanguage.scopes tok in
               (text, scopes) :: extract_tokens ending rest
         in
-        extract_tokens 0 tokens
+        let tokens = extract_tokens 0 tokens in
+        if added_newline then
+          drop_last_char tokens
+        else
+          tokens
       )
       lines
   in
