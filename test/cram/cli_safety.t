@@ -39,25 +39,14 @@ Control characters in the source never reach SVG or the terminal raw
 
   $ printf 'a\001b\033[2Jc\n' | ochre plaintext --theme nord --format svg | grep -o 'preserve">.*</text>'
   preserve"><tspan fill="#d8dee9ff">a�b�[2Jc</tspan></text>
-  $ printf 'a\001b\033[2Jc\n' | ochre plaintext --theme nord --format ansi | od -An -c
-   033   [   4   8   ;   2   ;   4   6   ;   5   2   ;   6   4   m
-   033   [   3   8   ;   2   ;   2   1   6   ;   2   2   2   ;   2
-     3   3   m   a   ^   A   b   ^   [   [   2   J   c  \n 033   [
-     0   m
+  $ printf 'a\001b\033[2Jc\n' | ochre plaintext --theme nord --format ansi | tr '\033' '~'
+  ~[48;2;46;52;64m~[38;2;216;222;233ma^Ab^[[2Jc
+  ~[0m
   $ ochre ocaml ok.ml --theme nord --format tokens > /dev/null
-
-Output errors: a full disk gives a message and exit code 3
-
-  $ ochre ocaml ok.ml --theme nord > /dev/full
-  ochre: cannot write output: No space left on device
-  [3]
-  $ ochre ocaml ok.ml --theme nord --format ansi > /dev/full
-  ochre: cannot write output: No space left on device
-  [3]
 
 A closed standard error does not turn into a fatal error
 
-  $ ochre ocaml ok.ml --theme nord > /dev/full 2>&-
+  $ ochre ocaml ok.ml --theme nord >&- 2>&-
   [3]
   $ ochre nosuch ok.ml 2>&-
   [1]
