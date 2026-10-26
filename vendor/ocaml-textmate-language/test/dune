@@ -6,7 +6,8 @@
   test_csharp
   test_ocaml
   test_lenient_grammars
-  test_robust)
+  test_robust
+  test_grammar_loading)
  (modes native)
  (deps
   (glob_files data/*))
