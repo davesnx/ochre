@@ -1190,6 +1190,22 @@ let test_deep_nesting_theme_matching () =
           )
   )
 
+let test_long_nested_line_theme () =
+  let hl =
+    Ochre.load_exn [ ("yaml", Tm_grammars.yaml); ("json", Tm_grammars.json) ]
+  in
+  let source = String.make 40_000 '[' ^ "\n" in
+  List.iter
+    (fun lang ->
+      check_under ~seconds:2.0 (lang ^ " 40000 brackets") (fun () ->
+          ignore
+            ( Ochre.to_tokens hl ~theme:Ochre.Theme.nord ~lang source
+              : Ochre.Token.highlighted_code
+              )
+      )
+    )
+    [ "yaml"; "json" ]
+
 let test_many_part_selector () =
   let hl = Lazy.force invalid_utf8_highlighter in
   let nested n = String.make n '[' ^ "1" ^ String.make n ']' ^ "\n" in
@@ -1896,6 +1912,8 @@ let () =
             test_long_line_is_not_quadratic;
           test_case "Deep nesting resolves theme styles in time" `Quick
             test_deep_nesting_theme_matching;
+          test_case "Long nested line resolves theme styles in time" `Quick
+            test_long_nested_line_theme;
           test_case "Many-part selector matches in time" `Quick
             test_many_part_selector;
           test_case "Decorations scale with lines plus decorations" `Quick
