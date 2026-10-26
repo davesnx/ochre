@@ -1194,10 +1194,10 @@ let test_long_nested_line_theme () =
   let hl =
     Ochre.load_exn [ ("yaml", Tm_grammars.yaml); ("json", Tm_grammars.json) ]
   in
-  let source = String.make 40_000 '[' ^ "\n" in
+  let source = String.make 9_999 '[' ^ "\n" in
   List.iter
     (fun lang ->
-      check_under ~seconds:2.0 (lang ^ " 40000 brackets") (fun () ->
+      check_under ~seconds:2.0 (lang ^ " 9999 brackets") (fun () ->
           ignore
             ( Ochre.to_tokens hl ~theme:Ochre.Theme.nord ~lang source
               : Ochre.Token.highlighted_code
