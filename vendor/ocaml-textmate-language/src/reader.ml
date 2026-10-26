@@ -274,31 +274,7 @@ and patterns_of_plist obj =
           Scope_patterns child_patterns
     )
 
-let parse_injection_selector raw =
-  let s = String.trim raw in
-  if String.length s >= 2 && s.[0] = 'L' && s.[1] = ':' then
-    let rest = String.trim (String.sub s 2 (String.length s - 2)) in
-    {
-      selector_left = true;
-      selector_segments =
-        String.split_on_char ' ' rest
-        |> List.map String.trim
-        |> List.filter (fun x -> x <> "");
-    }
-  else
-    let rest =
-      if String.length s >= 2 && s.[0] = 'R' && s.[1] = ':' then
-        String.trim (String.sub s 2 (String.length s - 2))
-      else
-        s
-    in
-    {
-      selector_left = false;
-      selector_segments =
-        String.split_on_char ' ' rest
-        |> List.map String.trim
-        |> List.filter (fun x -> x <> "");
-    }
+let parse_injection_selector = Selector.parse
 
 let get_injections obj =
   match List.assoc_opt "injections" obj with
@@ -306,28 +282,23 @@ let get_injections obj =
       []
   | Some inj_obj ->
       let entries = get_dict inj_obj in
-      List.filter_map
+      List.concat_map
         (fun (selector_str, value) ->
-          let selector = parse_injection_selector selector_str in
-          if selector.selector_segments = [] then
-            None
-          else
-            let patterns =
-              let d = get_dict value in
-              match List.assoc_opt "patterns" d with
-              | None -> (
-                  match
-                    (List.assoc_opt "match" d, List.assoc_opt "begin" d)
-                  with
-                  | None, None ->
-                      []
-                  | _, _ ->
-                      [ patterns_of_plist d ]
-                )
-              | Some v ->
-                  get_pattern_list v
-            in
-            Some (selector, patterns)
+          let selectors = parse_injection_selector selector_str in
+          let patterns =
+            let d = get_dict value in
+            match List.assoc_opt "patterns" d with
+            | None -> (
+                match (List.assoc_opt "match" d, List.assoc_opt "begin" d) with
+                | None, None ->
+                    []
+                | _, _ ->
+                    [ patterns_of_plist d ]
+              )
+            | Some v ->
+                get_pattern_list v
+          in
+          List.map (fun selector -> (selector, patterns)) selectors
         )
         entries
 
@@ -385,7 +356,14 @@ let of_doc_exn (plist : union) =
     scope_name = get_string (find_exn "scopeName" obj);
     injection_selector;
     parsed_injection_selector =
-      Option.map parse_injection_selector injection_selector;
+      Option.fold ~none:[] ~some:parse_injection_selector injection_selector;
+    inject_to =
+      ( match List.assoc_opt "injectTo" obj with
+      | None ->
+          []
+      | Some v ->
+          get_list get_string v
+      );
     filetypes =
       ( match List.assoc_opt "fileTypes" obj with
       | None ->
