@@ -33,6 +33,7 @@ ochre LANG [FILE] [OPTION]...
 
 - `0` — success.
 - `1` — a user/input error: an invalid command line (unknown option, too many arguments, a missing required argument), an unresolvable language/theme/grammar, a malformed theme/grammar file, a missing input file, or any other error this CLI can name. Reported on standard error as `ochre: <message>`.
+- `3` — the output cannot be written to standard output (for example the disk is full, or standard output is closed). Reported on standard error as `ochre: cannot write output: <reason>`. When the reader of a pipe closes it early (EPIPE), ochre exits with this code and no message.
 - `124` — an option given a malformed value (wrong type, e.g. `--format`) or missing its required value (e.g. `--theme` with no argument).
 - `125` — an unexpected internal error (a bug — please report it).
 
