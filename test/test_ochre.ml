@@ -1199,7 +1199,7 @@ let test_long_nested_line_theme () =
     (fun lang ->
       check_under ~seconds:2.0 (lang ^ " 9999 brackets") (fun () ->
           ignore
-            ( Ochre.to_tokens hl ~theme:Ochre.Theme.nord ~lang source
+            ( Ochre.to_tokens hl ~theme:Ochre.Theme.dark ~lang source
               : Ochre.Token.highlighted_code
               )
       )
