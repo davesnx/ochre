@@ -23,6 +23,7 @@ type theme = {
 
 type loaded_theme_data = {
   name_opt : string option;
+  kind : string option;
   colors : (string * color) list;
   fg_legacy : color option;
   bg_legacy : color option;
@@ -44,13 +45,40 @@ let json_field key = function
   | _ ->
       None
 
+let is_valid_color color =
+  let is_hex c =
+    (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+  in
+  let length = String.length color in
+  length > 0
+  && color.[0] = '#'
+  && List.mem (length - 1) [ 3; 4; 6; 8 ]
+  && String.for_all is_hex (String.sub color 1 (length - 1))
+
+let strip_commas text =
+  let is_comma c = c = ',' in
+  let length = String.length text in
+  let first = ref 0 and last = ref length in
+  while !first < length && is_comma text.[!first] do
+    incr first
+  done;
+  while !last > !first && is_comma text.[!last - 1] do
+    decr last
+  done;
+  String.sub text !first (!last - !first)
+
 let parse_scope = function
   | `String s ->
-      [ s ]
-  | `List l ->
-      List.filter_map (function `String s -> Some s | _ -> None) l
+      Some (String.split_on_char ',' (strip_commas s))
+  | `List l -> (
+      match List.filter_map (function `String s -> Some s | _ -> None) l with
+      | [] ->
+          None
+      | scopes ->
+          Some scopes
+    )
   | _ ->
-      []
+      Some []
 
 let parse_font_style = function
   | "bold" ->
@@ -96,9 +124,7 @@ let parse_settings = function
         match json_field "fontStyle" json with
         | Some (`String s) ->
             parse_font_style_raw s
-        | Some _ ->
-            Some []
-        | None ->
+        | _ ->
             None
       in
       { foreground; background; font_style }
@@ -106,7 +132,7 @@ let parse_settings = function
       empty_settings
 
 let parse_token_color_rule = function
-  | `Assoc _ as json ->
+  | `Assoc _ as json -> (
       let name =
         match json_field "name" json with
         | Some (`String s) ->
@@ -119,16 +145,25 @@ let parse_token_color_rule = function
         | Some v ->
             parse_scope v
         | None ->
-            []
+            Some []
       in
       let settings =
         match json_field "settings" json with
+        | None
+        | Some `Null
+        | Some (`Bool false)
+        | Some (`Int 0)
+        | Some (`String "") ->
+            None
         | Some s ->
-            parse_settings s
-        | None ->
-            empty_settings
+            Some (parse_settings s)
       in
-      Some { name; scope; settings }
+      match (scope, settings) with
+      | Some scope, Some settings ->
+          Some { name; scope; settings }
+      | _ ->
+          None
+    )
   | _ ->
       (* Non-object entries in tokenColors are malformed; skip rather than fail
          because real-world themes sometimes include stray nulls or comments. *)
@@ -163,15 +198,27 @@ let assoc_color key colors =
   | None ->
       None
 
+let is_global_rule rule =
+  rule.scope = [] || List.exists (fun s -> String.trim s = "") rule.scope
+
 let resolve_defaults_from_scope_less token_colors =
+  let valid = function Some c when is_valid_color c -> Some c | _ -> None in
   List.fold_left
     (fun (fg, bg) rule ->
-      if rule.scope = [] then
+      if is_global_rule rule then
         let fg =
-          match rule.settings.foreground with Some c -> Some c | None -> fg
+          match valid rule.settings.foreground with
+          | Some c ->
+              Some c
+          | None ->
+              fg
         in
         let bg =
-          match rule.settings.background with Some c -> Some c | None -> bg
+          match valid rule.settings.background with
+          | Some c ->
+              Some c
+          | None ->
+              bg
         in
         (fg, bg)
       else
@@ -179,24 +226,31 @@ let resolve_defaults_from_scope_less token_colors =
     )
     (None, None) token_colors
 
-let resolve_color primary fallback default =
-  match primary with Some c -> c | None -> Option.value fallback ~default
+let fallback_colors = function
+  | Some "dark" ->
+      ("#bbbbbb", "#1e1e1e")
+  | Some "light" ->
+      ("#333333", "#fffffe")
+  | _ ->
+      ("#000000", "#ffffff")
 
-let finalize_theme ~name ~colors ~fg_legacy ~bg_legacy ~token_colors =
+let finalize_theme ~name ~kind ~colors ~fg_legacy ~bg_legacy ~token_colors =
   let defaults_fg, defaults_bg =
     resolve_defaults_from_scope_less token_colors
   in
+  let fallback_fg, fallback_bg = fallback_colors kind in
+  let first options fallback =
+    match List.find_map Fun.id options with Some c -> c | None -> fallback
+  in
   let fg =
-    resolve_color
-      (assoc_color "editor.foreground" colors)
-      (match fg_legacy with Some c -> Some c | None -> defaults_fg)
-      "#000000"
+    first
+      [ defaults_fg; fg_legacy; assoc_color "editor.foreground" colors ]
+      fallback_fg
   in
   let bg =
-    resolve_color
-      (assoc_color "editor.background" colors)
-      (match bg_legacy with Some c -> Some c | None -> defaults_bg)
-      "#ffffff"
+    first
+      [ defaults_bg; bg_legacy; assoc_color "editor.background" colors ]
+      fallback_bg
   in
   { name; colors; fg; bg; token_colors }
 
@@ -251,22 +305,31 @@ let parse_theme_fields ?base_dir json =
     | json_rules ->
         parse_rules_json json_rules
   in
-  (* Missing tokenColors is common in themes that rely entirely on "settings"
-     or inherit all rules via "include". Producing empty rules here is correct;
-     merge_loaded or settings_rules below will supply the actual rules. *)
+  (* Missing tokenColors is common in themes that inherit all rules via
+     "include". Producing empty rules here is correct; merge_loaded supplies
+     the actual rules. "settings" wins over "tokenColors", as in Shiki's
+     normalizeTheme. *)
   let token_colors =
-    match json_field "tokenColors" json with
-    | Some value ->
+    let falsy = function
+      | None
+      | Some `Null
+      | Some (`Bool false)
+      | Some (`Int 0)
+      | Some (`String "") ->
+          true
+      | _ ->
+          false
+    in
+    match (json_field "settings" json, json_field "tokenColors" json) with
+    | settings, _ when not (falsy settings) ->
+        load_rules_from_ref (Option.get settings)
+    | _, Some value ->
         load_rules_from_ref value
-    | None ->
+    | _, None ->
         []
   in
-  let settings_rules =
-    match json_field "settings" json with
-    | Some value ->
-        load_rules_from_ref value
-    | None ->
-        []
+  let kind =
+    match json_field "type" json with Some (`String s) -> Some s | _ -> None
   in
   let include_path =
     match json_field "include" json with
@@ -275,15 +338,7 @@ let parse_theme_fields ?base_dir json =
     | _ ->
         None
   in
-  ( {
-      name_opt;
-      colors;
-      fg_legacy;
-      bg_legacy;
-      token_colors = token_colors @ settings_rules;
-    },
-    include_path
-  )
+  ({ name_opt; kind; colors; fg_legacy; bg_legacy; token_colors }, include_path)
 
 let merge_loaded parent child =
   {
@@ -294,6 +349,7 @@ let merge_loaded parent child =
       | None ->
           parent.name_opt
       );
+    kind = (match child.kind with Some _ -> child.kind | None -> parent.kind);
     colors = merge_colors parent.colors child.colors;
     fg_legacy =
       ( match child.fg_legacy with
@@ -365,7 +421,13 @@ let rec load_theme_data_from_json ?base_dir ~visited json =
           load_theme_data_from_path ~visited:(resolved :: visited) resolved
         in
         merge_loaded parent local
-  | _ ->
+  | Some include_path, None ->
+      failwith
+        (Printf.sprintf
+           "theme includes %S but no base_dir was given to resolve it"
+           include_path
+        )
+  | None, _ ->
       local
 
 and load_theme_data_from_path ~visited path =
@@ -379,7 +441,8 @@ and load_theme_data_from_path ~visited path =
   load_theme_data_from_json ~base_dir:dir ~visited json
 
 let make ~name ?(colors = []) ~token_colors () =
-  finalize_theme ~name ~colors ~fg_legacy:None ~bg_legacy:None ~token_colors
+  finalize_theme ~name ~kind:None ~colors ~fg_legacy:None ~bg_legacy:None
+    ~token_colors
 
 let load_from_file_exn path =
   Exn_utils.wrap_exn (fun () ->
@@ -387,8 +450,9 @@ let load_from_file_exn path =
         load_theme_data_from_path ~visited:[ normalize_path path ] path
       in
       let name = Option.value data.name_opt ~default:(Filename.basename path) in
-      finalize_theme ~name ~colors:data.colors ~fg_legacy:data.fg_legacy
-        ~bg_legacy:data.bg_legacy ~token_colors:data.token_colors
+      finalize_theme ~name ~kind:data.kind ~colors:data.colors
+        ~fg_legacy:data.fg_legacy ~bg_legacy:data.bg_legacy
+        ~token_colors:data.token_colors
   )
 
 let load_from_file path =
@@ -403,8 +467,9 @@ let load_exn ?base_dir str =
       in
       let data = load_theme_data_from_json ?base_dir ~visited:[] json in
       let name = Option.value data.name_opt ~default:"unnamed" in
-      finalize_theme ~name ~colors:data.colors ~fg_legacy:data.fg_legacy
-        ~bg_legacy:data.bg_legacy ~token_colors:data.token_colors
+      finalize_theme ~name ~kind:data.kind ~colors:data.colors
+        ~fg_legacy:data.fg_legacy ~bg_legacy:data.bg_legacy
+        ~token_colors:data.token_colors
   )
 
 let load ?base_dir str =
