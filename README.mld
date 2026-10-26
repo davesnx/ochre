@@ -2,6 +2,8 @@
 
 A syntax highlighter for OCaml using TextMate grammars and themes, inspired by {{:https://shiki.style/} Shiki}.
 
+{image:docs/video/ochre-examples.gif}
+
 {1 Installation}
 
 {@bash[
@@ -47,8 +49,6 @@ Try every built-in theme with several grammars in the {{:https://davesnx.github.
 {- {b LaTeX} — [\textcolor] commands inside an [ochrehighlight] environment. Requires the [xcolor] and [soul] packages. See {{:https://davesnx.github.io/ochre/examples/latex-preview.pdf} rendered PDF} (source: {{:test/latex-preview.tex} .tex file}).}}
 
 All backends share the same interface: create a highlighter, pick a theme, and call the corresponding [to_*] function.
-
-{image:docs/video/ochre-examples.gif}
 
 {1 Documentation}
 
