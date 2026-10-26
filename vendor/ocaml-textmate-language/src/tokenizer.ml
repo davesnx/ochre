@@ -828,7 +828,7 @@ let end_of_line_scopes grammar stack =
   | [] ->
       frame_scopes grammar stack
   | se :: _ ->
-      add_scope se.stack_scopes se.stack_name
+      se.stack_scopes
 
 let rec match_line ~t ~state ~grammar ~stack ~anchor ~pos ~toks ~line rem_pats =
   let len = String.length line in
@@ -966,7 +966,9 @@ let rec match_line ~t ~state ~grammar ~stack ~anchor ~pos ~toks ~line rem_pats =
           (next_pats grammar stack_tail)
     | End, (Empty_match matched | Nonempty_match matched) ->
         let toks = emit_end_captures matched toks in
-        let toks = emit_scope_token scopes se.stack_name matched.end_ toks in
+        let toks =
+          emit_scope_token se.stack_prev_scopes se.stack_name matched.end_ toks
+        in
         match_line ~t ~state ~grammar ~stack:stack_tail
           ~anchor:(resume_anchor state.line_id se)
           ~pos:matched.end_ ~toks ~line
@@ -1087,9 +1089,9 @@ let tokenize_prefix ~time_limit t grammar stack line =
                 match
                   match_pattern state.clock se.stack_end_re line pos' anchor
                 with
-                | No_match | Empty_match _ ->
+                | No_match ->
                     loop (next_pos line pos')
-                | Nonempty_match matched ->
+                | Empty_match matched | Nonempty_match matched ->
                     let toks =
                       let toks =
                         if pos' > pos then
