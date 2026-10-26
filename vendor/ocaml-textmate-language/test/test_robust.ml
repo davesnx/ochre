@@ -344,11 +344,11 @@ let check_time_limit_bounds_scanning () =
   let line = String.make 9_000 ' ' ^ "\n" in
   within 5. (fun () -> ignore (tokenize_one loaded line))
 
-let check_rest_of_line_after_max_line_length () =
+let check_line_over_max_line_length_is_one_token () =
   let loaded =
     load
       (grammar_json
-         {|[{"begin":"\"","end":"\"","name":"string",
+         {|[{"begin":"\"","end":"\"|$","name":"string",
              "patterns":[{"match":"\\w+","name":"word"}]}]|}
       )
   in
@@ -356,31 +356,38 @@ let check_rest_of_line_after_max_line_length () =
     tokenize ~max_line_length:10 loaded TmLanguage.empty
       "\"aaa bbb ccc ddd eee fff\n"
   in
-  let last_text, last_scopes = List.nth first (List.length first - 1) in
-  Alcotest.(check string)
-    "the rest of the line is one token" "cc ddd eee fff\n" last_text;
+  Alcotest.(check int) "one token" 1 (List.length first);
   Alcotest.(check bool)
-    "with the scopes in force at the cut" true
-    (has "string" last_scopes && not (has "word" last_scopes));
-  let second, _ = tokenize loaded stack "end\" x\n" in
+    "with the scopes at the start of the line" true
+    (snd (List.hd first) = [ "source.t" ]);
+  let second, stack = tokenize loaded stack "\"x\" y\n" in
   Alcotest.(check bool)
-    "the next line starts from the state at the cut" true
-    (has "string" (scopes_of_text second "end"));
-  Alcotest.(check bool)
-    "and closes the string" false
-    (has "string" (scopes_of_text second " x\n"))
+    "the next line starts from the incoming state" true
+    (has "string" (scopes_of_text second "x")
+    && not (has "string" (scopes_of_text second " y\n"))
+    );
+  let third, _ =
+    tokenize ~max_line_length:10 loaded stack "\"aaa bbb ccc ddd\n"
+  in
+  Alcotest.(check int) "inside a string too" 1 (List.length third)
 
-let check_cut_is_on_a_character_boundary () =
-  let loaded = load (grammar_json {|[{"match":".","name":"c"}]|}) in
-  let line = String.concat "" (List.init 10 (fun _ -> "\xC3\xA9")) ^ "\n" in
-  let spans = tokenize ~max_line_length:5 loaded TmLanguage.empty line |> fst in
-  List.iter
-    (fun (text, _) ->
-      Alcotest.(check bool) "valid UTF-8 token" true (String.is_valid_utf_8 text)
-    )
-    spans;
-  Alcotest.(check int)
-    "two characters are tokenized, the rest is one token" 3 (List.length spans)
+let check_long_line_keeps_open_rule () =
+  let loaded =
+    load (grammar_json {|[{"begin":"\"","end":"\"","name":"string"}]|})
+  in
+  let _, stack = tokenize loaded TmLanguage.empty "x = \"abc\n" in
+  let long, stack =
+    tokenize ~max_line_length:10 loaded stack
+      "def\" ghi jkl mno pqr stu vwx\"\n"
+  in
+  Alcotest.(check int) "one token" 1 (List.length long);
+  Alcotest.(check bool)
+    "with the scopes in force at the start" true
+    (has "string" (snd (List.hd long)));
+  let next, _ = tokenize loaded stack "z\"\n" in
+  Alcotest.(check bool)
+    "state is unchanged by the long line" true
+    (has "string" (scopes_of_text next "z"))
 
 let nested_includes_grammar =
   {|{"scopeName":"source.t","patterns":[{"include":"#paren"}],
@@ -569,10 +576,10 @@ let () =
             check_pathological_line_is_bounded;
           Alcotest.test_case "Time limit bounds regex scanning" `Quick
             check_time_limit_bounds_scanning;
-          Alcotest.test_case "Rest of the line after max_line_length" `Quick
-            check_rest_of_line_after_max_line_length;
-          Alcotest.test_case "Cut on a character boundary" `Quick
-            check_cut_is_on_a_character_boundary;
+          Alcotest.test_case "Line over max_line_length is one token" `Quick
+            check_line_over_max_line_length_is_one_token;
+          Alcotest.test_case "Long line keeps the open rule" `Quick
+            check_long_line_keeps_open_rule;
           Alcotest.test_case "Time limit keeps while frames" `Quick
             check_time_limit_keeps_while_frames;
           Alcotest.test_case "Zero-width while keeps the frame" `Quick

@@ -144,18 +144,19 @@ val tokenize_exn :
     stops it some other way.
 
     The time spent on one line is bounded, so that no input can hang the
-    tokenizer. Two limits apply. Past either, the rest of the line becomes a
-    single token with the scopes in force at that point, and the returned
-    [stack] is the one in force there, so the next line starts from a consistent
-    state.
+    tokenizer. Two limits apply.
 
-    - [max_line_length] (default [10_000], at least [1]) is the number of bytes
-      of the line that are tokenized. A regex can take time that grows with the
-      square of the line, so only that prefix is matched. A line is cut at a
-      character boundary. This limit does not depend on the machine.
+    - [max_line_length] (default [10_000], at least [1]) is the length in bytes,
+      newline included, above which a line is not tokenized. As in vscode, the
+      line is returned as a single token with the scopes in force at its start,
+      and the returned [stack] is the incoming one, so the next line continues
+      as if this line had no effect. A rule that would end or begin on the line
+      does not fire. This limit does not depend on the machine.
     - [time_limit] (default [0.25] seconds) is the wall-clock time the regex
       matching of one line may take. It depends on the machine, but a line that
-      is ordinary code never gets near it. Pass [infinity] to remove it.
+      is ordinary code never gets near it. Past it, the rest of the line becomes
+      a single token with the scopes in force at that point, and the returned
+      [stack] is the one in force there. Pass [infinity] to remove it.
 
     A single regex call is not interrupted. Its cost is bounded by Oniguruma's
     own retry limit ([Oniguruma.set_retry_limit_in_match]). *)
