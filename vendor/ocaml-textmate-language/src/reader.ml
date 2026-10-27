@@ -307,8 +307,17 @@ let of_doc_exn (plist : union) =
     {
       repo_item_kind =
         ( match (List.assoc_opt "match" obj, List.assoc_opt "begin" obj) with
-        | None, None ->
-            Repo_patterns (get_patterns obj)
+        | None, None -> (
+            (* vscode-textmate's RuleFactory.getCompiledRuleId reads a bare
+               "include" with no "patterns" as [{include}]. *)
+            match
+              (List.assoc_opt "patterns" obj, List.assoc_opt "include" obj)
+            with
+            | None, Some inc ->
+                Repo_patterns [ patterns_of_plist [ ("include", inc) ] ]
+            | _ ->
+                Repo_patterns (get_patterns obj)
+          )
         | _, _ ->
             Repo_rule (patterns_of_plist obj)
         );

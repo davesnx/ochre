@@ -385,6 +385,49 @@ let rule_repository_is_not_for_captures =
     [ "<x>\n" ]
     [ [ ("<", []); ("x", [ "outer" ]); (">", []) ] ]
 
+let begin_with_only_missing_include_is_dropped =
+  check "a begin/end whose patterns are all unresolvable includes is dropped"
+    [
+      scoped
+      ^ {|"patterns":[{"begin":"x","end":"y","name":"blk",
+          "patterns":[{"include":"source.missing"}]},
+          {"match":"x","name":"m"}]}|};
+    ]
+    [ "x\n" ]
+    [ [ ("x", [ "m" ]) ] ]
+
+let begin_with_empty_patterns_is_kept =
+  check "a begin/end with an explicitly empty patterns list is kept"
+    [
+      scoped
+      ^ {|"patterns":[{"begin":"x","end":"y","name":"blk","patterns":[]},
+          {"match":"x","name":"m"}]}|};
+    ]
+    [ "x\n" ]
+    [ [ ("x", [ "blk" ]) ] ]
+
+let begin_with_some_resolvable_include_is_kept =
+  check
+    "a begin/end with one resolvable pattern beside a missing include is kept"
+    [
+      scoped
+      ^ {|"patterns":[{"begin":"x","end":"y","name":"blk",
+          "patterns":[{"include":"source.missing"},{"match":"z","name":"z"}]},
+          {"match":"x","name":"m"}]}|};
+    ]
+    [ "xz\n" ]
+    [ [ ("x", [ "blk" ]); ("z", [ "blk"; "z" ]) ] ]
+
+let repository_bare_include_is_followed =
+  check "a repository item that is only an include is followed"
+    [
+      scoped
+      ^ {|"patterns":[{"include":"#a"}],
+          "repository":{"a":{"include":"#b"},"b":{"match":"x","name":"m"}}}|};
+    ]
+    [ "x\n" ]
+    [ [ ("x", [ "m" ]) ] ]
+
 let long_line_leaves_next_line_state =
   Alcotest.test_case "a line over the cap leaves the next line's state alone"
     `Quick (fun () ->
@@ -446,6 +489,14 @@ let () =
       );
       ( "includes",
         [ capture_patterns_use_item_repository; include_scope_fragment ]
+      );
+      ( "dropped rules",
+        [
+          begin_with_only_missing_include_is_dropped;
+          begin_with_empty_patterns_is_kept;
+          begin_with_some_resolvable_include_is_kept;
+          repository_bare_include_is_followed;
+        ]
       );
       ( "base grammar",
         [

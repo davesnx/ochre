@@ -403,17 +403,18 @@ let check_nested_includes_scale_linearly () =
         (tokenize_one ~max_line_length:max_int ~time_limit:infinity loaded line)
   )
 
-let diamond_grammar depth =
+let diamond_grammar ?(top = {|{"include":"#r0"}|})
+    ?(bottom = {|{"match":"a","name":"found"}|}) depth =
   let entries =
     List.init depth (fun i ->
         Printf.sprintf
           {|"r%d":{"patterns":[{"include":"#r%d"},{"include":"#r%d"}]}|} i
           (i + 1) (i + 1)
     )
-    @ [ Printf.sprintf {|"r%d":{"match":"a","name":"found"}|} depth ]
+    @ [ Printf.sprintf {|"r%d":%s|} depth bottom ]
   in
-  Printf.sprintf
-    {|{"scopeName":"source.t","patterns":[{"include":"#r0"}],"repository":{%s}}|}
+  Printf.sprintf {|{"scopeName":"source.t","patterns":[%s],"repository":{%s}}|}
+    top
     (String.concat "," entries)
 
 let check_diamond_includes () =
@@ -423,6 +424,22 @@ let check_diamond_includes () =
       Alcotest.(check bool)
         "the rule at the bottom still matches" true
         (has "found" (scopes_of_text spans "a"))
+  )
+
+let check_dead_diamond_includes () =
+  let top =
+    {|{"begin":"a","end":"z","name":"dropped","patterns":[{"include":"#r0"}]},
+      {"match":"a","name":"found"}|}
+  in
+  let bottom = {|{"include":"source.missing"}|} in
+  let loaded = load (diamond_grammar ~top ~bottom 30) in
+  within 10. (fun () ->
+      let spans = tokenize_one loaded "a\n" in
+      Alcotest.(check bool)
+        "the rule with only a missing include is dropped" true
+        (has "found" (scopes_of_text spans "a")
+        && not (has "dropped" (scopes_of_text spans "a"))
+        )
   )
 
 let check_include_order () =
@@ -566,6 +583,8 @@ let () =
               check_loop_keeps_other_patterns;
             Alcotest.test_case "Diamond of includes" `Quick
               check_diamond_includes;
+            Alcotest.test_case "Diamond of includes to a missing grammar" `Quick
+              check_dead_diamond_includes;
             Alcotest.test_case "Includes keep their order" `Quick
               check_include_order;
           ]

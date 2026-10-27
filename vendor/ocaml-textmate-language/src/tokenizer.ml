@@ -539,6 +539,89 @@ let already_expanded seen expansion =
     false
   end
 
+let rec rule_kept ~t ~base_grammar ~dead visiting repos cur_grammar = function
+  | Match _ ->
+      true
+  | Delim d ->
+      not
+        (patterns_skipped ~t ~base_grammar ~dead visiting repos cur_grammar
+           d.delim_patterns
+        )
+  | Scope_patterns ps ->
+      not (patterns_skipped ~t ~base_grammar ~dead visiting repos cur_grammar ps)
+  | Include_scope name -> (
+      match find_by_scope_name t name with
+      | None ->
+          false
+      | Some g ->
+          grammar_kept ~t ~base_grammar ~dead visiting g
+    )
+  | Include_scope_rule { scope; rule } -> (
+      match find_by_scope_name t scope with
+      | None ->
+          false
+      | Some g ->
+          rule_kept ~t ~base_grammar ~dead visiting [ g.repository ] g
+            (Include_local rule)
+    )
+  | Include_base ->
+      grammar_kept ~t ~base_grammar ~dead visiting base_grammar
+  | Include_self ->
+      grammar_kept ~t ~base_grammar ~dead visiting cur_grammar
+  | Include_local key -> (
+      match find_nested key repos with
+      | None ->
+          false
+      | Some item ->
+          expansion_kept ~dead visiting (Expanding_item item) (fun visiting ->
+              match item.repo_item_kind with
+              | Repo_rule rule ->
+                  rule_kept ~t ~base_grammar ~dead visiting repos cur_grammar
+                    rule
+              | Repo_patterns pats ->
+                  not
+                    (patterns_skipped ~t ~base_grammar ~dead visiting
+                       (with_inner item.repo_inner repos)
+                       cur_grammar pats
+                    )
+          )
+    )
+
+and grammar_kept ~t ~base_grammar ~dead visiting g =
+  expansion_kept ~dead visiting (Expanding_patterns g) (fun visiting ->
+      not
+        (patterns_skipped ~t ~base_grammar ~dead visiting [ g.repository ] g
+           g.patterns
+        )
+  )
+
+(* A "dropped" result never depends on the cycle assumption (a cycle
+   counts as kept), so it is safe to reuse for the rest of the walk. *)
+and expansion_kept ~dead visiting expansion kept =
+  List.exists (same_expansion expansion) visiting
+  || (not (List.exists (same_expansion expansion) !dead))
+     && (kept (expansion :: visiting)
+        || begin
+          dead := expansion :: !dead;
+          false
+        end
+        )
+
+(* vscode-textmate's RuleFactory drops a begin/end, begin/while or
+   patterns-only rule from its parent's pattern list when it has a
+   non-empty "patterns" array and none of the entries compile to a rule
+   (an unresolvable include, or an entry itself dropped this way). *)
+and patterns_skipped ~t ~base_grammar ~dead visiting repos cur_grammar =
+  function
+  | [] ->
+      false
+  | pats ->
+      not
+        (List.exists
+           (rule_kept ~t ~base_grammar ~dead visiting repos cur_grammar)
+           pats
+        )
+
 let rec collect_candidates ~t ~base_grammar ?(seen = ref []) repos cur_grammar =
   function
   | [] ->
@@ -551,12 +634,21 @@ let rec collect_candidates ~t ~base_grammar ?(seen = ref []) repos cur_grammar =
       }
       :: collect_candidates ~t ~base_grammar ~seen repos cur_grammar pats
   | Delim d :: pats ->
-      {
-        candidate_kind = Candidate_delim d;
-        candidate_repos = repos;
-        candidate_grammar = cur_grammar;
-      }
-      :: collect_candidates ~t ~base_grammar ~seen repos cur_grammar pats
+      let rest =
+        collect_candidates ~t ~base_grammar ~seen repos cur_grammar pats
+      in
+      if
+        patterns_skipped ~t ~base_grammar ~dead:(ref []) [] repos cur_grammar
+          d.delim_patterns
+      then
+        rest
+      else
+        {
+          candidate_kind = Candidate_delim d;
+          candidate_repos = repos;
+          candidate_grammar = cur_grammar;
+        }
+        :: rest
   | Scope_patterns child_patterns :: pats ->
       let inner =
         collect_candidates ~t ~base_grammar ~seen repos cur_grammar
