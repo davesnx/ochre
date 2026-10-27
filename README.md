@@ -17,6 +17,7 @@ opam install ochre -y
 ```ocaml
 let theme = Ochre.Theme.nord in
 let highlighter = Ochre.load_from_files_exn ["path/to/ocaml.tmLanguage.json"] in
+let source_code = "..." in
 let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" source_code
 ```
 
