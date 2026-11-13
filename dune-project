@@ -65,7 +65,6 @@
     :with-test))
   (alcotest :with-test)
   (mlx :with-test)
-  (ocaml-lsp-server :with-dev-setup)
   (ocamlmerlin-mlx :with-dev-setup)
   (ocamlformat-mlx :with-dev-setup)
   (ocamlformat

@@ -77,6 +77,7 @@ create-switch: ## Create opam switch
 .PHONY: install
 install: ## Install opam dependencies
 	opam install . --deps-only --with-test --with-doc --with-dev-setup -y
+	opam install ocaml-lsp-server -y
 
 .PHONY: pin
 pin: ## Pin dependencies
