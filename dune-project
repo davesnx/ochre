@@ -45,7 +45,7 @@
   (tiny_httpd :with-test)
   (odoc
    (and
-    (>= 3.1.0)
+    (>= 3.2.0)
     :with-doc))
   (omd
    (and
@@ -90,5 +90,5 @@
   (alcotest :with-test)
   (odoc
    (and
-    (>= 3.1.0)
+    (>= 3.2.0)
     :with-doc))))

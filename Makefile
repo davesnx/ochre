@@ -79,13 +79,8 @@ install: ## Install opam dependencies
 	opam install . --deps-only --with-test --with-doc --with-dev-setup -y
 	opam install ocaml-lsp-server -y
 
-.PHONY: pin
-pin: ## Pin dependencies
-	opam pin odoc-parser https://github.com/davesnx/odoc.git#markdown-types -y
-	opam pin odoc https://github.com/davesnx/odoc.git#markdown-types -y
-
 .PHONY: init
-init: setup-githooks create-switch pin install ## Create a local dev environment
+init: setup-githooks create-switch install ## Create a local dev environment
 
 .PHONY: subst
 subst: ## Run dune substitute
