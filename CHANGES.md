@@ -5,7 +5,7 @@
 - Use the full Unicode 17.0 East Asian Width table (W and F) for SVG and LaTeX column widths, so emoji such as rockets and check marks take two cells, and more combining marks take none.
 - Find notation comments in any grammar whose root scope is `text.*` (plain text, Markdown, LaTeX, XML, and HTML text nodes), not only Markdown. All grammars share one opener list, which now includes `;;`, `%%`, `"`, `'`, and `*`, and an opener in prose must follow a blank or the line start.
 - Add `Ochre.is_plaintext_lang`, true for `"plaintext"`, `"text"`, and `"txt"`.
-- Fix an uncaught `Invalid_argument "String.sub / Bytes.sub"` when a grammar has a simple capture followed by a sibling capture with nested patterns, which crashed ordinary Markdown, CSS, Go, dotenv, and shellsession input.
+- Fix an uncaught `Invalid_argument "String.sub / Bytes.sub"` when a grammar has a simple capture followed by a sibling capture with nested patterns, which crashed ordinary Markdown, CSS (`.a { color: red; }`), Go, dotenv, shellsession, and OCaml attribute (`[@@deriving x]`) input.
 - Fix quadratic tokenization time on long lines. Tokenizing a line now takes time proportional to its length.
 - Fix the remaining `Invalid_argument "String.sub / Bytes.sub"` crashes on valid input: a zero-width match with captures past its end (JavaScript/TypeScript `export const`, `declare const`) and a capture nested inside a capture with patterns (Swift regex literals, C++ function definitions). Captures are now handled as vscode-textmate does, and `$N` references in rule and capture names are expanded.
 - Highlight source that is not valid UTF-8 instead of raising. Invalid bytes are kept byte for byte in token texts; the tokenizer sees each one as `_`. `Decoration.apply` counts each invalid byte as one character.
@@ -21,6 +21,7 @@
 - Keep decoration styles inline in `Css_classes` mode, where they were lost, and derive class names from an MD5 hash so different styles never share a class.
 - Exit with code `3` and a message when the output cannot be written (full disk, closed standard output), instead of a fatal uncaught exception. Name the path when an input is a directory.
 - Check the committed HTML, SVG, LaTeX, ANSI, and token previews in `dune build @runtest`, so that output changes are visible as test failures.
+- Run every grammar in `tm-grammars` on a shared set of samples in `dune build @runtest`, and fail when tokenizing raises or the token texts do not give back the source.
 - Escape decoration-supplied `class_`, `style`, and `data` values (and grammar scope names) before writing them into HTML/SVG attributes, closing an HTML/SVG injection hole for decorations built from untrusted strings.
 - Reject `Decoration.make ~data` keys that are not valid `data-*` attribute-name characters, instead of writing them unescaped into the attribute name.
 - Normalize `Html_options.make ~css_variable_prefix` to always end with `-`.

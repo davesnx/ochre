@@ -868,6 +868,91 @@ let test_invalid_utf8_does_not_split_valid_text () =
     (List.mem "\"\xff\"" texts || List.mem "\xff" texts);
   Alcotest.(check bool) "number after it is intact" true (List.mem "12" texts)
 
+let sweep_corpus =
+  [
+    "";
+    "a\n\n\n";
+    "no newline at the end";
+    ".a { color: red; }";
+    "type t = { id : string } [@@deriving codec]";
+    ".a { color: red; }\n\
+     #id > p::before { content: \"\\201C\"; }\n\
+     @media (min-width: 1px) { a:hover { x: 1 } }\n";
+    "type t = { id : string } [@@deriving codec]\nlet f x = x [@inline]\n";
+    "export const";
+    "declare const";
+    "/b/";
+    "inline t f(";
+    "export const x = 1;\ndeclare const y: number;\n";
+    "const re = /a(b|c)+\\/[^/]*/gi;\n\
+     let s = `t ${x} \\`` + 'q\\'' + \"d\\\"\";\n";
+    "int main() { return 0; }\n#define X(a) a + 1\n";
+    "# Title\n\n\
+     - [link](http://x.com) **b** _i_ `c`\n\n\
+     ```ocaml\n\
+     let x = 1\n\
+     ```\n";
+    "---\n\
+     title: x\n\
+     ---\n\
+     <div class=\"a\" id='b'>t &amp; <b>x</b></div>\n\
+     <!-- c -->\n\
+     <script>let a = 1 < 2;</script>\n\
+     <style>.a{color:red}</style>\n";
+    "cat <<EOF\nhello $USER\nEOF\nFOO=bar\nBAZ=\"quoted value\"\n$ echo hello\n";
+    "/* block\n\
+    \ comment */ // line\n\
+     # hash\n\
+     -- dash\n\
+     ; semi\n\
+     (* ml *) {- hs -} <!-- x -->\n";
+    "def f(a, *b, **c):\n\
+    \    \"\"\"doc\"\"\"\n\
+    \    return a @ b\n\
+     @decorator\n\
+     class C: pass\n";
+    "package main\n\
+     func (r *T) M() (int, error) { return 0, nil }\n\
+     fn main() -> Result<(), E> { println!(\"{}\", x?); }\n";
+    "{\"a\": [1, 2.5e-3, true, null], \"b\": {\"c\": \"\\u00e9\"}}\n";
+    "SELECT a, COUNT(*) FROM t WHERE x = 'y' -- c\n";
+    "line one\r\nline two\r\n";
+    "unterminated \"string\n(* open comment\n{ [ ( <";
+    "\t\tindent\n\
+    \    caf\xc3\xa9 \xe6\x97\xa5\xe6\x9c\xac \xf0\x9f\x9a\x80 \xce\xbb\n";
+    "\\begin{document}\\textbf{b} $x^2$ \\end{document}\n%% comment\n";
+    "<?php echo $x; ?>\n{{ var | filter }}\n{% if x %}y{% endif %}\n<%= x %>\n";
+    "x = r\"raw\\d\" + R\"(raw)\" + @\"verbatim\" + b'bytes' + 0x1F + 1_000 + \
+     3.14e+10\n";
+    "[section]\nkey = value\n[[array]]\nk: v\n- item\n  nested: |\n    block\n";
+    "#!/usr/bin/env node\n'use strict'\nimport { a as b } from \"m\";\n";
+    ";;;;}}}})))]]]>>>\"\"\"'''```\n";
+  ]
+
+let test_every_bundled_grammar_covers_the_source () =
+  let hl = Ochre.load_exn Tm_grammars.all in
+  let theme = Ochre.Theme.nord in
+  let failures =
+    List.concat_map
+      (fun (lang, _) ->
+        List.filter_map
+          (fun source ->
+            match tokens_text (Ochre.to_tokens hl ~theme ~lang source) with
+            | text when text = source ->
+                None
+            | text ->
+                Some (Printf.sprintf "%s %S: tokens give %S" lang source text)
+            | exception e ->
+                Some
+                  (Printf.sprintf "%s %S: %s" lang source (Printexc.to_string e))
+          )
+          sweep_corpus
+      )
+      Tm_grammars.all
+  in
+  Alcotest.(check (list string))
+    "every grammar tokenizes every sample into exactly its source" [] failures
+
 let styles_of ~theme ~lang source =
   let hl = Lazy.force invalid_utf8_highlighter in
   Ochre.to_tokens hl ~theme ~lang source
@@ -1835,6 +1920,8 @@ let () =
             test_plaintext_langs;
           test_case "Bundled grammars that used to fail to load" `Quick
             test_bundled_grammars_that_used_to_fail_to_load;
+          test_case "Every bundled grammar keeps the source text" `Quick
+            test_every_bundled_grammar_covers_the_source;
         ]
       );
       ( "errors",

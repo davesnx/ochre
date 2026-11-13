@@ -1,6 +1,6 @@
 Regression test for a tokenizer crash on ordinary input for several bundled
-grammars (markdown, css, go, dotenv, shellsession): a sibling capture pair
-where a simple (no nested patterns) capture is immediately followed by a
+grammars (markdown, css, go, dotenv, shellsession, ocaml): a sibling capture
+pair where a simple (no nested patterns) capture is immediately followed by a
 capture with nested patterns produced tokens out of position order, which
 crashed lib/ochre.ml's extract_tokens with
 `Invalid_argument("String.sub / Bytes.sub")`. These must now tokenize
@@ -102,3 +102,32 @@ shellsession
   line 2:
     "hello"  meta.output.shell-session, text.shell-session
     "\n"  text.shell-session
+
+OCaml attribute: a simple capture for `@@` followed by a capture with nested
+patterns for the attribute name
+
+  $ printf 'type t = { id : string } [@@deriving codec]\n' | ochre ocaml --theme nord --format tokens
+  line 1:
+    "type"  keyword.other.ocaml, source.ocaml
+    " "  source.ocaml
+    "t"  source.ocaml, source.ocaml
+    " "  source.ocaml
+    "="  keyword.operator.ocaml, source.ocaml
+    " "  source.ocaml
+    "{"  source.ocaml
+    " "  source.ocaml
+    "id"  source.ocaml, source.ocaml
+    " "  source.ocaml
+    ":"  punctuation.colon, punctuation.other.colon, keyword.other.ocaml, source.ocaml
+    " "  source.ocaml
+    "string"  support.type.ocaml, source.ocaml
+    " "  source.ocaml
+    "}"  source.ocaml
+    " "  source.ocaml
+    "["  source.ocaml
+    "@@"  keyword.operator.attribute.ocaml, source.ocaml
+    "deriving"  keyword.other.attribute.ocaml, source.ocaml
+    " "  source.ocaml
+    "codec"  source.ocaml, source.ocaml
+    "]"  source.ocaml
+    "\n"  source.ocaml
