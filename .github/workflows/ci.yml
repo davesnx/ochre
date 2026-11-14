@@ -47,9 +47,6 @@ jobs:
         uses: ml-in-barcelona/gh-ci-action@v1.2.0
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
-          pins: |
-            odoc-parser https://github.com/davesnx/odoc.git#markdown-types
-            odoc https://github.com/davesnx/odoc.git#markdown-types
           with-doc: true
           with-dev-setup: true
 

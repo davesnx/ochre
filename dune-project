@@ -45,7 +45,7 @@
   (tiny_httpd :with-test)
   (odoc
    (and
-    (>= 3.1.0)
+    (>= 3.2.0)
     :with-doc))
   (omd
    (and
@@ -65,7 +65,6 @@
     :with-test))
   (alcotest :with-test)
   (mlx :with-test)
-  (ocaml-lsp-server :with-dev-setup)
   (ocamlmerlin-mlx :with-dev-setup)
   (ocamlformat-mlx :with-dev-setup)
   (ocamlformat
@@ -91,5 +90,5 @@
   (alcotest :with-test)
   (odoc
    (and
-    (>= 3.1.0)
+    (>= 3.2.0)
     :with-doc))))
