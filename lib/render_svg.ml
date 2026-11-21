@@ -74,11 +74,6 @@ let render_token (token : styled_token) =
   else
     Printf.sprintf "<tspan %s>%s</tspan>" (String.concat " " attrs) text
 
-(* Each source line keeps its trailing '\n' as the last character of its last
-   token (see [Ochre.split_lines]). SVG already positions each line with its
-   own [y], so that newline is neither needed nor visible; keeping it would
-   both inflate the computed width and leave a literal newline inside a
-   [tspan]. Drop it, the way [render_latex]'s escaper drops embedded '\n'. *)
 let strip_trailing_newline line =
   match List.rev line with
   | [] ->

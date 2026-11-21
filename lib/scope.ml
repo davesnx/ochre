@@ -1,9 +1,3 @@
-(* Theme resolution follows vscode-textmate 9.2.0 [src/theme.ts]
-   (https://github.com/microsoft/vscode-textmate/blob/v9.2.0/src/theme.ts):
-   rules go into a trie keyed by scope segments, and a token's style is
-   folded from the outermost scope to the innermost one, each level keeping
-   the attributes its own match leaves unset. *)
-
 let split_on_spaces text =
   String.split_on_char ' ' text |> List.filter (fun s -> s <> "")
 
@@ -17,9 +11,6 @@ let scope_matches_selector_part scope selector_part =
     && String.starts_with ~prefix:selector_part scope
     && scope.[String.length selector_part] = '.'
 
-(* [parents] lists the selector's ancestor parts nearest first. A [">"] entry
-   follows the part it constrains and requires the next part to be the direct
-   parent. *)
 let rec parents_match up = function
   | [] ->
       true
@@ -422,11 +413,6 @@ let rec drop n stack =
   else
     drop (n - 1) (List.tl stack)
 
-(* Scope lists of consecutive tokens share their tails physically, so the
-   previous list's chain of nodes is reused when the new list differs from it
-   by at most [alignment_budget] elements on each side. Otherwise the whole
-   list is resolved again. Returns the number of new elements and the number of
-   stack entries to drop. *)
 let align stack scopes =
   let rec over_stack tail j = function
     | (l, _) :: rest when j < alignment_budget ->

@@ -35,12 +35,6 @@
    %{target}
    (run %{dep:test_latex.exe}))))
 
-; Each preview below is regenerated into a scratch `.gen` file and diffed
-; against the committed preview as part of `@runtest`, so a rendering change
-; that would leave a committed preview stale fails the build instead of
-; passing silently. Run `dune build @runtest --auto-promote` to update a
-; preview after an intentional rendering change.
-
 (rule
  (target latex-preview.tex.gen)
  (deps test_latex.exe)

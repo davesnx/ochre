@@ -16,7 +16,6 @@ let zero_width =
     (0xFEFF, 0xFEFF);
   ]
 
-(* Unicode 17.0 EastAsianWidth, values W and F. *)
 let wide =
   [
     (0x1100, 0x115F);

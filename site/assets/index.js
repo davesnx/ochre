@@ -65,7 +65,6 @@
     });
   }
 
-  // Mobile drawer: ARIA wiring, focus management, link-click close, Esc close.
   if (navToggle && sidebarEl && hamburgerLabel) {
     const syncDrawerAria = () => {
       const open = navToggle.checked;
@@ -80,7 +79,6 @@
       }
     };
 
-    // Make the label keyboard-activatable as a button.
     hamburgerLabel.setAttribute("role", "button");
     hamburgerLabel.setAttribute("tabindex", "0");
     syncDrawerAria();
@@ -95,16 +93,13 @@
 
     navToggle.addEventListener("change", syncDrawerAria);
 
-    // Close on Esc
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && navToggle.checked) {
         closeDrawer();
-        // Return focus to the hamburger
         hamburgerLabel.focus();
       }
     });
 
-    // Close on sidebar link click (so navigation feels right on mobile)
     sidebarEl.addEventListener("click", (event) => {
       const anchor = event.target?.closest?.("a[href]");
       if (anchor) {
@@ -112,7 +107,6 @@
       }
     });
 
-    // Close drawer when transitioning back to desktop width.
     const desktopMq = window.matchMedia("(min-width: 881px)");
     const onDesktopChange = () => {
       if (desktopMq.matches) closeDrawer();

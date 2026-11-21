@@ -5,8 +5,6 @@ type t = {
 
 type file_format = Json | Plist
 
-(* Yojson's own message already names the line/byte range; just fold its
-   embedded newline so the error reads as one line. *)
 let describe_json_error msg = String.map (function '\n' -> ' ' | c -> c) msg
 
 let lang_id_of_path path =

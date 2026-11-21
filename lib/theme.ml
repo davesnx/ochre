@@ -30,8 +30,6 @@ type loaded_theme_data = {
   token_colors : token_color_rule list;
 }
 
-(* Yojson's own message already names the line/byte range; just fold its
-   embedded newline so the error reads as one line. *)
 let describe_json_error msg = String.map (function '\n' -> ' ' | c -> c) msg
 
 let empty_settings = { foreground = None; background = None; font_style = None }
@@ -165,8 +163,6 @@ let parse_token_color_rule = function
           None
     )
   | _ ->
-      (* Non-object entries in tokenColors are malformed; skip rather than fail
-         because real-world themes sometimes include stray nulls or comments. *)
       None
 
 let parse_rules_json = function
@@ -261,9 +257,6 @@ let parse_theme_fields ?base_dir json =
   let colors =
     match json_field "colors" json with Some v -> parse_colors v | None -> []
   in
-  (* fg/bg fall back through "fg" -> "foreground" -> None. Non-string values
-     are ignored because some themes use objects or numbers here; the color
-     cascade in finalize_theme will supply a sensible default. *)
   let fg_legacy =
     match json_field "fg" json with
     | Some (`String s) ->
@@ -305,10 +298,6 @@ let parse_theme_fields ?base_dir json =
     | json_rules ->
         parse_rules_json json_rules
   in
-  (* Missing tokenColors is common in themes that inherit all rules via
-     "include". Producing empty rules here is correct; merge_loaded supplies
-     the actual rules. "settings" wins over "tokenColors", as in Shiki's
-     normalizeTheme. *)
   let token_colors =
     let falsy = function
       | None
@@ -368,8 +357,6 @@ let merge_loaded parent child =
     token_colors = parent.token_colors @ child.token_colors;
   }
 
-(* Lexical normalization so that cycle detection compares equal paths even when
-   includes are written with "." or ".." segments (e.g. "./a.json"). *)
 let normalize_path path =
   let absolute = not (Filename.is_relative path) in
   let resolved =

@@ -100,7 +100,6 @@ let () =
            ~lang:"test" "let x = 42"
         )
   | "themes-no-default" ->
-      (* omit ~theme, first entry in ~extra_themes becomes default *)
       print_endline
         (Ochre.to_html hl
            ~extra_themes:[ ("dark", theme) ]

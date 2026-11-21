@@ -1,4 +1,3 @@
-(* Sample OCaml code *)
 let rec factorial n =
   if n <= 1 then
     1
