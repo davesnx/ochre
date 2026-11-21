@@ -238,7 +238,6 @@ let themes =
     (fun name -> Option.map (fun t -> (name, t)) (Ochre.Theme.find name))
     Ochre.Theme.available_names
 
-(* Theme and grammar names use '-'; the matching OCaml values use '_'. *)
 let ocaml_ident name = String.map (function '-' -> '_' | c -> c) name
 
 let basename_exn path =
@@ -248,13 +247,10 @@ let basename_exn path =
   | None ->
       invalid_arg ("Expected a basename for path: " ^ Path.to_string path)
 
-(* Odoc also documents the vendored Oniguruma and TmLanguage libraries; only
-   the Ochre modules are public API. *)
 let is_api_source path =
   let name = basename_exn path in
   Path.has_extension "md" path && String.starts_with ~prefix:"Ochre" name
 
-(* "Ochre-Theme.md" -> "Ochre.Theme": keep the module path visible. *)
 let api_label source_name =
   Filename.remove_extension source_name
   |> String.map (function '-' -> '.' | c -> c)
@@ -277,7 +273,6 @@ let trim_trailing_newlines text =
   in
   String.sub text 0 (last (String.length text - 1) + 1)
 
-(* README code blocks follow the site light/dark toggle. *)
 let doc_light = Ochre.Theme.light
 let doc_dark = ("doc-dark", Ochre.Theme.gruvbox)
 
@@ -310,9 +305,6 @@ let code_figure ~label ~code () =
   in
   <figure class_="doc-code">(JSX.unsafe highlighted)</figure>
 
-(* Markdown links target GitHub paths (README.md, docs/*.md) or odoc pages
-   (./Ochre-Theme.md, ./#val-load). On the site they become site pages; other
-   repository paths go to GitHub. *)
 let resolve_url ~pages ~current ~attr url =
   let has prefix = String.starts_with ~prefix url in
   let drop prefix s =
@@ -329,7 +321,6 @@ let resolve_url ~pages ~current ~attr url =
     | None ->
         (url, "")
   in
-  (* Odoc markdown has no item anchors; "### load" headings get id="load". *)
   let fragment =
     Str.replace_first
       (Str.regexp "^#\\(val\\|type\\|exception\\|module\\)-")
@@ -402,8 +393,6 @@ let playground_html =
     |> List.map (fun (lang, _, source) -> block lang (highlight ~lang source))
     |> String.concat "\n"
   in
-  (* The theme id is only known in the browser, so each snippet is rendered
-     with a placeholder identifier that JS fills in. *)
   let placeholder = "theme_placeholder" in
   let snippets =
     languages
@@ -707,7 +696,6 @@ let write_pages pages source_files cache =
   in
   write_all cache pages
 
-(* Ochre.md first, then its submodules in alphabetical order. *)
 let compare_api left right =
   String.compare
     (String.lowercase_ascii (api_label (basename_exn left)))

@@ -94,8 +94,6 @@ let resolve_character boundaries_of pos =
   in
   line_boundaries.(character)
 
-(* Merge two decoration_properties, with later (b) overriding earlier (a)
-   for style; classes are space-concatenated; data is merged (b wins keys). *)
 let merge_properties (a : Token.decoration_properties)
     (b : Token.decoration_properties) : Token.decoration_properties =
   let class_ =
@@ -179,7 +177,6 @@ let apply_to_line ~line_idx ~source_lines ~boundaries_of decorations tokens =
           let tok_len = String.length tok.text in
           let tok_start = offset in
           let tok_end = offset + tok_len in
-          (* Collect all decorations that overlap this token *)
           let overlapping =
             List.filter (fun (s, e, _) -> s < tok_end && e > tok_start) relevant
           in

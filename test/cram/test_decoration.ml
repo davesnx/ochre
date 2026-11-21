@@ -75,7 +75,6 @@ let () =
       print_endline
         (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
   | "html-split" ->
-      (* Decorate "x =" which spans mid-token *)
       let source = "let x = 42" in
       let decorations =
         [
@@ -109,8 +108,6 @@ let () =
       print_endline
         (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
   | "html-escape" ->
-      (* class_, style, and a data value all carry characters that must not
-         reach the output unescaped, or they break out of the attribute. *)
       let source = "let x = 42" in
       let decorations =
         [

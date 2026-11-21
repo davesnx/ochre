@@ -33,8 +33,6 @@ let output_formats =
     (fun f -> (string_of_output_format f, f))
     [ Html; Ansi; Latex; Svg; Tokens ]
 
-(* Oniguruma defaults are 10_000_000 retries and an unlimited match stack. Both
-   limits are process-wide, so they are set once for every Ochre instance. *)
 let oniguruma_limits =
   lazy
     ( Oniguruma.set_retry_limit_in_match 1_000_000;

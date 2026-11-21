@@ -296,9 +296,6 @@ let () =
         print_endline
           (Ochre.to_html hl ~options ~decorations ~theme ~lang:"test" "let x")
     | "css-classes-collision" ->
-        (* The 31-bit DJB2 class naming gave one class to the keyword style
-         (background b6e40d, foreground 3e9765) and to the string style
-         (background 9f019e, foreground a851b9). *)
         let options =
           Ochre.Html_options.make
             ~style_mode:(Ochre.Html_options.Css_classes { class_prefix = "c-" })

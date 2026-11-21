@@ -59,8 +59,6 @@ let detect_theme_mode () =
         theme_mode_of_string (String.lowercase_ascii (String.trim value))
     )
   in
-  (* rxvt sets COLORFGBG to "fg;bg" with ANSI colour numbers. Vim reads
-     background 0-6 and 8 as dark, 7 and 9-15 as light. *)
   let from_colorfgbg () =
     let parse_bg value =
       let parts = String.split_on_char ';' value in
@@ -170,8 +168,6 @@ let resolve_theme ~theme_path ~theme_dark ~theme_light =
         )
     )
 
-(** When --format html and both --theme-light and --theme-dark are given
-    (without --theme), use multi-theme rendering with CSS custom properties. *)
 let resolve_multi_themes ~theme_path ~theme_dark ~theme_light ~format =
   match (format, theme_path, theme_light, theme_dark) with
   | Ochre.Html, None, Some light_name, Some dark_name -> (

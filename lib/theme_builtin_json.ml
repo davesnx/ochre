@@ -1,5 +1,3 @@
-(* Auto-generated from lib/themes/*.json. *)
-
 let dark_plus =
   "{\n\
   \    \"colors\": {\n\

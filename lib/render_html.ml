@@ -76,7 +76,6 @@ let props =
 
 let is_colour_prop prop = prop.kind = Colour || prop.css = "background-color"
 
-(** [prefix] ends with [-]. The variable a token reads, set by {!theme_css}. *)
 let read_var ~prefix prop =
   match prop.kind with
   | Colour ->
@@ -84,7 +83,6 @@ let read_var ~prefix prop =
   | Named name ->
       prefix ^ name
 
-(** The variable that holds one theme's value of [prop]. *)
 let theme_var ~prefix ~label prop =
   match prop.kind with
   | Colour ->
@@ -108,13 +106,6 @@ let token_style_to_css ~emit_default ~prefix theme token =
          props
       )
 
-(** The inline declarations that make a token follow every theme. A property is
-    needed when any theme gives the token a value for it. The token then reads
-    its variable, and every theme defines that variable, with the neutral value
-    where the theme has none, so no value leaks from one theme into another. The
-    primary theme reads from its own fallback, unless [emit_default] is false:
-    then it defines variables like the extra themes, and colours are left to the
-    page. *)
 let token_theme_declarations ~prefix ~emit_default ~label (theme, token) extras
     =
   let themed = (label, theme, token) :: extras in
@@ -166,9 +157,6 @@ let token_theme_declarations ~prefix ~emit_default ~label (theme, token) extras
 
 let escape_text = Escape.to_string Escape.html
 
-(** A carriage return directly before a line feed stays raw: an HTML parser
-    reads the pair as one newline. Any other carriage return is written as a
-    character reference, because a raw one would be read as a newline. *)
 let escape_token_text text =
   let escaped = escape_text text in
   let length = String.length escaped in
@@ -183,8 +171,6 @@ let escape_token_text text =
     escaped;
   Buffer.contents buf
 
-(** Moves a carriage return that ends a token into the token that starts with
-    the line feed, so the pair is never split between two elements. *)
 let rec join_crlf = function
   | (first : styled_token) :: (second : styled_token) :: rest
     when String.ends_with ~suffix:"\r" first.text
@@ -208,9 +194,6 @@ type class_registry = {
   mutable order : (string * string) list;
   prefix : string;
 }
-(** Registry for collecting style->class mappings during rendering. [table]
-    gives O(1) dedup lookup per token; [order] tracks insertion order for
-    {!collect_classes}. *)
 
 let create_registry prefix =
   let prefix =

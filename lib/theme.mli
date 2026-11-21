@@ -1,17 +1,5 @@
-(** Theme definitions for syntax highlighting.
-
-    A theme maps TextMate scopes to colors and font styles. Ochre ships with
-    several built-in themes and can load any VS Code / TextMate theme from JSON.
-*)
-
 type color = string
-(** {2 color}
 
-    Hex color string (e.g. ["#569cd6"]). *)
-
-(** {2 font_style}
-
-    Font style variants. *)
 type font_style = Token.font_style = Bold | Italic | Underline | Strikethrough
 
 type token_color_settings = {
@@ -19,20 +7,12 @@ type token_color_settings = {
   background : color option;
   font_style : font_style list option;
 }
-(** {2 token_color_settings}
-
-    Color and style settings resolved from a theme rule. *)
 
 type token_color_rule = {
   name : string option;
   scope : string list;
   settings : token_color_settings;
 }
-(** {2 token_color_rule}
-
-    A rule mapping TextMate scopes to visual settings. Each rule contains a list
-    of scope selectors and the styling to apply when a token matches one of
-    those selectors. *)
 
 type theme = {
   name : string;
@@ -41,89 +21,16 @@ type theme = {
   bg : color;
   token_colors : token_color_rule list;
 }
-(** {2 theme}
-
-    A loaded theme with default foreground/background colors and a list of token
-    coloring rules. *)
 
 val load : ?base_dir:string -> string -> (theme, string) result
-(** {2 load}
-
-    Load a theme from a raw JSON string.
-
-    When [~base_dir] is provided, ["include"] paths in the JSON are resolved
-    relative to that directory (same as {!val-load_from_file} does with the
-    file's parent directory). When omitted, a theme with an ["include"] field is
-    rejected.
-
-    Returns [Error msg] when the JSON is malformed or its ["include"] cannot be
-    resolved.
-
-    The default foreground and background come from a scope-less rule first,
-    then from ["editor.foreground"] and ["editor.background"], then from a
-    fallback chosen by the ["type"] field (["dark"] or ["light"]). When both
-    ["settings"] and ["tokenColors"] are present, only ["settings"] is used,
-    unless ["settings"] is null, false, [0] or [""].
-
-    Rule colors must be [#rgb], [#rgba], [#rrggbb] or [#rrggbbaa]. Other values
-    are ignored, so a rule with [~foreground:"red"] has no effect. A theme with
-    no ["type"], no scope-less rule and no ["editor.*"] colors falls back to
-    light defaults ([#000000] on [#ffffff]).
-
-    {[
-    let theme =
-      Theme.load
-        {|{
-        "name": "my-theme",
-        "colors": {
-          "editor.foreground": "#d4d4d4",
-          "editor.background": "#1e1e1e"
-        },
-        "tokenColors": [
-          { "scope": "comment",
-            "settings": { "foreground": "#6a9955", "fontStyle": "italic" } }
-        ]
-      }|}
-    ]} *)
 
 val is_valid_color : string -> bool
-(** {2 is_valid_color}
-
-    [true] for [#rgb], [#rgba], [#rrggbb] and [#rrggbbaa]. Rules whose colors
-    are not valid are applied without them. *)
 
 val load_exn : ?base_dir:string -> string -> theme
-(** {2 load_exn}
-
-    Like {!val-load} but raises [Failure] when the JSON is malformed or contains
-    invalid theme data. *)
 
 val load_from_file : string -> (theme, string) result
-(** {2 load_from_file}
-
-    Load a theme from a VS Code theme JSON file.
-
-    Falls back to the filename as the theme name when none is specified in the
-    JSON. Returns [Error msg] when the file cannot be read or contains invalid
-    JSON.
-
-    {[
-    match Theme.load_from_file "/path/to/theme.json" with
-    | Ok theme ->
-        theme
-    | Error msg ->
-        failwith msg
-    ]} *)
 
 val load_from_file_exn : string -> theme
-(** {2 load_from_file_exn}
-
-    Like {!val-load_from_file} but raises [Failure] when the file cannot be read
-    or contains invalid theme data.
-
-    {[
-    let theme = Theme.load_from_file_exn "/path/to/theme.json"
-    ]} *)
 
 val make :
   name:string ->
@@ -131,22 +38,6 @@ val make :
   token_colors:token_color_rule list ->
   unit ->
   theme
-(** {2 make}
-
-    Make a new TextMate-style theme from ordered token rules.
-
-    {[
-    let theme =
-      Theme.make ~name:"my-theme"
-        ~colors:
-          [ ("editor.foreground", "#d4d4d4"); ("editor.background", "#1e1e1e") ]
-        ~token_colors:
-          [
-            Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955" ();
-            Theme.rule ~scope:[ "keyword" ] ~foreground:"#569cd6" ();
-          ]
-        ()
-    ]} *)
 
 val rule :
   ?name:string ->
@@ -156,37 +47,12 @@ val rule :
   ?font_style:font_style list ->
   unit ->
   token_color_rule
-(** {2 rule}
-
-    Construct a token color rule.
-
-    Omitting [scope] creates a scope-less rule (often used for default text
-    styling in TextMate themes). Each entry of [scope] is one selector: it is
-    not split on commas. Omitting [font_style] means "not specified"; passing
-    [[]] clears inherited font styles.
-
-    {[
-    Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955" ~font_style:[ Italic ]
-      ()
-    ]} *)
 
 val available_names : string list
-(** {2 available_names}
-
-    Names of all built-in themes. *)
 
 val find : string -> theme option
-(** {2 find}
-
-    Look up a built-in theme by name. Returns [None] when the name is not
-    recognised. *)
 
 val themes : (string * theme) list
-(** {2 themes}
-
-    All built-in themes as [(name, theme)] pairs. *)
-
-(** {2 Built-in themes} *)
 
 val dark : theme
 val light : theme

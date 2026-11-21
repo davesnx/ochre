@@ -75,10 +75,6 @@ let scope_marker ?(background = "#ffff0033") scope_prefix =
         line
   )
 
-(* Notation transforms mirror Shiki's [createCommentNotationTransformer]: a
-   marker such as [[!code highlight]] must sit inside the last comment of a
-   line, and the comment goes away when nothing else is left in it. *)
-
 let block_comments =
   [ ("--[[", "]]"); ("<!--", "-->"); ("/*", "*/"); ("(*", "*)"); ("{-", "-}") ]
 
@@ -136,8 +132,6 @@ let body_length text =
   else
     n
 
-(** Applies [f] to the pieces of tokens inside the sorted, disjoint [ranges]; a
-    [None] drops the piece. One pass over the line. *)
 let edit_ranges line ranges f =
   let rec go offset ranges = function
     | [] ->
@@ -199,9 +193,6 @@ let is_comment tok = has_scope ~prefix:"comment" tok
 let has_root_scope ~prefix (tok : Token.styled_token) =
   List.exists (String.starts_with ~prefix) tok.scopes
 
-(** Plain text and markup grammars (root scope [text.*]) give no comment scopes
-    for the prose between tags, so there a comment is found from its opener.
-    Code grammars must mark their comments. *)
 let is_prose (tok : Token.styled_token) =
   tok.scopes = []
   || has_root_scope ~prefix:"text." tok
@@ -221,8 +212,6 @@ type context = {
   mutable last_opener : int array option;
   closers : (string, int * int option) Hashtbl.t;
 }
-(** What the notation scan needs to know about one line, built once, after a
-    marker was seen on it. *)
 
 let make_context line =
   let tokens = Array.of_list line in
@@ -287,7 +276,6 @@ let holder ctx position =
     Some !low
   )
 
-(** For each offset, the start of the last line-comment opener before it. *)
 let last_opener ctx =
   match ctx.last_opener with
   | Some table ->
@@ -359,10 +347,6 @@ type comment = {
   stop : int;
 }
 
-(** The comment of the line that holds [position] and ends the line, as Shiki
-    sees it: a block comment must close at the end of the line, any other
-    comment runs to the end. Text that is not in a comment token is never part
-    of it, except in plain text and Markdown. *)
 let comment_around ctx position =
   let text = ctx.text and stop = ctx.stop in
   let start =
@@ -426,9 +410,6 @@ type 'a marker = {
   deletion : (int * int) option;
 }
 
-(** The marker that [parse] reads in the comment that ends [line].
-    [parse text i] reads a marker that starts at [i] and gives its end, a
-    payload and the optional number of lines. *)
 let find_marker ~parse line =
   let text = line_text line in
   match find_from text 0 "[!code " with

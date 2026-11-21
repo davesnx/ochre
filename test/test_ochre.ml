@@ -401,7 +401,6 @@ let test_decoration_empty_passthrough () =
       Alcotest.fail "expected 1 line with 1 token"
 
 let test_decoration_whole_token () =
-  (* Decorate "hello" (chars 0-5) which is exactly one token *)
   let tokens = [ [ make_tok "hello" ] ] in
   let d =
     Ochre.Decoration.make ~class_:"hl" ~start:(Ochre.Decoration.pos 0 0)
@@ -421,7 +420,6 @@ let test_decoration_whole_token () =
       Alcotest.fail "expected 1 line with 1 token"
 
 let test_decoration_token_splitting () =
-  (* Source: "console.log" as a single token. Decorate chars 0-7 ("console") *)
   let tokens = [ [ make_tok "console.log" ] ] in
   let d =
     Ochre.Decoration.make ~class_:"target" ~start:(Ochre.Decoration.pos 0 0)
@@ -456,7 +454,6 @@ let test_decoration_token_splitting () =
       Alcotest.fail "expected 1 line"
 
 let test_decoration_mid_token_split () =
-  (* Source: "abcdef" as one token. Decorate chars 2-4 ("cd") *)
   let tokens = [ [ make_tok "abcdef" ] ] in
   let d =
     Ochre.Decoration.make ~class_:"mid" ~start:(Ochre.Decoration.pos 0 2)
@@ -484,7 +481,6 @@ let test_decoration_mid_token_split () =
       Alcotest.fail "expected 1 line"
 
 let test_decoration_multi_token () =
-  (* Source: "let x" = two tokens "let" + " x". Decorate chars 0-5 (all) *)
   let tokens = [ [ make_tok "let"; make_tok " x" ] ] in
   let d =
     Ochre.Decoration.make ~class_:"all" ~start:(Ochre.Decoration.pos 0 0)
@@ -506,8 +502,6 @@ let test_decoration_multi_token () =
       Alcotest.fail "expected 1 line with 2 tokens"
 
 let test_decoration_negative_character () =
-  (* Source: "hello\nworld". Decorate line 0, chars 0 to -1 (whole line content,
-     not including newline). -1 resolves to character 5 for a 5-char line. *)
   let tokens =
     [ [ make_tok "hello"; make_tok "\n" ]; [ make_tok "world"; make_tok "\n" ] ]
   in
@@ -519,7 +513,6 @@ let test_decoration_negative_character () =
   let result = Ochre.Decoration.apply ~source:"hello\nworld" [ d ] tokens in
   match result with
   | [ line0; line1 ] ->
-      (* "hello" should be decorated, "\n" should not *)
       let hello = List.nth line0 0 in
       let newline = List.nth line0 1 in
       ( match hello.decoration with
@@ -617,8 +610,6 @@ let test_decoration_invalid_utf8_scalars () =
     "invalid byte is one character" [ "\255" ] texts
 
 let test_decoration_invalid_data_key () =
-  (* A data key becomes part of a data-* attribute name, so characters that
-     would break out of it must be rejected at construction time. *)
   try
     ignore
       (Ochre.Decoration.make
@@ -639,7 +630,6 @@ let test_decoration_empty_data_key () =
   with Invalid_argument _ -> ()
 
 let test_decoration_overlapping () =
-  (* Source: "abcd". Two decorations overlap on "bc" *)
   let tokens = [ [ make_tok "abcd" ] ] in
   let d1 =
     Ochre.Decoration.make ~class_:"first" ~start:(Ochre.Decoration.pos 0 0)
@@ -652,7 +642,6 @@ let test_decoration_overlapping () =
   let result = Ochre.Decoration.apply ~source:"abcd" [ d1; d2 ] tokens in
   match result with
   | [ toks ] -> (
-      (* Should have splits: "a" (first only), "bc" (both), "d" (second only) *)
       Alcotest.(check int) "3 fragments" 3 (List.length toks);
       let t1 = List.nth toks 0 in
       let t2 = List.nth toks 1 in
@@ -660,14 +649,12 @@ let test_decoration_overlapping () =
       Alcotest.(check string) "frag1" "a" t1.text;
       Alcotest.(check string) "frag2" "bc" t2.text;
       Alcotest.(check string) "frag3" "d" t3.text;
-      (* "a" should have class "first" only *)
       ( match t1.decoration with
       | Some dec ->
           Alcotest.(check (option string)) "a class" (Some "first") dec.class_
       | None ->
           Alcotest.fail "a should be decorated"
       );
-      (* "bc" should have both classes merged *)
       ( match t2.decoration with
       | Some dec ->
           Alcotest.(check (option string))
@@ -675,7 +662,6 @@ let test_decoration_overlapping () =
       | None ->
           Alcotest.fail "bc should be decorated"
       );
-      (* "d" should have class "second" only *)
       match t3.decoration with
       | Some dec ->
           Alcotest.(check (option string)) "d class" (Some "second") dec.class_
@@ -686,7 +672,6 @@ let test_decoration_overlapping () =
       Alcotest.fail "expected 1 line"
 
 let test_decoration_multiline () =
-  (* Source: "ab\ncd". Decoration spans from line 0 char 1 to line 1 char 1 *)
   let tokens =
     [ [ make_tok "ab"; make_tok "\n" ]; [ make_tok "cd"; make_tok "\n" ] ]
   in
@@ -697,7 +682,6 @@ let test_decoration_multiline () =
   let result = Ochre.Decoration.apply ~source:"ab\ncd" [ d ] tokens in
   match result with
   | [ line0; line1 ] ->
-      (* Line 0: "a" (not decorated), "b" (decorated), "\n" (decorated) *)
       let l0_texts =
         List.map (fun (t : Ochre.Token.styled_token) -> t.text) line0
       in
@@ -712,7 +696,6 @@ let test_decoration_multiline () =
       | None ->
           Alcotest.fail "b should be decorated"
       );
-      (* Line 1: "c" (decorated), "d" (not decorated), "\n" (not decorated) *)
       let l1_texts =
         List.map (fun (t : Ochre.Token.styled_token) -> t.text) line1
       in
@@ -1379,16 +1362,6 @@ let test_multi_theme_transform_shape_mismatch () =
       ()
 
 let test_long_line_is_not_quadratic () =
-  (* A single long line (e.g. "let x = 0 + 1 + ... + n") used to take
-     quadratic time to tokenize: each doubling of the line's length
-     roughly quadrupled the time, because the tokenizer repeatedly asked
-     Oniguruma to search a wide window for a match at every character
-     position instead of just checking the one position it actually
-     needed. Doubling the input should now roughly double the time; allow
-     up to 3x to stay robust on a noisy/slow CI machine while still
-     failing loudly if the quadratic behavior comes back (which would
-     show roughly 4x). Take the minimum of a few trials per size to avoid
-     a stray GC pause or scheduler hiccup inflating one measurement. *)
   let hl = Ochre.load_exn [ ("ocaml", Tm_grammars.ocaml) ] in
   let time_for n =
     let source = long_arithmetic_line n in
@@ -1420,7 +1393,6 @@ let make_comment text =
   }
 
 let test_notation_highlight_basic () =
-  (* Simulate: "let x = 42 # [!code highlight]\n" *)
   let doc =
     [
       [
@@ -1438,7 +1410,6 @@ let test_notation_highlight_basic () =
   let result = Ochre.Transform.run transforms doc in
   match result with
   | [ line0; line1 ] ->
-      (* Line 0: all tokens should have background, comment removed *)
       List.iter
         (fun (tok : Ochre.Token.styled_token) ->
           if String.trim tok.text <> "" && tok.text <> "\n" then
@@ -1447,7 +1418,6 @@ let test_notation_highlight_basic () =
               (Some "#8888883a") tok.background
         )
         line0;
-      (* Verify the comment token is removed *)
       let texts =
         List.map (fun (t : Ochre.Token.styled_token) -> t.text) line0
       in
@@ -1455,7 +1425,6 @@ let test_notation_highlight_basic () =
         "comment removed"
         (not (List.exists (fun t -> String.length t > 0 && t.[0] = '#') texts))
         true;
-      (* Line 1: no background *)
       List.iter
         (fun (tok : Ochre.Token.styled_token) ->
           Alcotest.(check (option string))
@@ -1478,7 +1447,6 @@ let test_notation_highlight_no_match () =
       Alcotest.fail "expected 1 line with 2 tokens"
 
 let test_notation_diff_add () =
-  (* Line with [!code ++] should get green background *)
   let doc =
     [
       [
@@ -1512,7 +1480,6 @@ let test_notation_diff_add () =
       Alcotest.fail "expected 1 line"
 
 let test_notation_diff_remove () =
-  (* Line with [!code --] should get red background *)
   let doc =
     [
       [
@@ -1549,7 +1516,6 @@ let test_notation_diff_no_match () =
       Alcotest.fail "expected 1 line"
 
 let test_notation_word_highlight_basic () =
-  (* "let x = 42 # [!code word:x]" - "x" in " x = " should be highlighted *)
   let doc =
     [
       [
@@ -1566,7 +1532,6 @@ let test_notation_word_highlight_basic () =
   let result = Ochre.Transform.run transforms doc in
   match result with
   | [ line ] ->
-      (* Find the "x" token - it should be highlighted *)
       let x_tokens =
         List.filter (fun (t : Ochre.Token.styled_token) -> t.text = "x") line
       in
@@ -1580,7 +1545,6 @@ let test_notation_word_highlight_basic () =
             (List.mem Ochre.Token.Bold tok.font_style)
         )
         x_tokens;
-      (* Verify the comment is removed *)
       let has_comment =
         List.exists
           (fun (t : Ochre.Token.styled_token) ->
@@ -1622,7 +1586,6 @@ let test_notation_highlight_with_highlighter () =
   let tokens = Ochre.to_tokens hl ~transforms ~theme ~lang:"test" source in
   match tokens with
   | [ line0; line1 ] ->
-      (* Line 0: highlighted *)
       let visible0 =
         List.filter
           (fun (t : Ochre.Token.styled_token) ->
@@ -1637,7 +1600,6 @@ let test_notation_highlight_with_highlighter () =
             (Some "#8888883a") tok.background
         )
         visible0;
-      (* Verify no comment token in output *)
       let all_texts =
         List.map (fun (t : Ochre.Token.styled_token) -> t.text) line0
       in
@@ -1653,7 +1615,6 @@ let test_notation_highlight_with_highlighter () =
            )
         )
         true;
-      (* Line 1: not highlighted *)
       List.iter
         (fun (tok : Ochre.Token.styled_token) ->
           if String.trim tok.text <> "" && tok.text <> "\n" then
@@ -1820,15 +1781,6 @@ let test_load_rejects_duplicate_ids () =
   | Ok _ ->
       Alcotest.fail "expected duplicate language id to be rejected"
 
-(* Nine bundled tm-grammars grammars used to fail to load at all
-   (`Ochre.load` returned `Error`): blade, codeql, d, move, racket, stata,
-   wikitext and xml had a malformed rule that the parser rejected outright,
-   and swift's regex-literal-callout rule used a numbered subroutine call
-   next to named groups, which the vendored Oniguruma binding rejected.
-   vscode-textmate tolerates all of these; see vendor/ocaml-textmate-
-   language/src/reader.ml and src/common.ml for the matching fixes. This
-   locks in that every one of them now loads and tokenizes a small sample
-   without losing or duplicating any source text. *)
 let test_bundled_grammars_that_used_to_fail_to_load () =
   let theme = Ochre.Theme.dark in
   List.iter
