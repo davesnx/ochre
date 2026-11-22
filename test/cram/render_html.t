@@ -162,3 +162,13 @@ style from another gets a class
   .s-b15f3da5ff0399f1 { color:var(--ochre,#112233) }
   .s-72d0165d983a2819 { font-style:var(--ochre-font-style,italic);color:var(--ochre,#112233) }
   .s-232033c531ff619a { color:var(--ochre,#d4d4d4) }
+
+Without tokens, the theme stylesheet also has a rule for every class of code
+changed by transforms
+  $ ./test_render_html.exe theme-css-covers-transforms
+  dark-plus: every class has a rule
+  dark-plus: font-weight:var(--ochre-font-weight,bold) kept inline
+  dark-plus: background-color:var(--ochre-token-bg,#8888883a) kept inline
+  nord: every class has a rule
+  nord: font-weight:var(--ochre-font-weight,bold) kept inline
+  nord: background-color:var(--ochre-token-bg,#8888883a) kept inline

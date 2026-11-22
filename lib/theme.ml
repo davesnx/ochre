@@ -473,6 +473,7 @@ let default =
         rule ~scope:[ "constant.numeric" ] ~foreground:"#B5CEA8" ();
         rule ~scope:[ "keyword"; "storage.type" ] ~foreground:"#569CD6" ();
         rule ~scope:[ "keyword.control" ] ~foreground:"#C586C0" ();
+        rule ~scope:[ "keyword.operator" ] ~foreground:"#D4D4D4" ();
         rule ~scope:[ "entity.name.function" ] ~foreground:"#DCDCAA" ();
         rule ~scope:[ "entity.name.type" ] ~foreground:"#4EC9B0" ();
         rule ~scope:[ "variable" ] ~foreground:"#9CDCFE" ();

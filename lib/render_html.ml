@@ -193,9 +193,18 @@ type class_registry = {
   table : (string, string) Hashtbl.t;
   mutable order : (string * string) list;
   prefix : string;
+  themed : string -> bool;
 }
 
-let create_registry prefix =
+let theme_styles ~prefix (theme : Theme.theme) =
+  Scope.styles theme.token_colors
+  |> List.map (fun settings ->
+      Scope.styled_token theme ~text:"" ~scopes:[] (Some settings)
+  )
+  |> List.sort compare
+  |> List.map (token_style_to_css ~emit_default:true ~prefix theme)
+
+let create_registry ?(themed = fun _ -> true) prefix =
   let prefix =
     match prefix with
     | "" ->
@@ -207,7 +216,7 @@ let create_registry prefix =
     | p ->
         p
   in
-  { table = Hashtbl.create 16; order = []; prefix }
+  { table = Hashtbl.create 16; order = []; prefix; themed }
 
 let class_for_style registry style =
   match Hashtbl.find_opt registry.table style with
@@ -257,7 +266,7 @@ let render_span_attrs ~options ~registry ~style ~extra_style decoration scopes =
   in
   let class_style, inline_style =
     match (options.style_mode, registry) with
-    | Css_classes _, Some reg when style <> "" ->
+    | Css_classes _, Some reg when style <> "" && reg.themed style ->
         ( Some (class_for_style reg style),
           join_styles [ extra_style; decoration_style ]
         )
@@ -400,7 +409,17 @@ let render ?(options = Html_options.default) ?label theme ?(extra_themes = [])
   let registry =
     match options.style_mode with
     | Html_options.Css_classes { class_prefix } ->
-        Some (create_registry class_prefix)
+        let styles =
+          lazy
+            (let table = Hashtbl.create 64 in
+             List.iter
+               (fun style -> Hashtbl.replace table style ())
+               (theme_styles ~prefix theme);
+             table
+            )
+        in
+        let themed style = Hashtbl.mem (Lazy.force styles) style in
+        Some (create_registry ~themed class_prefix)
     | Html_options.Inline_styles ->
         None
   in
@@ -561,11 +580,9 @@ let render_theme_css ?(css_variable_prefix = "--ochre-") ~class_prefix ?code
   | Some code ->
       List.iter (List.iter register) code
   | None ->
-      Scope.styles theme.token_colors
-      |> List.map (fun settings ->
-          Scope.styled_token theme ~text:"" ~scopes:[] (Some settings)
-      )
-      |> List.sort compare |> List.iter register
+      List.iter
+        (fun style -> if style <> "" then ignore (class_for_style reg style))
+        (theme_styles ~prefix theme)
   );
   let buf = Buffer.create 512 in
   let declarations =
