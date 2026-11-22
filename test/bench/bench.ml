@@ -1,4 +1,4 @@
-let passes_per_run = 20
+let target_bytes_per_run = 300_000
 
 let median xs =
   let sorted = List.sort Float.compare xs in
@@ -79,18 +79,23 @@ let () =
         )
   in
   List.iter (fun (_, grammar, lines) -> tokenize grammar lines) samples;
+  let passes lines =
+    let bytes = List.fold_left (fun n line -> n + String.length line) 0 lines in
+    max 1 (target_bytes_per_run / max 1 bytes)
+  in
   let time_sample (_, grammar, lines) =
     let start = Unix.gettimeofday () in
-    for _ = 1 to passes_per_run do
+    for _ = 1 to passes lines do
       tokenize grammar lines
     done;
     Unix.gettimeofday () -. start
   in
   let runs = List.init runs (fun _ -> List.map time_sample samples) in
   List.iteri
-    (fun i (lang, _, _) ->
-      Printf.printf "%s %.6f\n" lang
+    (fun i (lang, _, lines) ->
+      Printf.printf "%s %.6f %d\n" lang
         (median (List.map (fun run -> List.nth run i) runs))
+        (passes lines)
     )
     samples;
   Printf.printf "total %.6f\n"

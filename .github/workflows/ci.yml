@@ -122,18 +122,30 @@ jobs:
           done
           mkdir -p "$RUNNER_TEMP/base/test/bench"
           cp -R test/bench/. "$RUNNER_TEMP/base/test/bench/"
-          opam exec -- dune build --root . test/bench/bench.exe
-          if ! opam exec -- dune build --root "$RUNNER_TEMP/base" test/bench/bench.exe; then
-            echo "Cannot build the bench on the base commit; skipping the comparison."
+          skip() {
+            echo "::warning title=Benchmark skipped::$1"
+            echo "Benchmark skipped: $1" >> "$GITHUB_STEP_SUMMARY"
             exit 0
-          fi
+          }
+          opam exec -- dune build --root . test/bench/bench.exe
+          opam exec -- dune build --root "$RUNNER_TEMP/base" test/bench/bench.exe ||
+            skip "Cannot build the bench on the base commit."
           mkdir -p "$RUNNER_TEMP/runs/base" "$RUNNER_TEMP/runs/head"
+          run_base() {
+            "$RUNNER_TEMP/base/_build/default/test/bench/bench.exe" 1 "${samples[@]}" > "$RUNNER_TEMP/runs/base/$1.txt" ||
+              skip "Cannot run the bench on the base commit."
+          }
+          run_head() {
+            _build/default/test/bench/bench.exe 1 "${samples[@]}" > "$RUNNER_TEMP/runs/head/$1.txt"
+          }
           for run in 1 2 3 4 5; do
-            if ! "$RUNNER_TEMP/base/_build/default/test/bench/bench.exe" 1 "${samples[@]}" > "$RUNNER_TEMP/runs/base/$run.txt"; then
-              echo "Cannot run the bench on the base commit; skipping the comparison."
-              exit 0
+            if [ $((run % 2)) -eq 1 ]; then
+              run_base "$run"
+              run_head "$run"
+            else
+              run_head "$run"
+              run_base "$run"
             fi
-            _build/default/test/bench/bench.exe 1 "${samples[@]}" > "$RUNNER_TEMP/runs/head/$run.txt"
           done
           test/bench/compare.sh "$RUNNER_TEMP/runs/base" "$RUNNER_TEMP/runs/head"
 

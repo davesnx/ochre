@@ -25,6 +25,10 @@ while read -r key; do
     echo "$key: no base timing, skipped"
     continue
   fi
+  if ! awk -v base="$base" 'BEGIN { exit !(base > 0) }'; then
+    echo "$key: base median is $base s; cannot compare against a base time of zero or less." >&2
+    exit 2
+  fi
   head=$(median "$key" "${head_runs[@]}")
   limit=1.5
   if [ "$key" = total ]; then

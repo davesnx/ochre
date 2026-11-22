@@ -37,19 +37,19 @@ let check_linear (lang, json, (prefix, chunk, suffix)) () =
     let line = repeated_line ~prefix ~chunk ~suffix ~bytes in
     min_time_of 5 (fun () ->
         ignore
-          ( TmLanguage.tokenize_exn ~time_limit:Float.infinity t grammar
-              TmLanguage.empty line
+          ( TmLanguage.tokenize_exn ~max_line_length:max_int
+              ~time_limit:Float.infinity t grammar TmLanguage.empty line
             : TmLanguage.token list * TmLanguage.stack
             )
     )
   in
-  let t4 = time_for 4_000 in
-  let t8 = time_for 8_000 in
-  if t8 > t4 *. ratio_limit then
+  let small = time_for 16_000 in
+  let large = time_for 32_000 in
+  if large > small *. ratio_limit then
     Alcotest.failf
       "%s: a line twice as long took %.1fx as long (%.4f s -> %.4f s), limit \
        %.1fx"
-      lang (t8 /. t4) t4 t8 ratio_limit
+      lang (large /. small) small large ratio_limit
 
 let () =
   Alcotest.run "complexity"
