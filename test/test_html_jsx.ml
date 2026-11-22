@@ -553,6 +553,72 @@ let test_duplicate_class_and_style_merge () =
   check_contains "one style" html
     ~sub:{|<span style="color:var(--ochre,#aa0000);outline:0">let</span>|}
 
+let word_spans html =
+  let marker = {|class="highlighted-word">|} in
+  let n = String.length marker in
+  let rec scan i acc =
+    if i + n > String.length html then
+      List.rev acc
+    else if String.sub html i n = marker then
+      let stop = String.index_from html (i + n) '<' in
+      scan stop (String.sub html (i + n) (stop - i - n) :: acc)
+    else
+      scan (i + 1) acc
+  in
+  scan 0 []
+
+let test_word_marks_with_diff_markers () =
+  let word = Ochre.Transform_builtin.notation_word_highlight () in
+  let source = "+let foo # [!code word:foo]\nlet b" in
+  Alcotest.(check (list string))
+    "diff_markers first: the word is marked" [ "foo" ]
+    (word_spans (render [ Ochre.Transform_builtin.diff_markers; word ] source));
+  Alcotest.(check (list string))
+    "diff_markers after: its edit moves the marked columns" [ "\n" ]
+    (word_spans (render [ word; Ochre.Transform_builtin.diff_markers ] source))
+
+let test_pre_attribute_names_merge_ignoring_case () =
+  let extra =
+    Ochre.Transform.make "extra" ~attributes:(fun _ ->
+        {
+          pre =
+            Some
+              (fun _ attrs ->
+                attrs @ [ ("tabindex", `Int (-1)); ("Class", `String "x") ]
+              );
+          line = None;
+          span = None;
+        }
+    )
+  in
+  Alcotest.(check string)
+    "pre"
+    {|<pre class="ochre x" style="background-color:var(--ochre-bg,#eeeeee);color:var(--ochre,#111111)" tabindex="-1"><code>|}
+    (let html = render [ extra ] "let" in
+     String.sub html 0 (String.index html '>' + 7)
+    )
+
+let test_span_hook_gets_source_tokens () =
+  let record =
+    Ochre.Transform.make "record" ~attributes:(fun _ ->
+        {
+          pre = None;
+          line = None;
+          span =
+            Some
+              (fun ~line_index:_ ~column (token : Ochre.Token.t) ->
+                attr "data-t"
+                  (Printf.sprintf "%s@%d" (String.escaped token.text) column)
+              );
+        }
+    )
+  in
+  let html = render [ record ] "#x\r\nlet" in
+  check_contains "the token before the CRLF keeps its \\r" html
+    ~sub:{|data-t="#x\r@0">#x</span>|};
+  check_contains "the newline token keeps its column" html
+    ~sub:"data-t=\"\\n@3\">\r\n</span>"
+
 let () =
   Alcotest.run "Ochre HTML"
     [
@@ -566,6 +632,10 @@ let () =
         [
           Alcotest.test_case "User hooks add escaped attributes in order" `Quick
             test_user_hooks;
+          Alcotest.test_case "Attribute names merge ignoring case" `Quick
+            test_pre_attribute_names_merge_ignoring_case;
+          Alcotest.test_case "Span hooks get the source tokens with CRLF" `Quick
+            test_span_hook_gets_source_tokens;
           Alcotest.test_case "Duplicate class and style merge" `Quick
             test_duplicate_class_and_style_merge;
           Alcotest.test_case "Bad attribute names are replaced" `Quick
@@ -595,6 +665,8 @@ let () =
             test_scope_marker_crlf;
           Alcotest.test_case "class added to empty and non-string values" `Quick
             test_add_class_to_odd_values;
+          Alcotest.test_case "word marks and diff_markers order" `Quick
+            test_word_marks_with_diff_markers;
           Alcotest.test_case "class names are not repeated" `Quick
             test_classes_not_repeated;
         ]
