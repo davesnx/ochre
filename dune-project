@@ -64,6 +64,7 @@
     (= 2.0.0)
     :with-test))
   (alcotest :with-test)
+  (crowbar :with-test)
   (mlx :with-test)
   (ocamlmerlin-mlx :with-dev-setup)
   (ocamlformat-mlx :with-dev-setup)
