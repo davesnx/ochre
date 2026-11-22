@@ -17,7 +17,7 @@ ochre LANG [FILE] [OPTION]...
 
 ## Options
 
-- `--theme NAME_OR_PATH`, `-t NAME_OR_PATH` — Optional. Built-in theme name (for example `dark`, `light`, or `tokyonight`) or path to a VS Code / TextMate theme JSON file.
+- `--theme NAME_OR_PATH`, `-t NAME_OR_PATH` — Optional. Built-in theme name (for example `dark`, `light`, or `tokyonight`) or path to a VS Code / TextMate theme JSON file. A theme color that is not `#rgb`, `#rgba`, `#rrggbb` or `#rrggbbaa` is dropped, with a warning on standard error (`ochre: warning: <message>`).
 - `--theme-dark NAME_OR_PATH` — Theme used when terminal mode is detected as dark (same name-or-path resolution as `--theme`). With `--format html`, when both `--theme-dark` and `--theme-light` are given (and no `--theme`), produces dual-theme output: the light theme is the default and the dark theme is emitted as CSS custom properties (`--ochre-dark-*`) for automatic dark-mode switching.
 - `--theme-light NAME_OR_PATH` — Theme used when terminal mode is detected as light (same name-or-path resolution as `--theme`). See `--theme-dark` for dual-theme HTML output.
 - `--grammar FILE`, `-g FILE` — Path to a `.tmLanguage.json` grammar file. Can be specified multiple times. Optional: when omitted, the bundled grammar for `LANG` is used.

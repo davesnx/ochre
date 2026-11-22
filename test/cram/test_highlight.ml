@@ -31,37 +31,12 @@ let setup () =
   let oc = open_out path in
   output_string oc grammar_json;
   close_out oc;
-  let hl = Ochre.load_from_files_exn [ path ] in
+  let hl = Support.get_ok (Ochre.load_from_files [ path ]) in
   Sys.remove path;
-  let theme = Ochre.Theme.load_exn theme_json in
+  let theme = fst (Support.get_ok (Ochre.Theme.load theme_json)) in
   (hl, theme)
 
-let style_to_string = function
-  | Ochre.Token.Bold ->
-      "bold"
-  | Italic ->
-      "italic"
-  | Underline ->
-      "underline"
-  | Strikethrough ->
-      "strikethrough"
-
-let print_token (tok : Ochre.Token.styled_token) =
-  let text = String.trim tok.text in
-  if text <> "" then begin
-    Printf.printf "text: %S\n" text;
-    Printf.printf "  fg: %s\n" (Option.value ~default:"none" tok.foreground);
-    ( match tok.background with
-    | Some c ->
-        Printf.printf "  bg: %s\n" c
-    | None ->
-        ()
-    );
-    if tok.font_style <> [] then
-      Printf.printf "  styles: [%s]\n"
-        (String.concat ", " (List.map style_to_string tok.font_style));
-    Printf.printf "  scopes: [%s]\n" (String.concat ", " tok.scopes)
-  end
+let print_token = Support.print_token
 
 let () =
   let hl, theme = setup () in
@@ -83,5 +58,8 @@ let () =
         Printf.eprintf "unknown: %s\n" s;
         exit 1
   in
-  let tokens = Ochre.to_tokens hl ~theme ~lang:"test" source in
+  let tokens =
+    (Ochre.highlight ~theme ~lang:(Support.get_ok (Ochre.lang hl "test")) source)
+      .lines
+  in
   List.iter (fun line -> List.iter print_token line) tokens

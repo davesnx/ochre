@@ -1,16 +1,10 @@
-type rgb = int * int * int
+type t = private { r : int; g : int; b : int; a : int }
 
-val parse_rgba : string -> (rgb * float) option
-
-val parse_hex_color : string -> rgb option
-
-val blend : over:rgb -> rgb -> float -> rgb
-
-val resolve : over:rgb -> string -> rgb option
-
-val page_background : string -> rgb
-
-val luminance : rgb -> float
-val contrast_fallback_fg : rgb -> rgb
-
-val effective_background_rgb : string -> Token.styled_token -> rgb
+val rgb : int -> int -> int -> t
+val rgba : int -> int -> int -> int -> t
+val oklch : float -> float -> float -> t
+val of_hex : string -> t option
+val to_hex : t -> string
+val equal : t -> t -> bool
+val blend : over:t -> t -> t
+val opaque : t -> t

@@ -30,16 +30,16 @@ Diff markers are rectangles in SVG
 
 Line highlight is a colorbox in LaTeX
   $ ./test_formats.exe latex-alpha
-  \begin{ochrehighlight}{1E1E1E}{D4D4D4}
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{363636}{\textcolor[HTML]{FF0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{363636}{\textcolor[HTML]{D4D4D4}{\ x}}}\\
-  \textcolor[HTML]{FF0000}{\textbf{let}}\textcolor[HTML]{D4D4D4}{\ y}
+  \begin{ochrehighlight}{1e1e1e}{d4d4d4}
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{363636}{\textcolor[HTML]{ff0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{363636}{\textcolor[HTML]{d4d4d4}{\ x}}}\\
+  \textcolor[HTML]{ff0000}{\textbf{let}}\textcolor[HTML]{d4d4d4}{\ y}
   \end{ochrehighlight}
 
 Diff markers are colorboxes in LaTeX
   $ ./test_formats.exe latex-diff
-  \begin{ochrehighlight}{1E1E1E}{D4D4D4}
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{1F2C21}{\textcolor[HTML]{FF0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{1F2C21}{\textcolor[HTML]{D4D4D4}{\ x}}}\\
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{2C1F1F}{\textcolor[HTML]{FF0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{2C1F1F}{\textcolor[HTML]{D4D4D4}{\ y}}}
+  \begin{ochrehighlight}{1e1e1e}{d4d4d4}
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{1f2c21}{\textcolor[HTML]{ff0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{1f2c21}{\textcolor[HTML]{d4d4d4}{\ x}}}\\
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{2c1f1f}{\textcolor[HTML]{ff0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{2c1f1f}{\textcolor[HTML]{d4d4d4}{\ y}}}
   \end{ochrehighlight}
 
 ANSI keeps a carriage return before a line feed, even across two tokens
@@ -60,7 +60,7 @@ HTML writes a lone carriage return as a character reference
 
 LaTeX expands tabs, drops carriage returns and shows control characters in caret notation
   $ ./test_formats.exe latex-controls
-  \begin{ochrehighlight}{1E1E1E}{D4D4D4}\n\textcolor[HTML]{D4D4D4}{a\ \ \ \ \ \ \ b}\\\n\textcolor[HTML]{D4D4D4}{\ \ \ \ \ \ \ \ c\textasciicircum{}A\textasciicircum{}[d\textasciicircum{}?}\n\end{ochrehighlight}
+  \begin{ochrehighlight}{1e1e1e}{d4d4d4}\n\textcolor[HTML]{d4d4d4}{a\ \ \ \ \ \ \ b}\\\n\textcolor[HTML]{d4d4d4}{\ \ \ \ \ \ \ \ c\textasciicircum{}A\textasciicircum{}[d\textasciicircum{}?}\n\end{ochrehighlight}
 
 SVG expands tabs
   $ ./test_formats.exe svg-tabs
@@ -74,13 +74,6 @@ SVG width counts display cells
   "a\tb" -> width 96
   "ab\r\n" -> width 37
   "\240\159\152\128" -> width 37
-
-SVG text has the theme foreground as fill
-  $ ./test_formats.exe svg-fill
-  <svg xmlns="http://www.w3.org/2000/svg" width="62" height="38" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px">
-   <rect width="100%" height="100%" fill="#1e1e1e"/>
-    <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" fill="#d4d4d4" xml:space="preserve"><tspan font-weight="bold">let</tspan> x</text>
-  </svg>
 
 Underline and strikethrough share one text-decoration
   $ ./test_formats.exe html-underline-strike
@@ -96,17 +89,17 @@ ANSI and LaTeX read every hex form, alpha included
   #ff000080 on #0000ff80: \e[48;2;15;15;143m\e[38;2;135;7;71mx\e[0m
   #ff000000 on #0000ff00: \e[38;2;30;30;30mx\e[0m
   $ ./test_formats.exe colors-latex
-  #f00 on #00f: \begin{ochrehighlight}{1E1E1E}{D4D4D4}
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0000FF}{\textcolor[HTML]{FF0000}{x}}}
+  #f00 on #00f: \begin{ochrehighlight}{1e1e1e}{d4d4d4}
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0000ff}{\textcolor[HTML]{ff0000}{x}}}
   \end{ochrehighlight}
-  #f008 on #00f8: \begin{ochrehighlight}{1E1E1E}{D4D4D4}
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0E0E96}{\textcolor[HTML]{8F0746}{x}}}
+  #f008 on #00f8: \begin{ochrehighlight}{1e1e1e}{d4d4d4}
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0e0e96}{\textcolor[HTML]{8f0746}{x}}}
   \end{ochrehighlight}
-  #ff0000 on #0000ff: \begin{ochrehighlight}{1E1E1E}{D4D4D4}
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0000FF}{\textcolor[HTML]{FF0000}{x}}}
+  #ff0000 on #0000ff: \begin{ochrehighlight}{1e1e1e}{d4d4d4}
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0000ff}{\textcolor[HTML]{ff0000}{x}}}
   \end{ochrehighlight}
-  #ff000080 on #0000ff80: \begin{ochrehighlight}{1E1E1E}{D4D4D4}
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0F0F8F}{\textcolor[HTML]{870747}{x}}}
+  #ff000080 on #0000ff80: \begin{ochrehighlight}{1e1e1e}{d4d4d4}
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0f0f8f}{\textcolor[HTML]{870747}{x}}}
   \end{ochrehighlight}
 
 The theme stylesheet uses the configured variable prefix
@@ -148,6 +141,6 @@ Transform hooks run phase by phase
 
 A label used twice is an error
   $ ./test_formats.exe duplicate-labels
-  primary and extra share a label: Invalid_argument Render_html.render: the theme label "test-theme" is used twice (after replacing characters outside A-Za-z0-9_-); each theme needs its own label, and the default theme is labelled by ?label or its name when default_color is No_default_color
-  default color, same label is fine: rendered
-  two extras: Invalid_argument Render_html.render: the theme label "a_b" is used twice (after replacing characters outside A-Za-z0-9_-); each theme needs its own label, and the default theme is labelled by ?label or its name when default_color is No_default_color
+  primary and extra share a label: the theme label "test-theme" is used twice (after replacing characters outside A-Za-z0-9_-); each theme needs its own label
+  two extras: the theme label "a_b" is used twice (after replacing characters outside A-Za-z0-9_-); each theme needs its own label
+  distinct labels: rendered

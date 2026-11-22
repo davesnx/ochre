@@ -30,9 +30,9 @@ let setup () =
   let oc = open_out path in
   output_string oc grammar_json;
   close_out oc;
-  let hl = Ochre.load_from_files_exn [ path ] in
+  let hl = Support.get_ok (Ochre.load_from_files [ path ]) in
   Sys.remove path;
-  let theme = Ochre.Theme.load_exn theme_json in
+  let theme = fst (Support.get_ok (Ochre.Theme.load theme_json)) in
   (hl, theme)
 
 let () =
@@ -42,96 +42,152 @@ let () =
       let source = "let x = 42" in
       let decorations =
         [
-          Ochre.Decoration.make ~class_:"highlighted-word"
-            ~start:(Ochre.Decoration.pos 0 0) ~end_:(Ochre.Decoration.pos 0 3)
-            ();
+          Support.get_ok
+            (Ochre.Decoration.make ~class_:"highlighted-word"
+               ~start:(Ochre.Decoration.pos 0 0)
+               ~end_:(Ochre.Decoration.pos 0 3) ()
+            );
         ]
       in
       print_endline
-        (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
+        (Ochre.to_html
+           (Ochre.highlight ~decorations ~transforms:[] ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              source
+           )
+        )
   | "html-class-and-style" ->
       let source = "let x = 42" in
       let decorations =
         [
-          Ochre.Decoration.make ~class_:"focus"
-            ~style:"border-bottom:2px solid red"
-            ~start:(Ochre.Decoration.pos 0 8)
-            ~end_:(Ochre.Decoration.pos 0 10)
-            ();
+          Support.get_ok
+            (Ochre.Decoration.make ~class_:"focus"
+               ~style:"border-bottom:2px solid red"
+               ~start:(Ochre.Decoration.pos 0 8)
+               ~end_:(Ochre.Decoration.pos 0 10)
+               ()
+            );
         ]
       in
       print_endline
-        (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
+        (Ochre.to_html
+           (Ochre.highlight ~decorations ~transforms:[] ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              source
+           )
+        )
   | "html-data-attrs" ->
       let source = "let x = 42" in
       let decorations =
         [
-          Ochre.Decoration.make ~class_:"annotated"
-            ~data:[ ("tooltip", "variable binding") ]
-            ~start:(Ochre.Decoration.pos 0 0) ~end_:(Ochre.Decoration.pos 0 3)
-            ();
+          Support.get_ok
+            (Ochre.Decoration.make ~class_:"annotated"
+               ~data:[ ("tooltip", "variable binding") ]
+               ~start:(Ochre.Decoration.pos 0 0)
+               ~end_:(Ochre.Decoration.pos 0 3) ()
+            );
         ]
       in
       print_endline
-        (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
+        (Ochre.to_html
+           (Ochre.highlight ~decorations ~transforms:[] ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              source
+           )
+        )
   | "html-split" ->
       let source = "let x = 42" in
       let decorations =
         [
-          Ochre.Decoration.make ~class_:"target"
-            ~start:(Ochre.Decoration.pos 0 4) ~end_:(Ochre.Decoration.pos 0 7)
-            ();
+          Support.get_ok
+            (Ochre.Decoration.make ~class_:"target"
+               ~start:(Ochre.Decoration.pos 0 4)
+               ~end_:(Ochre.Decoration.pos 0 7) ()
+            );
         ]
       in
       print_endline
-        (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
+        (Ochre.to_html
+           (Ochre.highlight ~decorations ~transforms:[] ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              source
+           )
+        )
   | "debug-tokens" ->
       let source = "let x = 42" in
       let decorations =
         [
-          Ochre.Decoration.make ~class_:"hl" ~start:(Ochre.Decoration.pos 0 0)
-            ~end_:(Ochre.Decoration.pos 0 3) ();
+          Support.get_ok
+            (Ochre.Decoration.make ~class_:"hl"
+               ~start:(Ochre.Decoration.pos 0 0)
+               ~end_:(Ochre.Decoration.pos 0 3) ()
+            );
         ]
       in
       print_endline
-        (Ochre.to_debug_tokens hl ~decorations ~transforms:[] ~theme
-           ~lang:"test" source
+        (Ochre.to_debug_tokens
+           (Ochre.highlight ~decorations ~transforms:[] ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              source
+           )
         )
   | "multiline-html" ->
       let source = "let x = 42\nlet y = 10" in
       let decorations =
         [
-          Ochre.Decoration.make ~class_:"span" ~start:(Ochre.Decoration.pos 0 4)
-            ~end_:(Ochre.Decoration.pos 1 5) ();
+          Support.get_ok
+            (Ochre.Decoration.make ~class_:"span"
+               ~start:(Ochre.Decoration.pos 0 4)
+               ~end_:(Ochre.Decoration.pos 1 5) ()
+            );
         ]
       in
       print_endline
-        (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
+        (Ochre.to_html
+           (Ochre.highlight ~decorations ~transforms:[] ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              source
+           )
+        )
   | "html-escape" ->
       let source = "let x = 42" in
       let decorations =
         [
-          Ochre.Decoration.make ~class_:{|dangerous"><script>|}
-            ~style:{|color:red;"onmouseover="alert(1)|}
-            ~data:[ ("note", {|a"><script>|}) ]
-            ~start:(Ochre.Decoration.pos 0 0) ~end_:(Ochre.Decoration.pos 0 3)
-            ();
+          Support.get_ok
+            (Ochre.Decoration.make ~class_:{|dangerous"><script>|}
+               ~style:{|color:red;"onmouseover="alert(1)|}
+               ~data:[ ("note", {|a"><script>|}) ]
+               ~start:(Ochre.Decoration.pos 0 0)
+               ~end_:(Ochre.Decoration.pos 0 3) ()
+            );
         ]
       in
       print_endline
-        (Ochre.to_html hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
+        (Ochre.to_html
+           (Ochre.highlight ~decorations ~transforms:[] ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              source
+           )
+        )
   | "svg-escape" ->
       let source = "let x = 42" in
       let decorations =
         [
-          Ochre.Decoration.make ~class_:{|dangerous"><script>|}
-            ~style:{|color:red;"onmouseover="alert(1)|}
-            ~start:(Ochre.Decoration.pos 0 0) ~end_:(Ochre.Decoration.pos 0 3)
-            ();
+          Support.get_ok
+            (Ochre.Decoration.make ~class_:{|dangerous"><script>|}
+               ~style:{|color:red;"onmouseover="alert(1)|}
+               ~start:(Ochre.Decoration.pos 0 0)
+               ~end_:(Ochre.Decoration.pos 0 3) ()
+            );
         ]
       in
       print_endline
-        (Ochre.to_svg hl ~decorations ~transforms:[] ~theme ~lang:"test" source)
+        (Ochre.to_svg
+           (Ochre.highlight ~decorations ~transforms:[] ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              source
+           )
+        )
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1

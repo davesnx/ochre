@@ -30,7 +30,7 @@ Properties to attach to a decorated range.
 ### t
 
 ```ocaml
-type t = {
+type t = private {
   start : position;
   end_ : position;
   properties : properties;
@@ -57,9 +57,9 @@ val make :
   start:position ->
   end_:position ->
   unit ->
-  t
+  (t, Error.t) Stdlib.result
 ```
-Create a decoration.
+Create a decoration. Returns [`Error.t.Invalid_data_key`](./Ochre-Error.md#type-t.Invalid_data_key) when a key of `~data` is empty or holds a byte outside `A-Za-z0-9_-`.
 
 ```ocaml
 let d =
@@ -72,27 +72,10 @@ let d =
 ### apply
 
 ```ocaml
-val apply : 
-  source:string ->
-  t list ->
-  Token.highlighted_code ->
-  Token.highlighted_code
+val apply : source:string -> t list -> Token.line list -> Token.line list
 ```
-`apply ~source decorations tokens` maps decoration ranges onto tokens, splitting tokens at boundaries and attaching properties.
+`apply ~source decorations lines` maps decoration ranges onto tokens, splitting tokens at boundaries and attaching properties. A token is matched by its [`Token.position`](./Ochre-Token.md#type-position), so `source` must be the source the tokens come from.
 
 Overlapping decorations are merged: classes are space-concatenated, styles are semicolon-concatenated, data attributes are merged (later wins).
 
-Character positions are Unicode scalar positions; token offsets remain UTF-8 byte-based. Never raises: each byte that is not part of a valid UTF-8 sequence counts as one character.
-
-```ocaml
-  let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
-  let decorated =
-    Ochre.Decoration.apply ~source:code
-      [
-        Ochre.Decoration.make ~class_:"hl"
-          ~start:(Ochre.Decoration.pos 0 0)
-          ~end_:(Ochre.Decoration.pos 0 3)
-          ();
-      ]
-      tokens
-```
+Character positions are Unicode scalar positions; they are converted to the byte positions of the tokens once per line. Never raises: each byte that is not part of a valid UTF-8 sequence counts as one character. [`highlight`](./Ochre.md#val-highlight) applies `~decorations` with this function, before transforms.

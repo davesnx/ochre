@@ -1,4 +1,4 @@
-type token = Token.styled_token
+type token = Token.t
 
 type line = token list
 
@@ -19,5 +19,8 @@ val make :
   ?after_render:(document -> document) ->
   string ->
   t
+
+val run_checked :
+  check:(t -> token -> 'e option) -> t list -> document -> (document, 'e) result
 
 val run : t list -> document -> document

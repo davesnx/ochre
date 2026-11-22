@@ -1,65 +1,71 @@
-let default_highlight_background = "#8888883a"
+let default_highlight_background = Color.rgba 0x88 0x88 0x88 0x3a
+let default_add_background = Color.rgba 0x22 0x88 0x33 0x22
+let default_remove_background = Color.rgba 0x88 0x22 0x22 0x22
+let default_word_foreground = Color.rgb 0xff 0xff 0x00
+let bold = { Style.plain with bold = true }
+
+let set_background background tok =
+  Token.map_style
+    (fun _ (style : Style.t) -> { style with background = Some background })
+    tok
+
+let set_word_style ~foreground ~font_style tok =
+  Token.map_style
+    (fun _ (style : Style.t) -> { style with foreground; font_style })
+    tok
 
 let line_highlight ?(background = default_highlight_background) lines =
   Transform.make "line-highlight" ~after_line:(fun ~line_index line ->
       if List.mem line_index lines then
-        List.map
-          (fun (tok : Token.styled_token) ->
-            { tok with background = Some background }
-          )
-          line
+        List.map (set_background background) line
       else
         line
   )
 
-let word_highlight ?(foreground = "#ffff00") ?(font_style = [ Token.Bold ])
+let word_highlight ?(foreground = default_word_foreground) ?(font_style = bold)
     words =
   Transform.make "word-highlight" ~after_line:(fun ~line_index:_ line ->
       List.map
-        (fun (tok : Token.styled_token) ->
+        (fun (tok : Token.t) ->
           if List.mem tok.text words then
-            { tok with foreground = Some foreground; font_style }
+            set_word_style ~foreground ~font_style tok
           else
             tok
         )
         line
   )
 
-let strip_marker (first : Token.styled_token) rest =
-  let text = String.sub first.text 1 (String.length first.text - 1) in
-  if text = "" then
+let strip_marker (first : Token.t) rest =
+  let length = String.length first.text - 1 in
+  if length = 0 then
     rest
   else
-    { first with text } :: rest
+    Token.slice first ~pos:1 ~len:length :: rest
 
 let diff_markers =
   Transform.make "diff-markers" ~before_render:(fun doc ->
       List.map
         (fun line ->
           let with_background background line =
-            List.map
-              (fun (tok : Token.styled_token) ->
-                { tok with background = Some background }
-              )
-              line
+            List.map (set_background background) line
           in
           match line with
           | ({ Token.text; _ } as first) :: rest
             when String.length text > 0 && text.[0] = '+' ->
-              with_background "#22883322" (strip_marker first rest)
+              with_background default_add_background (strip_marker first rest)
           | ({ Token.text; _ } as first) :: rest
             when String.length text > 0 && text.[0] = '-' ->
-              with_background "#88222222" (strip_marker first rest)
+              with_background default_remove_background (strip_marker first rest)
           | line ->
               line
         )
         doc
   )
 
-let scope_marker ?(background = "#ffff0033") scope_prefix =
+let scope_marker ?(background = Color.rgba 0xff 0xff 0x00 0x33) scope_prefix =
   Transform.make "scope-marker" ~after_line:(fun ~line_index:_ line ->
       List.map
-        (fun (tok : Token.styled_token) ->
+        (fun (tok : Token.t) ->
           if
             List.exists
               (fun s ->
@@ -68,7 +74,7 @@ let scope_marker ?(background = "#ffff0033") scope_prefix =
               )
               tok.scopes
           then
-            { tok with background = Some background }
+            set_background background tok
           else
             tok
         )
@@ -117,7 +123,7 @@ let skip_blanks text i =
   go i
 
 let line_text line =
-  String.concat "" (List.map (fun (tok : Token.styled_token) -> tok.text) line)
+  String.concat "" (List.map (fun (tok : Token.t) -> tok.text) line)
 
 let body_length text =
   let n = String.length text in
@@ -136,7 +142,7 @@ let edit_ranges line ranges f =
   let rec go offset ranges = function
     | [] ->
         []
-    | (tok : Token.styled_token) :: rest ->
+    | (tok : Token.t) :: rest ->
         let next = offset + String.length tok.text in
         let rec drop = function
           | (_, stop) :: more when stop <= offset ->
@@ -152,9 +158,7 @@ let edit_ranges line ranges f =
             if a >= b then
               []
             else
-              let tok =
-                { tok with text = String.sub tok.text (a - offset) (b - a) }
-              in
+              let tok = Token.slice tok ~pos:(a - offset) ~len:(b - a) in
               if inside then
                 Option.to_list (f tok)
               else
@@ -181,7 +185,7 @@ let edit_ranges line ranges f =
 
 let edit_range line ~start ~stop f = edit_ranges line [ (start, stop) ] f
 
-let has_scope ~prefix (tok : Token.styled_token) =
+let has_scope ~prefix (tok : Token.t) =
   List.exists
     (fun scope ->
       scope = prefix || String.starts_with ~prefix:(prefix ^ ".") scope
@@ -190,10 +194,10 @@ let has_scope ~prefix (tok : Token.styled_token) =
 
 let is_comment tok = has_scope ~prefix:"comment" tok
 
-let has_root_scope ~prefix (tok : Token.styled_token) =
+let has_root_scope ~prefix (tok : Token.t) =
   List.exists (String.starts_with ~prefix) tok.scopes
 
-let is_prose (tok : Token.styled_token) =
+let is_prose (tok : Token.t) =
   tok.scopes = []
   || has_root_scope ~prefix:"text." tok
      && not
@@ -204,7 +208,7 @@ let is_prose (tok : Token.styled_token) =
 
 type context = {
   text : string;
-  tokens : Token.styled_token array;
+  tokens : Token.t array;
   offsets : int array;
   stop : int;
   run_start : int array;
@@ -220,7 +224,7 @@ let make_context line =
   let run_start = Array.make count 0 in
   let offset = ref 0 in
   Array.iteri
-    (fun k (tok : Token.styled_token) ->
+    (fun k (tok : Token.t) ->
       offsets.(k) <- !offset;
       run_start.(k) <-
         ( if is_comment tok then
@@ -528,28 +532,26 @@ let parse_keyword keywords text position =
     )
     keywords
 
-let set_background background line =
-  List.map
-    (fun (tok : Token.styled_token) -> { tok with background = Some background })
-    line
+let set_line_background background line =
+  List.map (set_background background) line
 
 let notation_highlight ?(background = default_highlight_background) () =
   Transform.make "notation-highlight" ~before_render:(fun doc ->
       run_notation
         ~parse:(parse_keyword [ "highlight"; "hl" ])
         ~default_count:(fun _ -> 1)
-        ~apply:(fun _ line -> set_background background line)
+        ~apply:(fun _ line -> set_line_background background line)
         doc
   )
 
-let notation_diff ?(add_background = "#22883322")
-    ?(remove_background = "#88222222") () =
+let notation_diff ?(add_background = default_add_background)
+    ?(remove_background = default_remove_background) () =
   Transform.make "notation-diff" ~before_render:(fun doc ->
       run_notation
         ~parse:(parse_keyword [ "++"; "--" ])
         ~default_count:(fun _ -> 1)
         ~apply:(fun keyword line ->
-          set_background
+          set_line_background
             ( if keyword = "++" then
                 add_background
               else
@@ -606,11 +608,11 @@ let highlight_word ~foreground ~font_style word line =
     line
   else
     edit_ranges line (occurrences 0) (fun tok ->
-        Some { tok with foreground = Some foreground; font_style }
+        Some (set_word_style ~foreground ~font_style tok)
     )
 
-let notation_word_highlight ?(foreground = "#ffff00")
-    ?(font_style = [ Token.Bold ]) () =
+let notation_word_highlight ?(foreground = default_word_foreground)
+    ?(font_style = bold) () =
   Transform.make "notation-word-highlight" ~before_render:(fun doc ->
       run_notation
         ~parse:(fun text position -> parse_word text position)

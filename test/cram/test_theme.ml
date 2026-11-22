@@ -1,46 +1,35 @@
-let style_to_string = function
-  | Ochre.Theme.Bold ->
-      "bold"
-  | Italic ->
-      "italic"
-  | Underline ->
-      "underline"
-  | Strikethrough ->
-      "strikethrough"
-
 let print_rule (rule : Ochre.Theme.token_color_rule) =
   Printf.printf "  scopes: [%s]\n" (String.concat ", " rule.scope);
   Printf.printf "  fg: %s\n"
-    (Option.value ~default:"none" rule.settings.foreground);
-  ( match rule.settings.background with
-  | Some c ->
-      Printf.printf "  bg: %s\n" c
-  | None ->
-      ()
-  );
-  match rule.settings.font_style with
-  | Some font_style ->
-      let styles = List.map style_to_string font_style in
-      Printf.printf "  styles: [%s]\n" (String.concat ", " styles)
-  | None ->
-      ()
+    (Option.fold ~none:"none" ~some:Support.hex rule.settings.foreground);
+  Option.iter
+    (fun c -> Printf.printf "  bg: %s\n" (Support.hex c))
+    rule.settings.background;
+  Option.iter
+    (fun font_style ->
+      Printf.printf "  styles: [%s]\n"
+        (String.concat ", " (Support.font_style_names font_style))
+    )
+    rule.settings.font_style
 
 let print_theme (theme : Ochre.Theme.theme) =
   Printf.printf "name: %s\n" theme.name;
-  Printf.printf "fg: %s\n" theme.fg;
-  Printf.printf "bg: %s\n" theme.bg;
+  Printf.printf "fg: %s\n" (Support.hex theme.fg);
+  Printf.printf "bg: %s\n" (Support.hex theme.bg);
   Printf.printf "rules: %d\n" (List.length theme.token_colors);
   List.iter print_rule theme.token_colors
 
 let print_theme_summary (theme : Ochre.Theme.theme) =
   Printf.printf "name: %s\n" theme.name;
-  Printf.printf "fg: %s\n" theme.fg;
-  Printf.printf "bg: %s\n" theme.bg;
+  Printf.printf "fg: %s\n" (Support.hex theme.fg);
+  Printf.printf "bg: %s\n" (Support.hex theme.bg);
   Printf.printf "rules: %d\n" (List.length theme.token_colors)
 
 let test_load () =
-  Ochre.Theme.load_exn
-    {|{
+  fst
+    (Support.get_ok
+       (Ochre.Theme.load
+          {|{
     "name": "test-theme",
     "colors": {
       "editor.foreground": "#abcdef",
@@ -63,13 +52,18 @@ let test_load () =
       }
     ]
   }|}
+       )
+    )
   |> print_theme
 
-let test_defaults () = Ochre.Theme.load_exn {|{}|} |> print_theme
+let test_defaults () =
+  fst (Support.get_ok (Ochre.Theme.load {|{}|})) |> print_theme
 
 let test_multiple_styles () =
-  Ochre.Theme.load_exn
-    {|{
+  fst
+    (Support.get_ok
+       (Ochre.Theme.load
+          {|{
     "name": "multi-style",
     "tokenColors": [
       {
@@ -80,21 +74,29 @@ let test_multiple_styles () =
       }
     ]
   }|}
+       )
+    )
   |> print_theme
 
 let test_no_settings () =
-  Ochre.Theme.load_exn
-    {|{
+  fst
+    (Support.get_ok
+       (Ochre.Theme.load
+          {|{
     "name": "no-settings",
     "tokenColors": [
       { "scope": "comment" }
     ]
   }|}
+       )
+    )
   |> print_theme
 
 let test_array_scope () =
-  Ochre.Theme.load_exn
-    {|{
+  fst
+    (Support.get_ok
+       (Ochre.Theme.load
+          {|{
     "name": "array-scope",
     "tokenColors": [
       {
@@ -103,15 +105,21 @@ let test_array_scope () =
       }
     ]
   }|}
+       )
+    )
   |> print_theme
 
 let test_alt_keys () =
-  Ochre.Theme.load_exn
-    {|{
+  fst
+    (Support.get_ok
+       (Ochre.Theme.load
+          {|{
     "name": "alt-keys",
     "fg": "#aabbcc",
     "bg": "#112233"
   }|}
+       )
+    )
   |> print_theme
 
 let test_builtin_name name =
@@ -134,10 +142,15 @@ let test_available () = List.iter print_endline Ochre.Theme.available_names
 
 let test_load_file path =
   match Ochre.Theme.load_from_file path with
-  | Ok theme ->
+  | Ok (theme, warnings) ->
+      List.iter
+        (fun w ->
+          Printf.printf "warning: %s\n" (Ochre.Theme.warning_to_string w)
+        )
+        warnings;
       print_theme theme
-  | Error msg ->
-      Printf.printf "error: %s\n" msg;
+  | Error error ->
+      Printf.printf "error: %s\n" (Ochre.Error.to_string error);
       exit 1
 
 let () =

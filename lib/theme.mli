@@ -1,11 +1,9 @@
-type color = string
-
-type font_style = Token.font_style = Bold | Italic | Underline | Strikethrough
+type color = Color.t
 
 type token_color_settings = {
   foreground : color option;
   background : color option;
-  font_style : font_style list option;
+  font_style : Style.font_style option;
 }
 
 type token_color_rule = {
@@ -22,15 +20,13 @@ type theme = {
   token_colors : token_color_rule list;
 }
 
-val load : ?base_dir:string -> string -> (theme, string) result
+type warning = { path : string option; location : string; value : string }
 
-val is_valid_color : string -> bool
+val warning_to_string : warning -> string
 
-val load_exn : ?base_dir:string -> string -> theme
+val load : ?base_dir:string -> string -> (theme * warning list, Error.t) result
 
-val load_from_file : string -> (theme, string) result
-
-val load_from_file_exn : string -> theme
+val load_from_file : string -> (theme * warning list, Error.t) result
 
 val make :
   name:string ->
@@ -44,7 +40,7 @@ val rule :
   ?scope:string list ->
   ?foreground:color ->
   ?background:color ->
-  ?font_style:font_style list ->
+  ?font_style:Style.font_style ->
   unit ->
   token_color_rule
 
