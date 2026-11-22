@@ -4,7 +4,7 @@
     {@ocaml[
     let source = "let x = List.map succ [1]" in
     let { Ochre_merlin.decorations; _ } = Ochre_merlin.analyze source in
-    Ochre.to_html highlighter ~decorations ~lang:"ocaml" source
+    Ochre.to_html (Ochre.highlight ~decorations ~theme ~lang source)
     ]}
 
     Render the HTML with {!css} on the page to show the types and diagnostics on
@@ -18,8 +18,10 @@ type diagnostic = {
   end_ : Ochre.Decoration.position;
   message : string;
 }
-(** A lexer, parser or type error, or a warning, as Merlin reports it. Positions
-    use the same convention as {!Ochre.Decoration.position}. *)
+(** A lexer, parser or type error, or a warning, as Merlin reports it, or an
+    [Error] for a decoration that {!Ochre.Decoration.make} rejected, with
+    {!Ochre.Error.to_string} as its message. Positions use the same convention
+    as {!Ochre.Decoration.position}. *)
 
 type t = {
   decorations : Ochre.Decoration.t list;

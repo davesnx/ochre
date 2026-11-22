@@ -140,14 +140,22 @@ let contains ~sub s =
   in
   go 0
 
+let ok = function
+  | Ok value ->
+      value
+  | Error error ->
+      Alcotest.fail (Ochre.Error.to_string error)
+
+let html_of source =
+  let { Ochre_merlin.decorations; _ } = Ochre_merlin.analyze source in
+  let highlighter = ok (Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ]) in
+  let lang = ok (Ochre.lang highlighter "ocaml") in
+  Ochre.to_html
+    (Ochre.highlight ~decorations ~theme:Ochre.Theme.dark ~lang source)
+
 let test_html_escapes_data () =
   let source = "let o = object method m = 1 end\nlet f = function \"a\" -> 1" in
-  let { Ochre_merlin.decorations; _ } = Ochre_merlin.analyze source in
-  let highlighter = Ochre.load_exn [ ("ocaml", Tm_grammar_ocaml.json) ] in
-  let html =
-    Ochre.to_html highlighter ~decorations ~theme:Ochre.Theme.dark ~lang:"ocaml"
-      source
-  in
+  let html = html_of source in
   List.iter
     (fun (expected, present) ->
       Alcotest.(check bool) expected present (contains ~sub:expected html)
@@ -157,12 +165,6 @@ let test_html_escapes_data () =
       ({|data-ochre-type="< m : int >"|}, false);
       ({|not matched: &quot;&quot;"|}, true);
     ]
-
-let html_of source =
-  let { Ochre_merlin.decorations; _ } = Ochre_merlin.analyze source in
-  let highlighter = Ochre.load_exn [ ("ocaml", Tm_grammar_ocaml.json) ] in
-  Ochre.to_html highlighter ~decorations ~theme:Ochre.Theme.dark ~lang:"ocaml"
-    source
 
 let escape s =
   String.concat ""

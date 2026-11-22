@@ -58,12 +58,18 @@ let print_constructor env desc =
     (Type_utils.print_constr ~verbosity:Mconfig.Verbosity.default env)
     desc
 
+let decoration ?class_ ~data ~start ~end_ () =
+  Ochre.Decoration.make ?class_ ~data ~start ~end_ ()
+  |> Result.map_error (fun error ->
+      { severity = Error; start; end_; message = Ochre.Error.to_string error }
+  )
+
 let type_decorations source typedtree =
   let found = ref [] in
   let add (loc : Location.t) printed =
     if not loc.loc_ghost then
       found :=
-        Ochre.Decoration.make
+        decoration
           ~data:[ ("ochre-type", printed) ]
           ~start:(position source loc.loc_start)
           ~end_:(position source loc.loc_end)
@@ -160,9 +166,7 @@ let segment_decoration start end_ covering =
       "ochre-warning"
   in
   let message = String.concat "\n\n" (List.map (fun d -> d.message) covering) in
-  Ochre.Decoration.make ~class_
-    ~data:[ ("ochre-diagnostic", message) ]
-    ~start ~end_ ()
+  decoration ~class_ ~data:[ ("ochre-diagnostic", message) ] ~start ~end_ ()
 
 let diagnostic_decorations source diagnostics =
   let line_lengths =
@@ -209,12 +213,14 @@ let analyze ?(load_path = []) source =
           (Errors { lexing = true; parsing = true; typing = true })
         |> List.map (diagnostic source)
       in
-      {
-        decorations =
-          type_decorations source typedtree
-          @ diagnostic_decorations source diagnostics;
-        diagnostics;
-      }
+      let decorations, rejected =
+        List.partition_map
+          (function Ok d -> Either.Left d | Error d -> Either.Right d)
+          (type_decorations source typedtree
+          @ diagnostic_decorations source diagnostics
+          )
+      in
+      { decorations; diagnostics = diagnostics @ rejected }
   )
 
 let css =
