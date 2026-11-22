@@ -1,0 +1,20 @@
+{"lang": "sql",
+ "lines": [
+[["USE",["source.sql","keyword.other.sql"]],[" AdventureWorks2022;",["source.sql"]]],
+[["GO",["source.sql","keyword.other.sql"]]],
+[["IF",["source.sql","keyword.other.sql"]],[" ",["source.sql"]],["OBJECT_ID",["source.sql","support.function.metadata.sql"]],["(",["source.sql"]],["'",["source.sql","string.quoted.single.sql","punctuation.definition.string.begin.sql"]],["dbo.NewProducts",["source.sql","string.quoted.single.sql"]],["'",["source.sql","string.quoted.single.sql","punctuation.definition.string.end.sql"]],[", ",["source.sql"]],["'",["source.sql","string.quoted.single.sql","punctuation.definition.string.begin.sql"]],["U",["source.sql","string.quoted.single.sql"]],["'",["source.sql","string.quoted.single.sql","punctuation.definition.string.end.sql"]],[") ",["source.sql"]],["IS NOT NULL",["source.sql","keyword.other.DDL.create.II.sql"]]],
+[["    ",["source.sql","meta.drop.sql"]],["DROP",["source.sql","meta.drop.sql","keyword.other.create.sql"]],[" ",["source.sql","meta.drop.sql"]],["TABLE",["source.sql","meta.drop.sql","keyword.other.sql"]],[" ",["source.sql"]],["dbo",["source.sql","constant.other.database-name.sql"]],[".",["source.sql"]],["NewProducts",["source.sql","constant.other.table-name.sql"]],[";",["source.sql"]]],
+[["GO",["source.sql","keyword.other.sql"]]],
+[["ALTER",["source.sql","meta.alter.sql","keyword.other.create.sql"]],[" ",["source.sql","meta.alter.sql"]],["DATABASE",["source.sql","meta.alter.sql","keyword.other.table.sql"]],[" ",["source.sql","meta.alter.sql"]],["AdventureWorks2022 ",["source.sql"]],["SET",["source.sql","keyword.other.DML.sql"]],[" ",["source.sql"]],["RECOVERY",["source.sql","keyword.other.sql"]],[" ",["source.sql"]],["BULK_LOGGED",["source.sql","keyword.other.sql"]],[";",["source.sql"]]],
+[["GO",["source.sql","keyword.other.sql"]]],
+[["",["source.sql"]]],
+[["SELECT",["source.sql","keyword.other.DML.sql"]],[" ",["source.sql"]],["*",["source.sql","keyword.operator.star.sql"]],[" ",["source.sql"]],["INTO",["source.sql","keyword.other.sql"]],[" ",["source.sql"]],["dbo",["source.sql","constant.other.database-name.sql"]],[".",["source.sql"]],["NewProducts",["source.sql","constant.other.table-name.sql"]]],
+[["FROM",["source.sql","keyword.other.DML.sql"]],[" ",["source.sql"]],["Production",["source.sql","constant.other.database-name.sql"]],[".",["source.sql"]],["Product",["source.sql","constant.other.table-name.sql"]]],
+[["WHERE",["source.sql","keyword.other.DML.sql"]],[" ListPrice ",["source.sql"]],[">",["source.sql","keyword.operator.comparison.sql"]],[" $",["source.sql"]],["25",["source.sql","constant.numeric.sql"]]],
+[["AND",["source.sql","keyword.other.DML.sql"]],[" ListPrice ",["source.sql"]],["<",["source.sql","keyword.operator.comparison.sql"]],[" $",["source.sql"]],["100",["source.sql","constant.numeric.sql"]],[";",["source.sql"]]],
+[["GO",["source.sql","keyword.other.sql"]]],
+[["ALTER",["source.sql","meta.alter.sql","keyword.other.create.sql"]],[" ",["source.sql","meta.alter.sql"]],["DATABASE",["source.sql","meta.alter.sql","keyword.other.table.sql"]],[" ",["source.sql","meta.alter.sql"]],["AdventureWorks2022 ",["source.sql"]],["SET",["source.sql","keyword.other.DML.sql"]],[" ",["source.sql"]],["RECOVERY",["source.sql","keyword.other.sql"]],[" FULL;",["source.sql"]]],
+[["GO",["source.sql","keyword.other.sql"]]],
+[["",["source.sql"]]],
+[["--",["source.sql","comment.line.double-dash.sql","punctuation.definition.comment.sql"]],[" From https://learn.microsoft.com/en-us/sql/t-sql/queries/select-examples-transact-sql",["source.sql","comment.line.double-dash.sql"]]]
+]}

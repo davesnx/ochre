@@ -22,6 +22,7 @@
 - Exit with code `3` and a message when the output cannot be written (full disk, closed standard output), instead of a fatal uncaught exception. Name the path when an input is a directory.
 - Check the committed HTML, SVG, LaTeX, ANSI, and token previews in `dune build @runtest`, so that output changes are visible as test failures.
 - Run every grammar in `tm-grammars` on a shared set of samples in `dune build @runtest`, and fail when tokenizing raises or the token texts do not give back the source.
+- Fuzz 15 grammars with random bytes (crowbar) in `dune build @runtest`, and check time budgets for a 10,000-line JavaScript file and for long lines. `make fuzz` runs the same test under AFL.
 - Escape decoration-supplied `class_`, `style`, and `data` values (and grammar scope names) before writing them into HTML/SVG attributes, closing an HTML/SVG injection hole for decorations built from untrusted strings.
 - Reject `Decoration.make ~data` keys that are not valid `data-*` attribute-name characters, instead of writing them unescaped into the attribute name.
 - Normalize `Html_options.make ~css_variable_prefix` to always end with `-`.

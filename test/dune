@@ -15,7 +15,14 @@
 
 (test
  (name test_ochre)
- (libraries ochre alcotest unix tm-grammars tm-themes))
+ (libraries
+  ochre
+  ochre.textmate_language
+  yojson
+  alcotest
+  unix
+  tm-grammars
+  tm-themes))
 
 (executables
  (names test_html test_html_dual_theme test_svg)

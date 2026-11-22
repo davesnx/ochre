@@ -1,0 +1,23 @@
+/* A Reason sample: types, modules, pattern matching and JSX */
+type shape =
+  | Circle(float)
+  | Rect(float, float);
+
+let area = shape =>
+  switch (shape) {
+  | Circle(r) => Js.Math._PI *. r *. r
+  | Rect(w, h) => w *. h
+  };
+
+module Counter = {
+  [@react.component]
+  let make = (~initial=0, ()) => {
+    let (count, setCount) = React.useState(() => initial);
+    <button onClick={_ => setCount(c => c + 1)}>
+      {React.string("Count: " ++ string_of_int(count))}
+    </button>;
+  };
+};
+
+let names = ["ada", "grace"] |> List.map(String.capitalize_ascii);
+let greeting = {j|Hello $name|j};
