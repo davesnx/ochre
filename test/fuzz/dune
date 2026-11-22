@@ -1,0 +1,8 @@
+(executable
+ (name fuzz_tokens)
+ (libraries ochre tm-grammars crowbar))
+
+(rule
+ (alias runtest)
+ (action
+  (run %{exe:fuzz_tokens.exe} --repeat 500)))
