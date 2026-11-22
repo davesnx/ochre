@@ -1256,7 +1256,7 @@ let check_under ~seconds label f =
   f ();
   let elapsed = Unix.gettimeofday () -. start in
   Alcotest.(check bool)
-    (Printf.sprintf "%s took %.2fs, budget %.0fs" label elapsed seconds)
+    (Printf.sprintf "%s took %.2fs, budget %.1fs" label elapsed seconds)
     true (elapsed < seconds)
 
 let test_deep_nesting_theme_matching () =
@@ -1381,6 +1381,73 @@ let test_long_line_is_not_quadratic () =
     )
     true
     (t2 < t1 *. 3.0)
+
+let js_like_source lines =
+  let line i =
+    match i mod 10 with
+    | 0 ->
+        Printf.sprintf "function f%d(a, b) {" i
+    | 1 ->
+        "  // Combine both values."
+    | 2 ->
+        Printf.sprintf "  var s = a + b * %d, t = \"item\";" i
+    | 3 ->
+        "  if (s > 10 && b !== null) { return [a, b, 'x']; }"
+    | 4 ->
+        "  return a.map(function (x) { return x * 2; });"
+    | 5 ->
+        "}"
+    | _ ->
+        ""
+  in
+  String.concat "\n" (List.init lines line) ^ "\n"
+
+let test_budget_js_file_to_html () =
+  let hl = Ochre.load_exn [ ("javascript", Tm_grammars.javascript) ] in
+  let source = js_like_source 10_000 in
+  check_under ~seconds:10.0 "10,000-line JS to_html" (fun () ->
+      ignore
+        ( Ochre.to_html hl ~theme:Ochre.Theme.dark ~lang:"javascript" source
+          : string
+          )
+  )
+
+let test_budget_long_line_without_limits () =
+  let grammar =
+    TmLanguage.of_yojson_exn (Yojson.Basic.from_string Tm_grammars.ocaml)
+  in
+  let t = TmLanguage.create () in
+  TmLanguage.add_grammar t grammar;
+  let source = long_arithmetic_line 6400 in
+  check_under ~seconds:0.5 "6400-term OCaml line without limits" (fun () ->
+      ignore
+        ( TmLanguage.tokenize_exn ~max_line_length:max_int
+            ~time_limit:Float.infinity t grammar TmLanguage.empty source
+          : TmLanguage.token list * TmLanguage.stack
+          )
+  )
+
+let test_budget_minified_line () =
+  let hl = Ochre.load_exn [ ("javascript", Tm_grammars.javascript) ] in
+  let chunk = "var a=function(b,c){return b+c*2},d=\"s\",e=/x+/g;" in
+  let minified bytes =
+    let chunks =
+      List.init ((bytes / String.length chunk) + 1) (fun _ -> chunk)
+    in
+    String.sub (String.concat "" chunks) 0 bytes
+  in
+  List.iter
+    (fun bytes ->
+      check_under ~seconds:2.0 (Printf.sprintf "%d-byte minified JS line" bytes)
+        (fun () ->
+          ignore
+            ( Ochre.to_tokens hl ~theme:Ochre.Theme.dark ~lang:"javascript"
+                (minified bytes)
+              : Ochre.Token.highlighted_code
+              )
+      )
+    )
+    [ 9_999 ]
 
 let make_comment text =
   {
@@ -1970,6 +2037,12 @@ let () =
             test_many_part_selector;
           test_case "Decorations scale with lines plus decorations" `Quick
             test_decorations_scale;
+          test_case "10,000-line JS file renders to HTML in budget" `Quick
+            test_budget_js_file_to_html;
+          test_case "Long line without limits tokenizes in budget" `Quick
+            test_budget_long_line_without_limits;
+          test_case "Line just under max_line_length tokenizes in budget" `Quick
+            test_budget_minified_line;
         ]
       );
       ( "invalid utf-8",
