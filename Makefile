@@ -31,6 +31,13 @@ clean: ## Clean artifacts
 test: ## Run the unit tests
 	$(DUNE) build --root . @runtest
 
+.PHONY: fuzz
+fuzz: ## Fuzz the tokenizer with afl-fuzz (needs afl-fuzz and an OCaml switch with ocaml-option-afl)
+	$(DUNE) build --root . test/fuzz/fuzz_tokens.exe
+	mkdir -p .fuzz/input
+	test -f .fuzz/input/seed || head -c 512 /dev/urandom > .fuzz/input/seed
+	AFL_AUTORESUME=1 afl-fuzz -i .fuzz/input -o .fuzz/output -- _build/default/test/fuzz/fuzz_tokens.exe @@
+
 .PHONY: test-browser
 test-browser: ## Serve sample highlighted page on port 5000
 	$(DUNE) exec --root . test/test_html.exe
