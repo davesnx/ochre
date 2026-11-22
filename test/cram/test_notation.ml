@@ -25,14 +25,14 @@ let highlighter =
         "latex";
       ]
   in
-  Ochre.load_exn grammars
+  Support.get_ok (Ochre.load grammars)
 
-let mark (line : Ochre.Token.styled_token list) =
+let mark (line : Ochre.Token.t list) =
   match line with
   | [] ->
       "."
   | first :: _ -> (
-      match first.background with
+      match Option.map Support.hex (Ochre.Token.style first).background with
       | Some "#8888883a" ->
           "hl"
       | Some "#22883322" ->
@@ -45,11 +45,11 @@ let mark (line : Ochre.Token.styled_token list) =
           "."
     )
 
-let text (line : Ochre.Token.styled_token list) =
+let text (line : Ochre.Token.t list) =
   String.concat ""
     (List.map
-       (fun (tok : Ochre.Token.styled_token) ->
-         if tok.foreground = Some "#ffff00" then
+       (fun (tok : Ochre.Token.t) ->
+         if Support.hex (Ochre.Token.style tok).foreground = "#ffff00" then
            "[" ^ tok.text ^ "]"
          else
            tok.text
@@ -58,7 +58,13 @@ let text (line : Ochre.Token.styled_token list) =
     )
 
 let show ?(name = "") lang transforms source =
-  let tokens = Ochre.to_tokens highlighter ~transforms ~theme ~lang source in
+  let tokens =
+    (Ochre.highlight ~transforms ~theme
+       ~lang:(Support.get_ok (Ochre.lang highlighter lang))
+       source
+    )
+      .lines
+  in
   Printf.printf "%s%s\n" lang
     ( if name = "" then
         ""
@@ -73,7 +79,7 @@ let show ?(name = "") lang transforms source =
       (List.map
          (fun line ->
            String.concat ""
-             (List.map (fun (tok : Ochre.Token.styled_token) -> tok.text) line)
+             (List.map (fun (tok : Ochre.Token.t) -> tok.text) line)
          )
          tokens
       )
@@ -120,7 +126,7 @@ let line_comment_cases =
 let non_comment_text line =
   String.concat ""
     (List.map
-       (fun (tok : Ochre.Token.styled_token) ->
+       (fun (tok : Ochre.Token.t) ->
          if
            List.exists
              (fun scope ->
@@ -214,9 +220,19 @@ let property () =
             )
         in
         let source = line ^ "\nlet z = 1\n" in
-        let before = Ochre.to_tokens highlighter ~theme ~lang source in
+        let before =
+          (Ochre.highlight ~theme
+             ~lang:(Support.get_ok (Ochre.lang highlighter lang))
+             source
+          )
+            .lines
+        in
         let after =
-          Ochre.to_tokens highlighter ~transforms ~theme ~lang source
+          (Ochre.highlight ~transforms ~theme
+             ~lang:(Support.get_ok (Ochre.lang highlighter lang))
+             source
+          )
+            .lines
         in
         let code tokens = String.concat "" (List.map non_comment_text tokens) in
         if code before <> code after then (
@@ -242,10 +258,13 @@ let speed () =
       in
       let start = Unix.gettimeofday () in
       ignore
-        (Ochre.to_tokens highlighter
+        (Ochre.highlight
            ~transforms:[ Ochre.Transform_builtin.notation_highlight () ]
-           ~theme ~lang:"javascript" source
-        );
+           ~theme
+           ~lang:(Support.get_ok (Ochre.lang highlighter "javascript"))
+           source
+        )
+          .lines;
       let seconds = Unix.gettimeofday () -. start in
       Printf.printf "%d markers in a string: under 2s: %b\n" markers
         (seconds < 2.0)

@@ -10,7 +10,7 @@ let grammar_json =
   ]
 }|}
 
-let hl = Ochre.load_exn [ ("test", grammar_json) ]
+let hl = Support.get_ok (Ochre.load [ ("test", grammar_json) ])
 let theme = Ochre.Theme.dark
 
 let alphabet =
@@ -145,11 +145,23 @@ let between s ~start ~stop =
   String.sub s a (find stop a - a)
 
 let html source =
-  let out = Ochre.to_html hl ~theme ~lang:"test" source in
+  let out =
+    Ochre.to_html
+      (Ochre.highlight ~theme
+         ~lang:(Support.get_ok (Ochre.lang hl "test"))
+         source
+      )
+  in
   (decode (strip_tags (between out ~start:"<code>" ~stop:"</code>")), source)
 
 let ansi source =
-  let out = Ochre.to_ansi hl ~theme ~lang:"test" source in
+  let out =
+    Ochre.to_ansi
+      (Ochre.highlight ~theme
+         ~lang:(Support.get_ok (Ochre.lang hl "test"))
+         source
+      )
+  in
   let buf = Buffer.create 64 in
   let i = ref 0 in
   while !i < String.length out do
@@ -180,7 +192,13 @@ let ansi source =
   (Buffer.contents buf, expected)
 
 let svg source =
-  let out = Ochre.to_svg hl ~theme ~lang:"test" source in
+  let out =
+    Ochre.to_svg
+      (Ochre.highlight ~theme
+         ~lang:(Support.get_ok (Ochre.lang hl "test"))
+         source
+      )
+  in
   let texts =
     List.filter_map
       (fun line ->
@@ -198,7 +216,13 @@ let svg source =
   )
 
 let latex source =
-  let out = Ochre.to_latex hl ~theme ~lang:"test" source in
+  let out =
+    Ochre.to_latex
+      (Ochre.highlight ~theme
+         ~lang:(Support.get_ok (Ochre.lang hl "test"))
+         source
+      )
+  in
   let body = between out ~start:"}\n" ~stop:"\n\\end{ochrehighlight}" in
   let n = String.length body in
   let at i p =

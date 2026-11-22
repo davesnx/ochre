@@ -5,19 +5,7 @@
 ### color
 
 ```ocaml
-type color = string
-```
-Hex color string (e.g. `"#569cd6"`).
-
-
-### font\_style
-
-```ocaml
-type font_style = Token.font_style = 
-  | Bold
-  | Italic
-  | Underline
-  | Strikethrough (* Font style variants. *)
+type color = Color.t
 ```
 
 ### token\_color\_settings
@@ -26,10 +14,10 @@ type font_style = Token.font_style =
 type token_color_settings = {
   foreground : color option;
   background : color option;
-  font_style : font_style list option;
+  font_style : Style.font_style option;
 }
 ```
-Color and style settings resolved from a theme rule.
+Color and style settings of a theme rule. `None` inherits the value of the enclosing scope. A `font_style` of [`Style.plain`](./Ochre-Style.md#val-plain) is the `"none"` or empty `"fontStyle"` of the theme JSON: it resets the font style.
 
 
 ### token\_color\_rule
@@ -58,19 +46,39 @@ type theme = {
 A loaded theme with default foreground/background colors and a list of token coloring rules.
 
 
+### warning
+
+```ocaml
+type warning = {
+  path : string option; (* The file that holds the value, if any. *)
+  location : string; (* Where the value is, such as "tokenColors[2].settings.foreground" or "colors.editor.background". *)
+  value : string; (* The value that was dropped. *)
+}
+```
+A color that is not `#rgb`, `#rgba`, `#rrggbb` or `#rrggbbaa`. As in vscode-textmate, loading drops it, so the rule or the `colors` entry acts as if the value were not there.
+
+```ocaml
+val warning_to_string : warning -> string
+```
+A message for humans.
+
+
 ### load
 
 ```ocaml
-val load : ?base_dir:string -> string -> (theme, string) Stdlib.result
+val load : 
+  ?base_dir:string ->
+  string ->
+  (theme * warning list, Error.t) Stdlib.result
 ```
-Load a theme from a raw JSON string.
+Load a theme from a raw JSON string. Returns the theme and one warning for each color that was dropped.
 
-When `~base_dir` is provided, `"include"` paths in the JSON are resolved relative to that directory (same as [`load_from_file`](./#val-load_from_file) does with the file's parent directory). When omitted, `"include"` fields are silently ignored.
+When `~base_dir` is provided, `"include"` paths in the JSON are resolved relative to that directory (same as [`load_from_file`](./#val-load_from_file) does with the file's parent directory). When omitted, an `"include"` is an [`Error.t.Theme_error`](./Ochre-Error.md#type-t.Theme_error).
 
-Returns `Error msg` when the JSON is malformed.
+Returns [`Error.t.Theme_error`](./Ochre-Error.md#type-t.Theme_error) when the JSON is malformed or an included file cannot be read, and [`Error.t.Include_cycle`](./Ochre-Error.md#type-t.Include_cycle) when included files include each other.
 
 ```ocaml
-let theme =
+let result =
   Ochre.Theme.load
     {|{
     "name": "my-theme",
@@ -85,40 +93,24 @@ let theme =
   }|}
 ```
 
-### load\_exn
-
-```ocaml
-val load_exn : ?base_dir:string -> string -> theme
-```
-Like [`load`](./#val-load) but raises `Failure` when the JSON is malformed or contains invalid theme data.
-
-
 ### load\_from\_file
 
 ```ocaml
-val load_from_file : string -> (theme, string) Stdlib.result
+val load_from_file : string -> (theme * warning list, Error.t) Stdlib.result
 ```
-Load a theme from a VS Code theme JSON file.
+Load a theme from a VS Code theme JSON file, like [`load`](./#val-load) with the file's directory as `base_dir`.
 
-Falls back to the filename as the theme name when none is specified in the JSON. Returns `Error msg` when the file cannot be read or contains invalid JSON.
+Falls back to the filename as the theme name when none is specified in the JSON.
 
 ```ocaml
 match Ochre.Theme.load_from_file "/path/to/theme.json" with
-| Ok theme ->
+| Ok (theme, warnings) ->
+    List.iter
+      (fun w -> prerr_endline (Ochre.Theme.warning_to_string w))
+      warnings;
     theme
-| Error msg ->
-    failwith msg
-```
-
-### load\_from\_file\_exn
-
-```ocaml
-val load_from_file_exn : string -> theme
-```
-Like [`load_from_file`](./#val-load_from_file) but raises `Failure` when the file cannot be read or contains invalid theme data.
-
-```ocaml
-let theme = Ochre.Theme.load_from_file_exn "/path/to/theme.json"
+| Error e ->
+    failwith (Ochre.Error.to_string e)
 ```
 
 ### make
@@ -138,12 +130,17 @@ let theme =
   Ochre.Theme.make ~name:"my-theme"
     ~colors:
       [
-        ("editor.foreground", "#d4d4d4"); ("editor.background", "#1e1e1e");
+        ("editor.foreground", Ochre.Color.rgb 0xd4 0xd4 0xd4);
+        ("editor.background", Ochre.Color.rgb 0x1e 0x1e 0x1e);
       ]
     ~token_colors:
       [
-        Ochre.Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955" ();
-        Ochre.Theme.rule ~scope:[ "keyword" ] ~foreground:"#569cd6" ();
+        Ochre.Theme.rule ~scope:[ "comment" ]
+          ~foreground:(Ochre.Color.rgb 0x6a 0x99 0x55)
+          ();
+        Ochre.Theme.rule ~scope:[ "keyword" ]
+          ~foreground:(Ochre.Color.oklch 0.65 0.12 250.)
+          ();
       ]
     ()
 ```
@@ -156,7 +153,7 @@ val rule :
   ?scope:string list ->
   ?foreground:color ->
   ?background:color ->
-  ?font_style:font_style list ->
+  ?font_style:Style.font_style ->
   unit ->
   token_color_rule
 ```

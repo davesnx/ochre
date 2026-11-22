@@ -45,7 +45,7 @@ The full set of HTML rendering options.
 ```ocaml
 val default : t
 ```
-Default options (backward compatible with legacy output).
+Inline styles, default colors, no extra classes, no line numbers, the `--ochre-` variable prefix and no scope attributes.
 
 
 ### make

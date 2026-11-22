@@ -5,35 +5,35 @@
 ### line\_highlight
 
 ```ocaml
-val line_highlight : ?background:string -> int list -> Transform.t
+val line_highlight : ?background:Color.t -> int list -> Transform.t
 ```
-Highlights the given line indices (0-based) by setting every token's background color.
+Highlights the given line indices (0-based) by setting every token's background color, under every theme.
 
 Default background: `"#8888883a"`.
 
 ```ocaml
-Ochre.to_html hl
+Ochre.highlight
   ~transforms:[ Ochre.Transform_builtin.line_highlight [ 0; 2 ] ]
-  ~theme ~lang:"ocaml" code
+  ~theme ~lang code
 ```
 
 ### word\_highlight
 
 ```ocaml
 val word_highlight : 
-  ?foreground:string ->
-  ?font_style:Token.font_style list ->
+  ?foreground:Color.t ->
+  ?font_style:Style.font_style ->
   string list ->
   Transform.t
 ```
-Highlights tokens whose text matches one of the given words.
+Highlights tokens whose text matches one of the given words, under every theme.
 
-Default foreground: `"#ffff00"`. Default font style: `[Bold]`.
+Default foreground: `"#ffff00"`. Default font style: bold.
 
 ```ocaml
-Ochre.to_html hl
+Ochre.highlight
   ~transforms:[ Ochre.Transform_builtin.word_highlight [ "x"; "y" ] ]
-  ~theme ~lang:"ocaml" code
+  ~theme ~lang code
 ```
 
 ### diff\_markers
@@ -41,13 +41,13 @@ Ochre.to_html hl
 ```ocaml
 val diff_markers : Transform.t
 ```
-Strips leading `+` or `-` from the first token of each line and applies a green or red background to the entire line.
+Strips leading `+` or `-` from the first token of each line and applies a green or red background to the entire line, under every theme.
 
 
 ### scope\_marker
 
 ```ocaml
-val scope_marker : ?background:string -> string -> Transform.t
+val scope_marker : ?background:Color.t -> string -> Transform.t
 ```
 Highlights tokens that have at least one scope starting with `prefix`.
 
@@ -57,7 +57,7 @@ Default background: `"#ffff0033"`.
 ### notation\_highlight
 
 ```ocaml
-val notation_highlight : ?background:string -> unit -> Transform.t
+val notation_highlight : ?background:Color.t -> unit -> Transform.t
 ```
 Notation-based line highlight. Finds a `[!code highlight]` or `[!code hl]` marker in the comment that ends a line, removes it, and sets the background color on the entire line. Mirrors Shiki's `transformerNotationHighlight`, and so do the rules below, which hold for the three notation transforms.
 
@@ -70,15 +70,15 @@ Default background: `"#8888883a"`.
 ```ocaml
 let code = "let x = 42 // [!code highlight]\nlet y = 10" in
 let transforms = [ Ochre.Transform_builtin.notation_highlight () ] in
-Ochre.to_html hl ~transforms ~theme ~lang:"test" code
+Ochre.highlight ~transforms ~theme ~lang code
 ```
 
 ### notation\_diff
 
 ```ocaml
 val notation_diff : 
-  ?add_background:string ->
-  ?remove_background:string ->
+  ?add_background:Color.t ->
+  ?remove_background:Color.t ->
   unit ->
   Transform.t
 ```
@@ -89,24 +89,24 @@ Default add background: `"#22883322"`. Default remove background: `"#88222222"`.
 ```ocaml
 let code = "let x = 42 // [!code ++]\nlet y = 10 // [!code --]" in
 let transforms = [ Ochre.Transform_builtin.notation_diff () ] in
-Ochre.to_html hl ~transforms ~theme ~lang:"test" code
+Ochre.highlight ~transforms ~theme ~lang code
 ```
 
 ### notation\_word\_highlight
 
 ```ocaml
 val notation_word_highlight : 
-  ?foreground:string ->
-  ?font_style:Token.font_style list ->
+  ?foreground:Color.t ->
+  ?font_style:Style.font_style ->
   unit ->
   Transform.t
 ```
 Notation-based word highlight. Finds `[!code word:xxx]` markers in comments, removes them, and highlights all occurrences of `xxx`, across token boundaries. Without a count the highlight runs from the line of the marker to the end of the code; `[!code word:xxx:2]` limits it to two lines. A backslash escapes a character of the word. Mirrors Shiki's `transformerNotationWordHighlight`; see [`notation_highlight`](./#val-notation_highlight) for where a marker may sit and what is removed.
 
-Default foreground: `"#ffff00"`. Default font style: `[Bold]`.
+Default foreground: `"#ffff00"`. Default font style: bold.
 
 ```ocaml
 let code = "let x = 42 // [!code word:x]" in
 let transforms = [ Ochre.Transform_builtin.notation_word_highlight () ] in
-Ochre.to_html hl ~transforms ~theme ~lang:"test" code
+Ochre.highlight ~transforms ~theme ~lang code
 ```

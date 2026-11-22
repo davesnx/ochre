@@ -11,7 +11,7 @@ let render_decoration (dec : Token.decoration_properties) =
   in
   " <" ^ String.concat ", " (List.rev parts) ^ ">"
 
-let render_token (t : Token.styled_token) =
+let render_token (t : Token.t) =
   let scopes = String.concat ", " t.scopes in
   let dec =
     match t.decoration with None -> "" | Some d -> render_decoration d
@@ -20,7 +20,7 @@ let render_token (t : Token.styled_token) =
 
 let render_line line = String.concat "\n" (List.map render_token line)
 
-let render _theme code =
+let render code =
   let lines =
     List.mapi
       (fun i line -> Printf.sprintf "line %d:\n%s" (i + 1) (render_line line))

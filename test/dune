@@ -112,3 +112,7 @@
  (alias runtest)
  (action
   (diff html-dual-theme-preview.html html-dual-theme-preview.html.gen)))
+
+(test
+ (name test_model)
+ (libraries ochre alcotest))
