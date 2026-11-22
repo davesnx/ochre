@@ -1,5 +1,3 @@
-open Token
-
 let escape_latex str =
   let buf = Buffer.create (String.length str * 2) in
   String.iter
@@ -38,80 +36,66 @@ let escape_latex str =
     str;
   Buffer.contents buf
 
-let hex_of_rgb (r, g, b) = Printf.sprintf "%02X%02X%02X" r g b
+let hex (color : Color.t) =
+  Printf.sprintf "%02X%02X%02X" color.r color.g color.b
 
-let wrap_font_styles styles inner =
+let wrap_font_styles (style : Style.font_style) inner =
   List.fold_left
-    (fun acc style ->
-      match style with
-      | Bold ->
-          Printf.sprintf "\\textbf{%s}" acc
-      | Italic ->
-          Printf.sprintf "\\textit{%s}" acc
-      | Underline ->
-          Printf.sprintf "\\underline{%s}" acc
-      | Strikethrough ->
-          Printf.sprintf "\\sout{%s}" acc
+    (fun acc (on, command) ->
+      if on then
+        Printf.sprintf "\\%s{%s}" command acc
+      else
+        acc
     )
-    inner styles
+    inner
+    [
+      (style.bold, "textbf");
+      (style.italic, "textit");
+      (style.underline, "underline");
+      (style.strikethrough, "sout");
+    ]
 
-let color_box ~theme_bg (token : styled_token) styled =
-  let page = Color.page_background theme_bg in
-  match Option.bind token.background (Color.resolve ~over:page) with
-  | Some rgb when rgb <> page ->
-      Printf.sprintf "{\\setlength{\\fboxsep}{0pt}\\colorbox[HTML]{%s}{%s}}"
-        (hex_of_rgb rgb) styled
-  | _ ->
-      styled
-
-let render_token ~theme_bg ~column (token : styled_token) =
-  let expanded, column = Render_cells.expand_tabs ~column token.text in
-  let text = escape_latex expanded in
-  let styled = wrap_font_styles token.font_style text in
-  let styled =
-    match token.foreground with
-    | Some color ->
-        let behind = Color.effective_background_rgb theme_bg token in
-        let rgb =
-          match Color.resolve ~over:behind color with
-          | Some rgb ->
-              rgb
-          | None ->
-              Color.contrast_fallback_fg behind
-        in
-        Printf.sprintf "\\textcolor[HTML]{%s}{%s}" (hex_of_rgb rgb) styled
+let render_token ~page ~column (style : Style.t) text =
+  let expanded, column = Render_cells.expand_tabs ~column text in
+  let styled = wrap_font_styles style.font_style (escape_latex expanded) in
+  let behind =
+    match style.background with
+    | Some background ->
+        Color.blend ~over:page background
     | None ->
-        styled
+        page
   in
-  (color_box ~theme_bg token styled, column)
+  let styled =
+    Printf.sprintf "\\textcolor[HTML]{%s}{%s}"
+      (hex (Color.blend ~over:behind style.foreground))
+      styled
+  in
+  let boxed =
+    if Color.equal behind page then
+      styled
+    else
+      Printf.sprintf "{\\setlength{\\fboxsep}{0pt}\\colorbox[HTML]{%s}{%s}}"
+        (hex behind) styled
+  in
+  (boxed, column)
 
-let render_line ~theme_bg line =
+let render_line ~page line =
   let _, parts =
     List.fold_left
-      (fun (column, parts) token ->
-        let part, column = render_token ~theme_bg ~column token in
+      (fun (column, parts) (token : Token.t) ->
+        let part, column =
+          render_token ~page ~column (Token.style token) token.text
+        in
         (column, part :: parts)
       )
       (0, []) line
   in
   String.concat "" (List.rev parts)
 
-let render theme (code : highlighted_code) =
-  let lines = List.map (render_line ~theme_bg:theme.Theme.bg) code in
-  let code_content = String.concat "\\\\\n" lines in
-  let bg_rgb =
-    match Color.parse_hex_color theme.Theme.bg with
-    | Some rgb ->
-        rgb
-    | None ->
-        (0, 0, 0)
-  in
-  let fg_rgb =
-    match Color.parse_hex_color theme.Theme.fg with
-    | Some rgb ->
-        rgb
-    | None ->
-        Color.contrast_fallback_fg bg_rgb
+let render (theme : Theme.theme) lines =
+  let page = Color.opaque theme.bg in
+  let code_content =
+    String.concat "\\\\\n" (List.map (render_line ~page) lines)
   in
   Printf.sprintf "\\begin{ochrehighlight}{%s}{%s}\n%s\n\\end{ochrehighlight}"
-    (hex_of_rgb bg_rgb) (hex_of_rgb fg_rgb) code_content
+    (hex page) (hex theme.fg) code_content

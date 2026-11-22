@@ -36,7 +36,7 @@ and ancestor_matches up part direct rest =
 type rule = {
   mutable depth : int;
   parents : string list;
-  mutable font_style : Theme.font_style list option;
+  mutable font_style : Style.font_style option;
   mutable foreground : Theme.color option;
   mutable background : Theme.color option;
 }
@@ -160,7 +160,7 @@ type entry = {
   scope : string;
   entry_parents : string list;
   index : int;
-  entry_font_style : Theme.font_style list option;
+  entry_font_style : Style.font_style option;
   entry_foreground : Theme.color option;
   entry_background : Theme.color option;
 }
@@ -201,12 +201,6 @@ let compare_entries a b =
 let entries_of_rules rules =
   List.mapi
     (fun index (rule : Theme.token_color_rule) ->
-      let valid = function
-        | Some c when Theme.is_valid_color c ->
-            Some c
-        | _ ->
-            None
-      in
       let selectors =
         if rule.scope = [] then
           [ "" ]
@@ -223,8 +217,8 @@ let entries_of_rules rules =
             entry_parents = List.tl reversed;
             index;
             entry_font_style = rule.settings.font_style;
-            entry_foreground = valid rule.settings.foreground;
-            entry_background = valid rule.settings.background;
+            entry_foreground = rule.settings.foreground;
+            entry_background = rule.settings.background;
           }
         )
         selectors

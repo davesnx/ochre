@@ -10,9 +10,22 @@ let source =
       "let () = print_int (fib 10)";
     ]
 
+let lang_of grammar =
+  match
+    Result.bind
+      (Ochre.load [ ("ocaml", grammar) ])
+      (fun hl -> Ochre.lang hl "ocaml")
+  with
+  | Ok lang ->
+      lang
+  | Error error ->
+      failwith (Ochre.Error.to_string error)
+
 let () =
-  let highlighter = Ochre.load_exn [ ("ocaml", Tm_grammars.ocaml) ] in
   print_string
-    (Ochre.to_debug_tokens highlighter ~theme:Ochre.Theme.nord ~lang:"ocaml"
-       source
+    (Ochre.to_debug_tokens
+       (Ochre.highlight ~theme:Ochre.Theme.nord
+          ~lang:(lang_of Tm_grammars.ocaml)
+          source
+       )
     )

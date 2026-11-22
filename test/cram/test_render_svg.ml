@@ -30,25 +30,54 @@ let setup () =
   let oc = open_out path in
   output_string oc grammar_json;
   close_out oc;
-  let hl = Ochre.load_from_files_exn [ path ] in
+  let hl = Support.get_ok (Ochre.load_from_files [ path ]) in
   Sys.remove path;
-  let theme = Ochre.Theme.load_exn theme_json in
+  let theme = fst (Support.get_ok (Ochre.Theme.load theme_json)) in
   (hl, theme)
 
 let () =
   let hl, theme = setup () in
   match Sys.argv.(1) with
   | "keyword-and-number" ->
-      print_endline (Ochre.to_svg hl ~theme ~lang:"test" "let x = 42")
+      print_endline
+        (Ochre.to_svg
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x = 42"
+           )
+        )
   | "comment" ->
-      print_endline (Ochre.to_svg hl ~theme ~lang:"test" "# a comment")
+      print_endline
+        (Ochre.to_svg
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "# a comment"
+           )
+        )
   | "string" ->
-      print_endline (Ochre.to_svg hl ~theme ~lang:"test" {|let s = "hello"|})
+      print_endline
+        (Ochre.to_svg
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              {|let s = "hello"|}
+           )
+        )
   | "multi-line" ->
       print_endline
-        (Ochre.to_svg hl ~theme ~lang:"test" "let x = 42\nlet y = 10")
+        (Ochre.to_svg
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x = 42\nlet y = 10"
+           )
+        )
   | "escaping" ->
-      print_endline (Ochre.to_svg hl ~theme ~lang:"test" "# <div>&amp;</div>")
+      print_endline
+        (Ochre.to_svg
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "# <div>&amp;</div>"
+           )
+        )
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1

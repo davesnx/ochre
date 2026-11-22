@@ -60,78 +60,137 @@ let setup () =
   let oc = open_out path in
   output_string oc grammar_json;
   close_out oc;
-  let hl = Ochre.load_from_files_exn [ path ] in
+  let hl = Support.get_ok (Ochre.load_from_files [ path ]) in
   Sys.remove path;
-  let theme = Ochre.Theme.load_exn theme_json in
-  let light_theme = Ochre.Theme.load_exn light_theme_json in
-  let dim_theme = Ochre.Theme.load_exn dim_theme_json in
+  let theme = fst (Support.get_ok (Ochre.Theme.load theme_json)) in
+  let light_theme = fst (Support.get_ok (Ochre.Theme.load light_theme_json)) in
+  let dim_theme = fst (Support.get_ok (Ochre.Theme.load dim_theme_json)) in
   (hl, theme, light_theme, dim_theme)
 
 let () =
   let hl, theme, light_theme, dim_theme = setup () in
   match Sys.argv.(1) with
   | "keyword-and-number" ->
-      print_endline (Ochre.to_html hl ~theme ~lang:"test" "let x = 42")
+      print_endline
+        (Ochre.to_html
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x = 42"
+           )
+        )
   | "comment" ->
-      print_endline (Ochre.to_html hl ~theme ~lang:"test" "# a comment")
+      print_endline
+        (Ochre.to_html
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "# a comment"
+           )
+        )
   | "string" ->
-      print_endline (Ochre.to_html hl ~theme ~lang:"test" {|let s = "hello"|})
+      print_endline
+        (Ochre.to_html
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              {|let s = "hello"|}
+           )
+        )
   | "multi-line" ->
       print_endline
-        (Ochre.to_html hl ~theme ~lang:"test" "let x = 42\nlet y = 10")
+        (Ochre.to_html
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x = 42\nlet y = 10"
+           )
+        )
   | "escaping" ->
-      print_endline (Ochre.to_html hl ~theme ~lang:"test" "# <div>&amp;</div>")
+      print_endline
+        (Ochre.to_html
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "# <div>&amp;</div>"
+           )
+        )
   | "themes-one-extra" ->
       print_endline
-        (Ochre.to_html hl ~theme:light_theme
-           ~extra_themes:[ ("dark", theme) ]
-           ~lang:"test" "let x = 42"
+        (Ochre.to_html
+           (Support.get_ok
+              (Ochre.highlight_themes ~theme:light_theme
+                 ~extra_themes:[ ("dark", theme) ]
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "let x = 42"
+              )
+           )
         )
   | "themes-multi-line" ->
       print_endline
-        (Ochre.to_html hl ~theme:light_theme
-           ~extra_themes:[ ("dark", theme) ]
-           ~lang:"test" "let x = 42\nlet y = 10"
+        (Ochre.to_html
+           (Support.get_ok
+              (Ochre.highlight_themes ~theme:light_theme
+                 ~extra_themes:[ ("dark", theme) ]
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "let x = 42\nlet y = 10"
+              )
+           )
         )
   | "themes-light-dark-vars" ->
       print_endline
-        (Ochre.to_html hl ~theme:light_theme
-           ~extra_themes:[ ("light", light_theme); ("dark", theme) ]
-           ~lang:"test" "let x = 42"
-        )
-  | "themes-no-default" ->
-      print_endline
-        (Ochre.to_html hl
-           ~extra_themes:[ ("dark", theme) ]
-           ~lang:"test" "let x = 42"
+        (Ochre.to_html
+           (Support.get_ok
+              (Ochre.highlight_themes ~theme:light_theme
+                 ~extra_themes:[ ("light", light_theme); ("dark", theme) ]
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "let x = 42"
+              )
+           )
         )
   | "themes-two-extras" ->
       print_endline
-        (Ochre.to_html hl ~theme:light_theme
-           ~extra_themes:[ ("dark", theme); ("dim", dim_theme) ]
-           ~lang:"test" "let x = 42"
+        (Ochre.to_html
+           (Support.get_ok
+              (Ochre.highlight_themes ~theme:light_theme
+                 ~extra_themes:[ ("dark", theme); ("dim", dim_theme) ]
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "let x = 42"
+              )
+           )
         )
   | "theme-css" ->
       print_endline (Ochre.html_theme_css "dim")
   | "line-numbers" ->
       let options = Ochre.Html_options.make ~line_numbers:true () in
       print_endline
-        (Ochre.to_html hl ~options ~theme ~lang:"test" "let x = 42\nlet y = 10")
+        (Ochre.to_html ~options
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x = 42\nlet y = 10"
+           )
+        )
   | "no-default-color" ->
       let options =
         Ochre.Html_options.make
           ~default_color:Ochre.Html_options.No_default_color ()
       in
-      print_endline (Ochre.to_html hl ~options ~theme ~lang:"test" "let x = 42")
+      print_endline
+        (Ochre.to_html ~options
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x = 42"
+           )
+        )
   | "no-default-color-multi" ->
       let options =
         Ochre.Html_options.make
           ~default_color:Ochre.Html_options.No_default_color ()
       in
       print_endline
-        (Ochre.to_html hl ~options ~theme:light_theme
-           ~extra_themes:[ ("dark", theme) ]
-           ~lang:"test" "let x = 42"
+        (Ochre.to_html ~options
+           (Support.get_ok
+              (Ochre.highlight_themes ~theme:light_theme
+                 ~extra_themes:[ ("dark", theme) ]
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "let x = 42"
+              )
+           )
         )
   | "css-classes" ->
       let options =
@@ -139,25 +198,54 @@ let () =
           ~style_mode:(Ochre.Html_options.Css_classes { class_prefix = "s-" })
           ()
       in
-      print_endline (Ochre.to_html hl ~options ~theme ~lang:"test" "let x = 42")
+      print_endline
+        (Ochre.to_html ~options
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x = 42"
+           )
+        )
   | "custom-prefix" ->
       let options =
         Ochre.Html_options.make ~css_variable_prefix:"--shiki-" ()
       in
       print_endline
-        (Ochre.to_html hl ~options ~theme:light_theme
-           ~extra_themes:[ ("dark", theme) ]
-           ~lang:"test" "let x = 42"
+        (Ochre.to_html ~options
+           (Support.get_ok
+              (Ochre.highlight_themes ~theme:light_theme
+                 ~extra_themes:[ ("dark", theme) ]
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "let x = 42"
+              )
+           )
         )
   | "scopes-data" ->
       let options = Ochre.Html_options.make ~scopes_as_data_attrs:true () in
-      print_endline (Ochre.to_html hl ~options ~theme ~lang:"test" "let x = 42")
+      print_endline
+        (Ochre.to_html ~options
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x = 42"
+           )
+        )
   | "pre-class" ->
       let options = Ochre.Html_options.make ~pre_class:"my-code" () in
-      print_endline (Ochre.to_html hl ~options ~theme ~lang:"test" "let x = 42")
+      print_endline
+        (Ochre.to_html ~options
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x = 42"
+           )
+        )
   | "code-class" ->
       let options = Ochre.Html_options.make ~code_class:"language-test" () in
-      print_endline (Ochre.to_html hl ~options ~theme ~lang:"test" "let x = 42")
+      print_endline
+        (Ochre.to_html ~options
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x = 42"
+           )
+        )
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1

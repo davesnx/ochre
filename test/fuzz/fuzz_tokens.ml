@@ -17,31 +17,46 @@ let langs =
     "shellsession";
   ]
 
+let get_ok = function
+  | Ok value ->
+      value
+  | Error error ->
+      failwith (Ochre.Error.to_string error)
+
 let highlighter =
-  Ochre.load_exn
-    (List.map
-       (fun lang ->
-         match Tm_grammars.find lang with
-         | Some json ->
-             (lang, json)
-         | None ->
-             failwith ("tm-grammars has no grammar " ^ lang)
+  get_ok
+    (Ochre.load
+       (List.map
+          (fun lang ->
+            match Tm_grammars.find lang with
+            | Some json ->
+                (lang, json)
+            | None ->
+                failwith ("tm-grammars has no grammar " ^ lang)
+          )
+          langs
        )
-       langs
     )
 
 let theme = Ochre.Theme.dark
 
 let check_tokens lang source =
-  let tokens = List.concat (Ochre.to_tokens highlighter ~theme ~lang source) in
+  let tokens =
+    List.concat
+      (Ochre.highlight ~theme
+         ~lang:(get_ok (Ochre.lang highlighter lang))
+         source
+      )
+        .lines
+  in
   List.iter
-    (fun (token : Ochre.Token.styled_token) ->
+    (fun (token : Ochre.Token.t) ->
       if token.text = "" then Crowbar.failf "%s: empty token" lang
     )
     tokens;
   Crowbar.check_eq ~pp:Crowbar.pp_string source
     (String.concat ""
-       (List.map (fun (token : Ochre.Token.styled_token) -> token.text) tokens)
+       (List.map (fun (token : Ochre.Token.t) -> token.text) tokens)
     )
 
 let () =

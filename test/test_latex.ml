@@ -53,8 +53,19 @@ let preamble =
 
 let trailer = "\\end{document}\n"
 
+let lang_of grammar =
+  match
+    Result.bind
+      (Ochre.load [ ("ocaml", grammar) ])
+      (fun hl -> Ochre.lang hl "ocaml")
+  with
+  | Ok lang ->
+      lang
+  | Error error ->
+      failwith (Ochre.Error.to_string error)
+
 let () =
-  let highlighter = Ochre.load_exn [ ("ocaml", grammar_json) ] in
+  let lang = lang_of grammar_json in
   let source =
     "let answer = 42\n(* LaTeX preview *)\nlet greet = \"hello from ochre\""
   in
@@ -64,7 +75,7 @@ let () =
       match Ochre.Theme.find name with
       | Some theme ->
           Printf.printf "\\subsection*{%s}\n" name;
-          print_endline (Ochre.to_latex highlighter ~theme ~lang:"ocaml" source)
+          print_endline (Ochre.to_latex (Ochre.highlight ~theme ~lang source))
       | None ->
           Printf.printf "\\textbf{Missing built-in theme: %s}\\par\n" name
     )

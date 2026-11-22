@@ -31,9 +31,9 @@ let setup () =
   let oc = open_out path in
   output_string oc grammar_json;
   close_out oc;
-  let hl = Ochre.load_from_files_exn [ path ] in
+  let hl = Support.get_ok (Ochre.load_from_files [ path ]) in
   Sys.remove path;
-  let theme = Ochre.Theme.load_exn theme_json in
+  let theme = fst (Support.get_ok (Ochre.Theme.load theme_json)) in
   (hl, theme)
 
 let print_escaped s =
@@ -51,12 +51,29 @@ let () =
   let hl, theme = setup () in
   match Sys.argv.(1) with
   | "keyword-and-number" ->
-      print_escaped (Ochre.to_ansi hl ~theme ~lang:"test" "let x = 42")
+      print_escaped
+        (Ochre.to_ansi
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x = 42"
+           )
+        )
   | "comment" ->
-      print_escaped (Ochre.to_ansi hl ~theme ~lang:"test" "# a comment")
+      print_escaped
+        (Ochre.to_ansi
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "# a comment"
+           )
+        )
   | "multi-line" ->
       print_escaped
-        (Ochre.to_ansi hl ~theme ~lang:"test" "let x = 42\nlet y = 10")
+        (Ochre.to_ansi
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x = 42\nlet y = 10"
+           )
+        )
   | "compound-scope" ->
       let grammar =
         {|{
@@ -70,10 +87,12 @@ let () =
         ]
       }|}
       in
-      let hl = Ochre.load_exn [ ("compound", grammar) ] in
+      let hl = Support.get_ok (Ochre.load [ ("compound", grammar) ]) in
       let theme =
-        Ochre.Theme.load_exn
-          {|{
+        fst
+          (Support.get_ok
+             (Ochre.Theme.load
+                {|{
           "name": "test-theme",
           "colors": {
             "editor.foreground": "#d4d4d4",
@@ -84,12 +103,22 @@ let () =
             { "scope": "entity.name.function", "settings": { "foreground": "#ffff00" } }
           ]
         }|}
+             )
+          )
       in
-      print_escaped (Ochre.to_ansi hl ~theme ~lang:"compound" "x")
+      print_escaped
+        (Ochre.to_ansi
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "compound"))
+              "x"
+           )
+        )
   | "invalid-fg-dark-bg" ->
       let theme =
-        Ochre.Theme.load_exn
-          {|{
+        fst
+          (Support.get_ok
+             (Ochre.Theme.load
+                {|{
           "name": "invalid-dark",
           "colors": {
             "editor.foreground": "#d4d4d4",
@@ -99,12 +128,22 @@ let () =
             { "scope": "keyword", "settings": { "foreground": "var(--bad)" } }
           ]
         }|}
+             )
+          )
       in
-      print_escaped (Ochre.to_ansi hl ~theme ~lang:"test" "let")
+      print_escaped
+        (Ochre.to_ansi
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let"
+           )
+        )
   | "invalid-fg-light-bg" ->
       let theme =
-        Ochre.Theme.load_exn
-          {|{
+        fst
+          (Support.get_ok
+             (Ochre.Theme.load
+                {|{
           "name": "invalid-light",
           "colors": {
             "editor.foreground": "#111111",
@@ -114,8 +153,16 @@ let () =
             { "scope": "keyword", "settings": { "foreground": "var(--bad)" } }
           ]
         }|}
+             )
+          )
       in
-      print_escaped (Ochre.to_ansi hl ~theme ~lang:"test" "let")
+      print_escaped
+        (Ochre.to_ansi
+           (Ochre.highlight ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let"
+           )
+        )
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1

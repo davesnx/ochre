@@ -1,1 +1,1 @@
-val render : Theme.theme -> Token.highlighted_code -> string
+val render : Theme.theme -> Token.t list list -> string

@@ -16,23 +16,16 @@ let valid_data_key_char = function
   | _ ->
       false
 
-let invalid_data_key key =
-  invalid_arg
-    (Printf.sprintf
-       "Decoration.make: invalid data key %S (must be non-empty and contain \
-        only letters, digits, '-', or '_', since it becomes part of a data-* \
-        attribute name)"
-       key
-    )
-
 let make ?class_ ?style ?(data = []) ~start ~end_ () =
-  List.iter
-    (fun (key, _) ->
-      if key = "" || not (String.for_all valid_data_key_char key) then
-        invalid_data_key key
-    )
-    data;
-  { start; end_; properties = { class_; style; data } }
+  match
+    List.find_opt
+      (fun (key, _) -> key = "" || not (String.for_all valid_data_key_char key))
+      data
+  with
+  | Some (key, _) ->
+      Error (Error.Invalid_data_key key)
+  | None ->
+      Ok { start; end_; properties = { class_; style; data } }
 
 let scalar_length source offset =
   match Utf8.scalar_length source offset with 0 -> 1 | n -> n
@@ -96,23 +89,14 @@ let resolve_character boundaries_of pos =
 
 let merge_properties (a : Token.decoration_properties)
     (b : Token.decoration_properties) : Token.decoration_properties =
-  let class_ =
-    match (a.class_, b.class_) with
+  let join sep a b =
+    match (a, b) with
     | None, None ->
         None
     | Some c, None | None, Some c ->
         Some c
     | Some a, Some b ->
-        Some (a ^ " " ^ b)
-  in
-  let style =
-    match (a.style, b.style) with
-    | None, None ->
-        None
-    | Some s, None | None, Some s ->
-        Some s
-    | Some a, Some b ->
-        Some (a ^ ";" ^ b)
+        Some (a ^ sep ^ b)
   in
   let data =
     let tbl = Hashtbl.create 8 in
@@ -120,14 +104,16 @@ let merge_properties (a : Token.decoration_properties)
     List.iter (fun (k, v) -> Hashtbl.replace tbl k v) b.data;
     Hashtbl.fold (fun k v acc -> (k, v) :: acc) tbl []
   in
-  { class_; style; data }
+  {
+    class_ = join " " a.class_ b.class_;
+    style = join ";" a.style b.style;
+    data;
+  }
 
-let props_to_decoration (p : properties) : Token.decoration_properties =
-  { class_ = p.class_; style = p.style; data = p.data }
-
-let set_decoration (tok : Token.styled_token) (props : properties) :
-    Token.styled_token =
-  let dp = props_to_decoration props in
+let set_decoration (tok : Token.t) (props : properties) : Token.t =
+  let dp : Token.decoration_properties =
+    { class_ = props.class_; style = props.style; data = props.data }
+  in
   let decoration =
     match tok.decoration with
     | None ->
@@ -137,108 +123,91 @@ let set_decoration (tok : Token.styled_token) (props : properties) :
   in
   { tok with decoration }
 
-let apply_to_line ~line_idx ~source_lines ~boundaries_of decorations tokens =
-  let relevant =
-    List.filter_map
-      (fun (d : t) ->
-        let start_line = d.start.line in
-        let end_line = d.end_.line in
-        if line_idx < start_line || line_idx > end_line then
-          None
+let ranges_for_line ~line_idx ~source_lines ~boundaries_of decorations =
+  List.map
+    (fun (d : t) ->
+      let start_char =
+        if line_idx > d.start.line then
+          0
         else
-          let start_char =
-            if line_idx > start_line then
-              0
-            else
-              resolve_character boundaries_of d.start
-          in
-          let end_char =
-            if line_idx < end_line then
-              if line_idx < source_lines then
-                let line_boundaries = boundaries_of line_idx in
-                line_boundaries.(Array.length line_boundaries - 1) + 1
-              else
-                max_int
-            else
-              resolve_character boundaries_of d.end_
-          in
-          Some (start_char, end_char, d.properties)
-      )
-      decorations
-  in
-  if relevant = [] then
-    tokens
-  else
-    let rec process offset tokens =
-      match tokens with
-      | [] ->
-          []
-      | (tok : Token.styled_token) :: rest ->
-          let tok_len = String.length tok.text in
-          let tok_start = offset in
-          let tok_end = offset + tok_len in
-          let overlapping =
-            List.filter (fun (s, e, _) -> s < tok_end && e > tok_start) relevant
-          in
-          if overlapping = [] then
-            tok :: process tok_end rest
+          resolve_character boundaries_of d.start
+      in
+      let end_char =
+        if line_idx < d.end_.line then
+          if line_idx < source_lines then
+            let line_boundaries = boundaries_of line_idx in
+            line_boundaries.(Array.length line_boundaries - 1) + 1
           else
-            let split_points = ref [] in
-            List.iter
-              (fun (s, e, _) ->
-                if s > tok_start && s < tok_end then
-                  split_points := (s - tok_start) :: !split_points;
-                if e > tok_start && e < tok_end then
-                  split_points := (e - tok_start) :: !split_points
-              )
-              overlapping;
-            let points = List.sort_uniq compare !split_points in
-            let rec split_text text prev_cut points =
-              match points with
-              | [] ->
-                  if prev_cut < String.length text then
-                    [ String.sub text prev_cut (String.length text - prev_cut) ]
-                  else
-                    []
-              | p :: rest ->
-                  if p > prev_cut then
-                    String.sub text prev_cut (p - prev_cut)
-                    :: split_text text p rest
-                  else
-                    split_text text prev_cut rest
-            in
-            let fragments = split_text tok.text 0 points in
-            let rec build_fragments frag_offset frags =
-              match frags with
-              | [] ->
-                  []
-              | frag :: rest_frags ->
-                  let frag_len = String.length frag in
-                  let frag_start = frag_offset in
-                  let frag_end = frag_offset + frag_len in
-                  let covering =
-                    List.filter
-                      (fun (s, e, _) -> s <= frag_start && e >= frag_end)
-                      overlapping
-                  in
-                  let new_tok = { tok with text = frag } in
-                  let decorated =
-                    List.fold_left
-                      (fun t (_, _, props) -> set_decoration t props)
-                      new_tok covering
-                  in
-                  decorated :: build_fragments frag_end rest_frags
-            in
-            build_fragments tok_start fragments @ process tok_end rest
-    in
-    process 0 tokens
+            max_int
+        else
+          resolve_character boundaries_of d.end_
+      in
+      (start_char, end_char, d.properties)
+    )
+    decorations
 
-let apply ~source decorations tokens =
+let decorate_token ranges (tok : Token.t) =
+  let tok_start = tok.position.column in
+  let tok_end = tok_start + tok.position.length in
+  let overlapping =
+    List.filter (fun (s, e, _) -> s < tok_end && e > tok_start) ranges
+  in
+  if overlapping = [] then
+    [ tok ]
+  else
+    let splittable = tok.position.length = String.length tok.text in
+    let points =
+      if splittable then
+        List.sort_uniq compare
+          (List.concat_map
+             (fun (s, e, _) ->
+               List.filter (fun p -> p > tok_start && p < tok_end) [ s; e ]
+             )
+             overlapping
+          )
+      else
+        []
+    in
+    let rec pieces from = function
+      | [] ->
+          [ (from, tok_end) ]
+      | p :: rest ->
+          (from, p) :: pieces p rest
+    in
+    List.map
+      (fun (piece_start, piece_end) ->
+        let piece =
+          if splittable then
+            Token.slice tok ~pos:(piece_start - tok_start)
+              ~len:(piece_end - piece_start)
+          else
+            tok
+        in
+        List.fold_left
+          (fun t (s, e, props) ->
+            if s <= piece_start && e >= piece_end then
+              set_decoration t props
+            else
+              t
+          )
+          piece overlapping
+      )
+      (pieces tok_start points)
+
+let line_of (line : Token.t list) =
+  match line with [] -> None | first :: _ -> Some first.position.line
+
+let apply ~source decorations (lines : Token.t list list) =
   if decorations = [] then
-    tokens
+    lines
   else
     let source_lines, boundaries_of = boundaries_lookup source in
-    let line_count = List.length tokens in
+    let line_count =
+      1
+      + List.fold_left
+          (fun acc line -> max acc (Option.value (line_of line) ~default:(-1)))
+          (-1) lines
+    in
     let by_line = Array.make line_count [] in
     List.iter
       (fun (d : t) ->
@@ -247,12 +216,16 @@ let apply ~source decorations tokens =
         done
       )
       (List.rev decorations);
-    List.mapi
-      (fun line_idx line ->
-        match by_line.(line_idx) with
-        | [] ->
+    List.map
+      (fun line ->
+        match line_of line with
+        | Some line_idx when line_idx >= 0 && by_line.(line_idx) <> [] ->
+            let ranges =
+              ranges_for_line ~line_idx ~source_lines ~boundaries_of
+                by_line.(line_idx)
+            in
+            List.concat_map (decorate_token ranges) line
+        | _ ->
             line
-        | relevant ->
-            apply_to_line ~line_idx ~source_lines ~boundaries_of relevant line
       )
-      tokens
+      lines

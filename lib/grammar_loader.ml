@@ -7,6 +7,14 @@ type file_format = Json | Plist
 
 let describe_json_error msg = String.map (function '\n' -> ' ' | c -> c) msg
 
+let strip_path_prefix path msg =
+  let prefix = path ^ ": " in
+  if String.starts_with ~prefix msg then
+    String.sub msg (String.length prefix)
+      (String.length msg - String.length prefix)
+  else
+    msg
+
 let lang_id_of_path path =
   let base = Filename.basename path in
   if Filename.check_suffix base ".tmLanguage.json" then
@@ -22,101 +30,96 @@ let lang_id_of_path path =
 
 let format_of_path path =
   let base = Filename.basename path in
-  if Filename.check_suffix base ".tmLanguage.json" then
-    Json
-  else if Filename.check_suffix base ".json" then
-    Json
-  else if Filename.check_suffix base ".tmLanguage" then
-    Plist
-  else if Filename.check_suffix base ".plist" then
+  if
+    Filename.check_suffix base ".tmLanguage"
+    || Filename.check_suffix base ".plist"
+  then
     Plist
   else
     Json
 
-let load_grammar_from_file path =
+let error_message ?path = function
+  | Yojson.Json_error msg ->
+      "invalid JSON: " ^ describe_json_error msg
+  | TmLanguage.Error msg ->
+      msg
+  | Sys_error msg -> (
+      match path with Some path -> strip_path_prefix path msg | None -> msg
+    )
+  | exn ->
+      Printexc.to_string exn
+
+let is_fatal = function
+  | Out_of_memory | Stack_overflow | Sys.Break ->
+      true
+  | _ ->
+      false
+
+let read_grammar ~lang ?path read =
+  match read () with
+  | grammar ->
+      Ok (lang, path, grammar)
+  | exception exn when not (is_fatal exn) ->
+      Error
+        (Error.Grammar_error { lang; path; message = error_message ?path exn })
+
+let grammar_of_string json_string =
+  TmLanguage.of_yojson_exn (Yojson.Basic.from_string json_string)
+
+let grammar_of_file path =
   match format_of_path path with
   | Json ->
-      let json =
-        try Yojson.Basic.from_file path
-        with Yojson.Json_error msg ->
-          failwith
-            (Printf.sprintf "%s: invalid JSON: %s" path (describe_json_error msg)
-            )
-      in
-      TmLanguage.of_yojson_exn json
+      TmLanguage.of_yojson_exn (Yojson.Basic.from_file path)
   | Plist ->
-      let ic = open_in path in
-      let plist =
-        Fun.protect
-          ~finally:(fun () -> close_in ic)
-          (fun () -> Plist_xml.from_channel ic)
-      in
-      TmLanguage.of_plist_exn plist
+      In_channel.with_open_bin path (fun ic ->
+          TmLanguage.of_plist_exn (Plist_xml.from_channel ic)
+      )
 
-let load_grammar_from_string json_string =
-  let json = Yojson.Basic.from_string json_string in
-  TmLanguage.of_yojson_exn json
+let collect read entries =
+  let rec go seen acc = function
+    | [] ->
+        Ok (List.rev acc)
+    | entry :: rest -> (
+        match read entry with
+        | Error _ as error ->
+            error
+        | Ok (lang, path, grammar) ->
+            if List.mem lang seen then
+              Error
+                (Error.Grammar_error
+                   {
+                     lang;
+                     path;
+                     message =
+                       "duplicate grammar id: each grammar must be registered \
+                        under a unique id";
+                   }
+                )
+            else
+              go (lang :: seen) ((lang, grammar) :: acc) rest
+      )
+  in
+  match go [] [] entries with
+  | Error _ as error ->
+      error
+  | Ok grammars ->
+      let tm_collection = TmLanguage.create () in
+      List.iter (fun (_, g) -> TmLanguage.add_grammar tm_collection g) grammars;
+      Ok { tm_collection; grammars }
 
-let check_no_duplicate_ids loaded =
-  let seen = Hashtbl.create (List.length loaded) in
-  List.iter
-    (fun (lang_id, _) ->
-      if Hashtbl.mem seen lang_id then
-        failwith
-          (Printf.sprintf
-             "Duplicate grammar id '%s': each grammar must be registered under \
-              a unique id"
-             lang_id
-          )
-      else
-        Hashtbl.add seen lang_id ()
+let load grammars =
+  collect
+    (fun (lang, json) -> read_grammar ~lang (fun () -> grammar_of_string json))
+    grammars
+
+let load_from_files paths =
+  collect
+    (fun path ->
+      read_grammar ~lang:(lang_id_of_path path) ~path (fun () ->
+          grammar_of_file path
+      )
     )
-    loaded
-
-let load_exn grammars =
-  Exn_utils.wrap_exn (fun () ->
-      let tm_collection = TmLanguage.create () in
-      let loaded =
-        List.map
-          (fun (lang_id, json_string) ->
-            let grammar =
-              try load_grammar_from_string json_string
-              with Yojson.Json_error msg ->
-                failwith
-                  (Printf.sprintf "grammar '%s': invalid JSON: %s" lang_id
-                     (describe_json_error msg)
-                  )
-            in
-            TmLanguage.add_grammar tm_collection grammar;
-            (lang_id, grammar)
-          )
-          grammars
-      in
-      check_no_duplicate_ids loaded;
-      { tm_collection; grammars = loaded }
-  )
-
-let load grammars = try Ok (load_exn grammars) with Failure msg -> Error msg
-
-let load_from_files_exn grammars =
-  Exn_utils.wrap_exn (fun () ->
-      let tm_collection = TmLanguage.create () in
-      let loaded =
-        List.map
-          (fun path ->
-            let grammar = load_grammar_from_file path in
-            TmLanguage.add_grammar tm_collection grammar;
-            (lang_id_of_path path, grammar)
-          )
-          grammars
-      in
-      check_no_duplicate_ids loaded;
-      { tm_collection; grammars = loaded }
-  )
-
-let load_from_files grammars =
-  try Ok (load_from_files_exn grammars) with Failure msg -> Error msg
+    paths
 
 let find_grammar t lang_id = List.assoc_opt lang_id t.grammars
-
 let tm_collection t = t.tm_collection
