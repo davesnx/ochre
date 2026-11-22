@@ -19,8 +19,8 @@ let rec components = function
       [ name ]
   | Ldot (prefix, name) ->
       components prefix @ [ name ]
-  | Lapply _ ->
-      []
+  | Lapply (functor_, argument) ->
+      components functor_ @ components argument
 
 let text_at source offset text =
   offset >= 0
@@ -38,7 +38,7 @@ let rec skip_spaces_backward source offset =
 let rec skip_separators source offset =
   if offset < String.length source then
     match source.[offset] with
-    | ' ' | '\t' | '\n' | '\r' | '.' ->
+    | ' ' | '\t' | '\n' | '\r' | '.' | '(' | ')' ->
         skip_separators source (offset + 1)
     | _ ->
         offset
@@ -74,6 +74,12 @@ let rec is_function_expression e =
       true
   | Pexp_constraint (e, t) | Pexp_coerce (e, _, t) ->
       is_arrow t || is_function_expression e
+  | Pexp_newtype (_, e)
+  | Pexp_open (_, e)
+  | Pexp_letmodule (_, _, e)
+  | Pexp_let (_, _, e)
+  | Pexp_letexception (_, e) ->
+      is_function_expression e
   | _ ->
       false
 
@@ -419,9 +425,9 @@ let blank_shebang source =
 
 let parse source =
   let lexbuf = Lexing.from_string (blank_shebang source) in
-  match without_warnings (fun () -> Parse.implementation lexbuf) with
-  | structure ->
-      Ok structure
+  match without_warnings (fun () -> Parse.use_file lexbuf) with
+  | phrases ->
+      Ok phrases
   | exception exn -> (
       match Location.Error.of_exn exn with
       | Some error ->
@@ -432,9 +438,16 @@ let parse source =
 
 let classify source =
   Result.map
-    (fun structure ->
+    (fun phrases ->
       let collector = new collector source in
-      collector#structure structure;
+      List.iter
+        (function
+          | Ptop_def structure ->
+              collector#structure structure
+          | Ptop_dir _ ->
+              ()
+          )
+        phrases;
       collector#spans
     )
     (parse source)

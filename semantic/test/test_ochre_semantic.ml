@@ -252,6 +252,38 @@ let test_shebang () =
   check "#! line" "#!/usr/bin/env ocaml\nlet x = Foo.y"
     [ ("x", "variable.other.readwrite"); ("Foo", "entity.name.namespace") ]
 
+let test_function_behind_binding_forms () =
+  check "newtype, let open, let module and let"
+    "let f (type a) = fun (x : a) -> x\n\
+     let g = let open M in fun x -> x\n\
+     let h = let module N = M in fun x -> x\n\
+     let i = let y = 1 in fun x -> x + y"
+    [
+      ("f", "entity.name.function");
+      ("a", "entity.name.type.parameter");
+      ("a", "entity.name.type");
+      ("g", "entity.name.function");
+      ("M", "entity.name.namespace");
+      ("h", "entity.name.function");
+      ("N", "entity.name.namespace");
+      ("M", "entity.name.namespace");
+      ("i", "entity.name.function");
+      ("y", "variable.other.readwrite");
+    ]
+
+let test_functor_application_path () =
+  check "F(X).t" "type u = F(X).t"
+    [
+      ("u", "entity.name.type");
+      ("F", "entity.name.namespace");
+      ("X", "entity.name.namespace");
+      ("t", "entity.name.type");
+    ]
+
+let test_toplevel_directive () =
+  check "#require" "#require \"x\";;\nlet x = Foo.y"
+    [ ("x", "variable.other.readwrite"); ("Foo", "entity.name.namespace") ]
+
 let test_syntax_error () =
   match Ochre_semantic.classify "let x = (" with
   | Error _ ->
@@ -306,6 +338,11 @@ let () =
           Alcotest.test_case "constrained function expression" `Quick
             test_constrained_function_expression;
           Alcotest.test_case "shebang" `Quick test_shebang;
+          Alcotest.test_case "function behind binding forms" `Quick
+            test_function_behind_binding_forms;
+          Alcotest.test_case "functor application path" `Quick
+            test_functor_application_path;
+          Alcotest.test_case "toplevel directive" `Quick test_toplevel_directive;
           Alcotest.test_case "syntax error" `Quick test_syntax_error;
           Alcotest.test_case "string literal" `Quick test_string_literal;
           Alcotest.test_case "lexer error" `Quick test_lexer_error;

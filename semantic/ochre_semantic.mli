@@ -14,6 +14,10 @@ type span = {
 
 val classify : string -> (span list, string) result
 (** [classify source] returns the spans of [source] in source order, or
-    [Error message] when [source] does not parse as an OCaml implementation.
-    Parser warnings are not printed. It uses the compiler's global lexer state,
-    so do not call it from several domains at the same time. *)
+    [Error message] when [source] does not parse as a sequence of OCaml toplevel
+    phrases, as in a [.ml] file or a script. Toplevel directives such as
+    [#require] are accepted and get no spans. A comment between the parts of a
+    module path, or between a label and its argument, stops the classification
+    of the rest of that path or label. Parser warnings are not printed. It uses
+    the compiler's global lexer state, so do not call it from several domains at
+    the same time. *)
