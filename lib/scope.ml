@@ -36,7 +36,7 @@ and ancestor_matches up part direct rest =
 type rule = {
   mutable depth : int;
   parents : string list;
-  mutable font_style : Theme.font_style list option;
+  mutable font_style : Style.font_style option;
   mutable foreground : Theme.color option;
   mutable background : Theme.color option;
 }
@@ -160,7 +160,7 @@ type entry = {
   scope : string;
   entry_parents : string list;
   index : int;
-  entry_font_style : Theme.font_style list option;
+  entry_font_style : Style.font_style option;
   entry_foreground : Theme.color option;
   entry_background : Theme.color option;
 }
@@ -201,12 +201,6 @@ let compare_entries a b =
 let entries_of_rules rules =
   List.mapi
     (fun index (rule : Theme.token_color_rule) ->
-      let valid = function
-        | Some c when Theme.is_valid_color c ->
-            Some c
-        | _ ->
-            None
-      in
       let selectors =
         if rule.scope = [] then
           [ "" ]
@@ -223,8 +217,8 @@ let entries_of_rules rules =
             entry_parents = List.tl reversed;
             index;
             entry_font_style = rule.settings.font_style;
-            entry_foreground = valid rule.settings.foreground;
-            entry_background = valid rule.settings.background;
+            entry_foreground = rule.settings.foreground;
+            entry_background = rule.settings.background;
           }
         )
         selectors
@@ -235,15 +229,7 @@ let entries_of_rules rules =
 type compiled = {
   trie : element;
   defaults : Theme.token_color_settings;
-  produced :
-    ( (Theme.color * Theme.color)
-    * ( Token.color option * Token.color option * Token.font_style list,
-        unit
-      )
-      Hashtbl.t
-    )
-    option
-    Atomic.t;
+  produced : ((Color.t * Color.t) * (Style.t, unit) Hashtbl.t) option Atomic.t;
 }
 
 let compile rules =
@@ -557,36 +543,27 @@ let styles rules =
   close [ compiled.defaults ];
   Hashtbl.fold (fun settings () acc -> settings :: acc) seen []
 
-let styled_token (theme : Theme.theme) ~text ~scopes settings =
-  let foreground =
-    match settings with
-    | Some { Theme.foreground = Some color; _ } ->
-        Some color
-    | _ ->
-        Some theme.fg
-  in
-  let background =
-    match settings with
-    | Some { Theme.background = Some color; _ }
-      when not
-             (String.equal
-                (String.lowercase_ascii color)
-                (String.lowercase_ascii theme.bg)
-             ) ->
-        Some color
-    | _ ->
-        None
-  in
-  let font_style =
-    match settings with
-    | Some s ->
-        Option.value s.Theme.font_style ~default:[]
-    | None ->
-        []
-  in
-  { Token.text; foreground; background; font_style; scopes; decoration = None }
+let style (theme : Theme.theme) settings : Style.t =
+  let field get = Option.bind settings get in
+  {
+    foreground =
+      Option.value
+        (field (fun (s : Theme.token_color_settings) -> s.foreground))
+        ~default:theme.fg;
+    background =
+      ( match field (fun (s : Theme.token_color_settings) -> s.background) with
+      | Some color when not (Color.equal color theme.bg) ->
+          Some color
+      | _ ->
+          None
+      );
+    font_style =
+      Option.value
+        (field (fun (s : Theme.token_color_settings) -> s.font_style))
+        ~default:Style.plain;
+  }
 
-let produces (theme : Theme.theme) (token : Token.styled_token) =
+let produces (theme : Theme.theme) (style_ : Style.t) =
   let compiled = compiled_for theme.token_colors in
   let key = (theme.fg, theme.bg) in
   let table =
@@ -597,15 +574,10 @@ let produces (theme : Theme.theme) (token : Token.styled_token) =
         let table = Hashtbl.create 64 in
         List.iter
           (fun settings ->
-            let token =
-              styled_token theme ~text:"" ~scopes:[] (Some settings)
-            in
-            Hashtbl.replace table
-              (token.foreground, token.background, token.font_style)
-              ()
+            Hashtbl.replace table (style theme (Some settings)) ()
           )
           (styles theme.token_colors);
         Atomic.set compiled.produced (Some (key, table));
         table
   in
-  Hashtbl.mem table (token.foreground, token.background, token.font_style)
+  Hashtbl.mem table style_

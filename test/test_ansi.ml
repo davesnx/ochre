@@ -25,13 +25,31 @@ let preview_themes =
     ("one-dark-pro", Tm_themes.one_dark_pro);
   ]
 
+let lang_of grammar =
+  match
+    Result.bind
+      (Ochre.load [ ("ocaml", grammar) ])
+      (fun hl -> Ochre.lang hl "ocaml")
+  with
+  | Ok lang ->
+      lang
+  | Error error ->
+      failwith (Ochre.Error.to_string error)
+
+let theme_of json =
+  match Ochre.Theme.load json with
+  | Ok (theme, _warnings) ->
+      theme
+  | Error error ->
+      failwith (Ochre.Error.to_string error)
+
 let () =
-  let highlighter = Ochre.load_exn [ ("ocaml", Tm_grammars.ocaml) ] in
+  let lang = lang_of Tm_grammars.ocaml in
   List.iter
     (fun (name, json) ->
-      let theme = Ochre.Theme.load_exn json in
+      let theme = theme_of json in
       Printf.printf "== %s ==\n" name;
-      print_string (Ochre.to_ansi highlighter ~theme ~lang:"ocaml" source);
+      print_string (Ochre.to_ansi (Ochre.highlight ~theme ~lang source));
       print_newline ();
       print_newline ()
     )

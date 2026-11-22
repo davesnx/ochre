@@ -55,11 +55,22 @@ let without_newline line =
   | _ ->
       line
 
+let get_ok = function
+  | Ok value ->
+      value
+  | Error error ->
+      failwith (Ochre.Error.to_string error)
+
 let ochre_tokens hl ~lang source =
-  Ochre.to_tokens hl ~theme:Ochre.Theme.default ~lang source
+  (Ochre.highlight
+     ~theme:(fst (get_ok (Ochre.Theme.load Tm_themes.dark_plus)))
+     ~lang:(get_ok (Ochre.lang hl lang))
+     source
+  )
+    .lines
   |> List.map (fun line ->
       List.map
-        (fun (tok : Ochre.Token.styled_token) ->
+        (fun (tok : Ochre.Token.t) ->
           { text = tok.text; scopes = List.rev tok.scopes }
         )
         line
@@ -143,7 +154,7 @@ let mismatched_lines ~expected ~actual =
   in
   go 1 expected actual []
 
-let bundled_highlighter = lazy (Ochre.load_exn Tm_grammars.all)
+let bundled_highlighter = lazy (get_ok (Ochre.load Tm_grammars.all))
 
 let sampled_langs ~samples =
   List.filter_map

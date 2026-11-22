@@ -3,7 +3,13 @@
 (test
  (name test_conformance)
  (modules test_conformance)
- (libraries ochre ochre.textmate_language tm-grammars yojson alcotest)
+ (libraries
+  ochre
+  ochre.textmate_language
+  tm-grammars
+  tm-themes
+  yojson
+  alcotest)
  (deps
   (glob_files samples/*.sample)
   (glob_files golden/*.json)))

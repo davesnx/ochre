@@ -41,29 +41,19 @@ let oniguruma_limits =
 
 let configure_oniguruma_limits () = Lazy.force oniguruma_limits
 
-let load_exn grammars =
-  configure_oniguruma_limits ();
-  { grammar_loader = Grammar_loader.load_exn grammars }
-
 let load grammars =
   configure_oniguruma_limits ();
-  match Grammar_loader.load grammars with
-  | Ok loader ->
-      Ok { grammar_loader = loader }
-  | Error _ as err ->
-      err
+  Result.map
+    (fun grammar_loader -> { grammar_loader })
+    (Grammar_loader.load grammars)
 
-let load_from_files_exn grammars =
+let load_from_files paths =
   configure_oniguruma_limits ();
-  { grammar_loader = Grammar_loader.load_from_files_exn grammars }
+  Result.map
+    (fun grammar_loader -> { grammar_loader })
+    (Grammar_loader.load_from_files paths)
 
-let load_from_files grammars =
-  configure_oniguruma_limits ();
-  match Grammar_loader.load_from_files grammars with
-  | Ok loader ->
-      Ok { grammar_loader = loader }
-  | Error _ as err ->
-      err
+let lang t name = Lang.find t.grammar_loader name
 
 let split_lines source =
   let parts = String.split_on_char '\n' source in
@@ -88,154 +78,150 @@ let split_lines source =
         )
         parts
 
-let tokenize_with_grammar tm_collection grammar source =
+let position ~line_offset ~line ~column ~length =
+  { Token.offset = line_offset + column; line; column; length }
+
+let raw_tokenize (lang : Lang.t) source =
   let lines = split_lines source in
   let stack = ref TmLanguage.empty in
-  let tokenized_lines =
-    List.map
-      (fun line ->
-        let tokens, new_stack =
-          TmLanguage.tokenize_exn tm_collection grammar !stack
-            (Utf8.mask_invalid line)
-        in
-        stack := new_stack;
-        let rec extract_tokens prev_end = function
-          | [] ->
-              []
-          | tok :: rest ->
-              let start = prev_end in
-              let ending = TmLanguage.ending tok in
-              let text = String.sub line start (ending - start) in
-              let scopes = TmLanguage.scopes tok in
-              (text, scopes) :: extract_tokens ending rest
-        in
-        extract_tokens 0 tokens
-      )
-      lines
-  in
-  tokenized_lines
-
-let apply_theme theme tokens_per_line =
-  let resolver = Scope.resolver theme.Theme.token_colors in
-  List.map
-    (fun line_tokens ->
-      List.map
-        (fun (text, scopes) ->
-          Scope.styled_token theme ~text ~scopes (Scope.resolve resolver scopes)
-        )
-        line_tokens
+  let line_offset = ref 0 in
+  List.mapi
+    (fun line_index line ->
+      let line_offset_value = !line_offset in
+      line_offset := line_offset_value + String.length line;
+      let position = position ~line_offset:line_offset_value ~line:line_index in
+      match lang.kind with
+      | Plaintext ->
+          [ (line, [], position ~column:0 ~length:(String.length line)) ]
+      | Grammar { collection; grammar } ->
+          let tokens, new_stack =
+            TmLanguage.tokenize_exn collection grammar !stack
+              (Utf8.mask_invalid line)
+          in
+          stack := new_stack;
+          let rec extract start = function
+            | [] ->
+                []
+            | tok :: rest ->
+                let ending = TmLanguage.ending tok in
+                let length = ending - start in
+                ( String.sub line start length,
+                  TmLanguage.scopes tok,
+                  position ~column:start ~length
+                )
+                :: extract ending rest
+          in
+          extract 0 tokens
     )
-    tokens_per_line
+    lines
 
-let is_plaintext_lang lang = List.mem lang [ "plaintext"; "text"; "txt" ]
-
-let raw_tokenize t ~lang source =
-  match Grammar_loader.find_grammar t.grammar_loader lang with
-  | Some grammar ->
-      let tm_collection = Grammar_loader.tm_collection t.grammar_loader in
-      tokenize_with_grammar tm_collection grammar source
-  | None when is_plaintext_lang lang ->
-      List.map (fun line -> [ (line, []) ]) (split_lines source)
-  | None ->
-      failwith (Printf.sprintf "Grammar not found for language: %s" lang)
-
-let tokenize t ~theme ~lang source =
-  apply_theme theme (raw_tokenize t ~lang source)
-
-let to_tokens t ?(decorations = []) ?(transforms = []) ~theme ~lang source =
-  let tokens = tokenize t ~theme ~lang source in
-  let tokens = Decoration.apply ~source decorations tokens in
-  Transform.run transforms tokens
-
-let resolve_themes ?theme ?label ?(extra_themes = []) () =
-  match (theme, extra_themes) with
-  | Some t, _ ->
-      (label, t, extra_themes)
-  | None, (first_label, first_theme) :: rest ->
-      (Some (Option.value label ~default:first_label), first_theme, rest)
-  | None, [] ->
-      (label, Theme.default, [])
-
-let to_html t ?(decorations = []) ?(transforms = []) ?options ?theme ?label
-    ?extra_themes ~lang source =
-  let label, default_theme, extras =
-    resolve_themes ?theme ?label ?extra_themes ()
+let apply_themes themes raw =
+  let resolvers =
+    Array.map
+      (fun (theme : Theme.theme) -> Scope.resolver theme.token_colors)
+      themes
   in
-  match extras with
-  | [] ->
-      let tokens =
-        to_tokens t ~decorations ~transforms ~theme:default_theme ~lang source
+  List.map
+    (List.map (fun (text, scopes, position) ->
+         let values =
+           Array.mapi
+             (fun i theme ->
+               Scope.style theme (Scope.resolve resolvers.(i) scopes)
+             )
+             themes
+         in
+         {
+           Token.text;
+           position;
+           scopes;
+           styles = Token.make_styles themes values;
+           decoration = None;
+         }
+     )
+    )
+    raw
+
+let decorated ?(decorations = []) ~themes ~lang source =
+  Decoration.apply ~source decorations
+    (apply_themes (Array.of_list themes) (raw_tokenize lang source))
+
+let highlight ?decorations ?(transforms = []) ?label ~(theme : Theme.theme)
+    ~lang source =
+  let lines = decorated ?decorations ~themes:[ theme ] ~lang source in
+  {
+    Themed.themes = ((Option.value label ~default:theme.name, theme), []);
+    lines = Transform.run transforms lines;
+  }
+
+let first_duplicate labels =
+  let rec go seen = function
+    | [] ->
+        None
+    | label :: rest ->
+        if List.mem label seen then
+          Some label
+        else
+          go (label :: seen) rest
+  in
+  go [] labels
+
+let highlight_themes ?decorations ?(transforms = []) ?label
+    ~(theme : Theme.theme) ~extra_themes ~lang source =
+  let label = Option.value label ~default:theme.name in
+  match
+    first_duplicate
+      (List.map Escape.css_ident (label :: List.map fst extra_themes))
+  with
+  | Some label ->
+      Error (Error.Duplicate_theme_label label)
+  | None ->
+      let themes = theme :: List.map snd extra_themes in
+      let lines = decorated ?decorations ~themes ~lang source in
+      let count = List.length themes in
+      let check (transform : Transform.t) token =
+        if Token.style_count token = count then
+          None
+        else
+          Some (Error.Foreign_token { transform = transform.name })
       in
-      Render_html.render ?options ?label default_theme tokens
-  | _ ->
-      let raw_tokens = raw_tokenize t ~lang source in
-      let apply_pipeline theme_val =
-        let code = apply_theme theme_val raw_tokens in
-        let code = Decoration.apply ~source decorations code in
-        Transform.run transforms code
-      in
-      let default_code = apply_pipeline default_theme in
-      let themed_extras =
-        List.map
-          (fun (label, theme) -> (label, theme, apply_pipeline theme))
-          extras
-      in
-      let same_shape =
-        List.equal
-          (List.equal
-             (fun
-               (left_token : Token.styled_token)
-               (right_token : Token.styled_token)
-             -> left_token.text = right_token.text
-           )
-          )
-      in
-      if
-        List.exists
-          (fun (_, _, code) -> not (same_shape default_code code))
-          themed_extras
-      then
-        invalid_arg
-          "Ochre.to_html: multi-theme transforms must preserve token structure";
-      Render_html.render ?options ?label default_theme
-        ~extra_themes:themed_extras default_code
+      Result.map
+        (fun lines -> { Themed.themes = ((label, theme), extra_themes); lines })
+        (Transform.run_checked ~check transforms lines)
+
+let to_html ?options themed = Render_html.render ?options themed
 
 let html_theme_css = Render_html.theme_css
 let html_render_theme_css = Render_html.render_theme_css
+let html_render_whole_theme_css = Render_html.render_whole_theme_css
 
-let render_backend t ?(decorations = []) ?(transforms = []) ~theme ~lang render
-    source =
-  let tokens = to_tokens t ~decorations ~transforms ~theme ~lang source in
-  render theme tokens
+let render_default render (themed : Themed.t) =
+  let (_, theme), _ = themed.themes in
+  render theme themed.lines
 
-let to_ansi t ?decorations ?transforms =
-  render_backend t ?decorations ?transforms Render_ansi.render
+let to_ansi = render_default Render_ansi.render
+let to_latex = render_default Render_latex.render
+let to_svg = render_default Render_svg.render
+let to_debug_tokens (themed : Themed.t) = Render_tokens.render themed.lines
 
-let to_latex t ?decorations ?transforms =
-  render_backend t ?decorations ?transforms Render_latex.render
-
-let to_svg t ?decorations ?transforms =
-  render_backend t ?decorations ?transforms Render_svg.render
-
-let to_debug_tokens t ?decorations ?transforms =
-  render_backend t ?decorations ?transforms Render_tokens.render
-
-let to_string t ?(decorations = []) ?(transforms = []) ?options ?extra_themes
-    ~format ~theme ~lang source =
+let to_string ?options ~format themed =
   match format with
   | Html ->
-      to_html t ~decorations ~transforms ?options ~theme ?extra_themes ~lang
-        source
+      to_html ?options themed
   | Ansi ->
-      to_ansi t ~decorations ~transforms ~theme ~lang source
+      to_ansi themed
   | Latex ->
-      to_latex t ~decorations ~transforms ~theme ~lang source
+      to_latex themed
   | Svg ->
-      to_svg t ~decorations ~transforms ~theme ~lang source
+      to_svg themed
   | Tokens ->
-      to_debug_tokens t ~decorations ~transforms ~theme ~lang source
+      to_debug_tokens themed
 
+module Error = Error
+module Color = Color
+module Style = Style
+module Lang = Lang
 module Token = Token
+module Themed = Themed
 module Theme = Theme
 module Transform = Transform
 module Transform_builtin = Transform_builtin

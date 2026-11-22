@@ -230,12 +230,23 @@ type page = {
   content : [ `Markdown of string | `Html of string ];
 }
 
+let get_ok = function
+  | Ok value ->
+      value
+  | Error error ->
+      failwith (Ochre.Error.to_string error)
+
 let highlighter =
-  Ochre.load_exn (List.map (fun (lang, json, _) -> (lang, json)) languages)
+  get_ok
+    (Ochre.load (List.map (fun (lang, json, _) -> (lang, json)) languages))
+
+let find_lang name = get_ok (Ochre.lang highlighter name)
+
+let load_theme json = fst (get_ok (Ochre.Theme.load json))
 
 let themes =
   List.map
-    (fun (name, json) -> (name, Ochre.Theme.load_exn json))
+    (fun (name, json) -> (name, load_theme json))
     [
       ("dark-plus", Tm_themes.dark_plus);
       ("light-plus", Tm_themes.light_plus);
@@ -285,8 +296,8 @@ let trim_trailing_newlines text =
   in
   String.sub text 0 (last (String.length text - 1) + 1)
 
-let doc_light = Ochre.Theme.load_exn Tm_themes.light_plus
-let doc_dark = ("doc-dark", Ochre.Theme.load_exn Tm_themes.gruvbox_dark_medium)
+let doc_light = load_theme Tm_themes.light_plus
+let doc_dark = ("doc-dark", load_theme Tm_themes.gruvbox_dark_medium)
 
 let doc_theme_css =
   Printf.sprintf ":root[data-doc-theme=\"dark\"] {\n%s\n}"
@@ -310,10 +321,13 @@ let code_figure ~label ~code () =
       ~code_class:"doc-code__code" ()
   in
   let highlighted =
-    Ochre.to_html highlighter ~options ~theme:doc_light
-      ~extra_themes:[ doc_dark ]
-      ~lang:(Option.value lang ~default:"plaintext")
-      (trim_trailing_newlines code)
+    Ochre.to_html ~options
+      (get_ok
+         (Ochre.highlight_themes ~theme:doc_light ~extra_themes:[ doc_dark ]
+            ~lang:(Option.fold ~none:Ochre.Lang.plaintext ~some:find_lang lang)
+            (trim_trailing_newlines code)
+         )
+      )
   in
   <figure class_="doc-code">(JSX.unsafe highlighted)</figure>
 
@@ -384,10 +398,14 @@ let markdown_body ~pages ~current markdown =
   |> rewrite_urls ~pages ~current
 
 let playground_html =
-  let highlight ~lang source =
-    Ochre.to_html highlighter
-      ~theme:(snd (List.hd themes))
-      ~extra_themes:themes ~lang source
+  let highlight ~lang:lang_name source =
+    Ochre.to_html
+      (get_ok
+         (Ochre.highlight_themes ~label:"default"
+            ~theme:(snd (List.hd themes))
+            ~extra_themes:themes ~lang:(find_lang lang_name) source
+         )
+      )
   in
   let options items =
     items
@@ -412,9 +430,11 @@ let playground_html =
         let html =
           highlight ~lang:"ocaml"
             (Printf.sprintf
-               "let hl = Ochre.load_exn [ (%S, Tm_grammars.%s) ] in\n\
-                Ochre.to_html hl ~theme:(Ochre.Theme.load_exn Tm_themes.%s) ~lang:%S source"
-               lang (ocaml_ident lang) placeholder lang
+               "let hl = Result.get_ok (Ochre.load [ (%S, Tm_grammars.%s) ]) in\n\
+                let lang = Result.get_ok (Ochre.lang hl %S) in\n\
+                let theme, _ = Result.get_ok (Ochre.Theme.load Tm_themes.%s) in\n\
+                Ochre.to_html (Ochre.highlight ~theme ~lang source)"
+               lang (ocaml_ident lang) lang placeholder
             )
         in
         match Str.split_delim (Str.regexp_string placeholder) html with

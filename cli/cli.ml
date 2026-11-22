@@ -90,16 +90,32 @@ let detect_theme_mode () =
           Option.value (from_colorfgbg ()) ~default:Dark
     )
 
-let named_theme name = Option.map Ochre.Theme.load (Tm_themes.find name)
+let warn message =
+  try prerr_endline ("ochre: warning: " ^ message) with Sys_error _ -> ()
+
+let with_warnings name = function
+  | Ok (theme, warnings) ->
+      List.iter
+        (fun warning -> warn (Ochre.Theme.warning_to_string warning))
+        warnings;
+      Ok theme
+  | Error error ->
+      Error (name_path name (Ochre.Error.to_string error))
+
+let named_theme name =
+  Option.map
+    (fun json -> with_warnings name (Ochre.Theme.load json))
+    (Tm_themes.find name)
 
 let default_theme () =
-  Ochre.Theme.load
-    ( match detect_theme_mode () with
+  let name, json =
+    match detect_theme_mode () with
     | Dark ->
-        Tm_themes.dark_plus
+        ("dark-plus", Tm_themes.dark_plus)
     | Light ->
-        Tm_themes.light_plus
-    )
+        ("light-plus", Tm_themes.light_plus)
+  in
+  with_warnings name (Ochre.Theme.load json)
 
 let resolve_theme_name_or_path name_or_path =
   match named_theme name_or_path with
@@ -107,13 +123,7 @@ let resolve_theme_name_or_path name_or_path =
       result
   | None ->
       if Sys.file_exists name_or_path then
-        match Ochre.Theme.load_from_file name_or_path with
-        | Ok _ as ok ->
-            ok
-        | Error msg ->
-            Error (name_path name_or_path msg)
-        | exception Sys_error msg ->
-            Error (name_path name_or_path msg)
+        with_warnings name_or_path (Ochre.Theme.load_from_file name_or_path)
       else
         Error
           (Printf.sprintf
@@ -125,23 +135,12 @@ let resolve_theme_name_or_path name_or_path =
 
 let error msg = `Error (false, msg)
 
-let render highlighter ~theme ~lang ~format ~options source =
+let render ~format ~options themed =
   match format with
   | Ochre.Html ->
-      write_stdout
-        (Ochre.to_html highlighter ~options ~theme ~lang source ^ "\n");
-      `Ok ()
+      write_stdout (Ochre.to_html ~options themed ^ "\n")
   | _ ->
-      write_stdout (Ochre.to_string highlighter ~format ~theme ~lang source);
-      `Ok ()
-
-let render_html_multi highlighter ~theme ~extra_themes ~lang ~options source =
-  write_stdout
-    (Ochre.to_html highlighter ~options ~theme ~label:"light" ~extra_themes
-       ~lang source
-    ^ "\n"
-    );
-  `Ok ()
+      write_stdout (Ochre.to_string ~format themed)
 
 let resolve_theme ~theme_path ~theme_dark ~theme_light =
   match theme_path with
@@ -263,47 +262,51 @@ let highlight lang theme_path theme_dark theme_light grammars includes format
           )
           (Ok []) includes
       in
-      let make_highlighter grammars_arg =
+      let unknown_language () =
+        match grammars with
+        | _ :: _ ->
+            Printf.sprintf
+              "LANG is '%s' but none of the --grammar files register under \
+               that id. A --grammar file's id comes from its filename (e.g. \
+               'ocaml.tmLanguage.json' registers as 'ocaml'); rename the file \
+               or change LANG to match."
+              lang
+        | [] ->
+            Printf.sprintf
+              "No bundled grammar for '%s'. Available: %s. Use --grammar to \
+               provide one."
+              lang
+              (String.concat ", " Tm_grammars.available)
+      in
+      let load_lang () =
         match resolve_includes () with
         | Error msg ->
             Error msg
         | Ok include_grammars -> (
             let include_grammars = List.rev include_grammars in
-            match grammars_arg with
-            | _ :: _ ->
-                let file_grammars =
-                  List.map grammar_json_of_path grammars_arg
-                in
-                let lang_is_covered =
-                  List.exists (fun (id, _) -> id = lang) file_grammars
-                  || List.exists (fun (id, _) -> id = lang) include_grammars
-                  || Ochre.is_plaintext_lang lang
-                in
-                if not lang_is_covered then
-                  Error
-                    (Printf.sprintf
-                       "LANG is '%s' but none of the --grammar files register \
-                        under that id. A --grammar file's id comes from its \
-                        filename (e.g. 'ocaml.tmLanguage.json' registers as \
-                        'ocaml'); rename the file or change LANG to match."
-                       lang
-                    )
-                else
-                  Ochre.load (file_grammars @ include_grammars)
-            | [] -> (
-                match Tm_grammars.find lang with
-                | Some json ->
-                    Ochre.load ([ (lang, json) ] @ include_grammars)
-                | None when Ochre.is_plaintext_lang lang ->
-                    Ochre.load include_grammars
-                | None ->
-                    Error
-                      (Printf.sprintf
-                         "No bundled grammar for '%s'. Available: %s. Use \
-                          --grammar to provide one."
-                         lang
-                         (String.concat ", " Tm_grammars.available)
-                      )
+            let grammars =
+              match grammars with
+              | _ :: _ ->
+                  List.map grammar_json_of_path grammars @ include_grammars
+              | [] -> (
+                  match Tm_grammars.find lang with
+                  | Some json ->
+                      (lang, json) :: include_grammars
+                  | None ->
+                      include_grammars
+                )
+            in
+            match Ochre.load grammars with
+            | Error error ->
+                Error (Ochre.Error.to_string error)
+            | Ok highlighter -> (
+                match Ochre.lang highlighter lang with
+                | Ok lang ->
+                    Ok lang
+                | Error (Ochre.Error.Unknown_language _) ->
+                    Error (unknown_language ())
+                | Error error ->
+                    Error (Ochre.Error.to_string error)
               )
           )
       in
@@ -311,26 +314,28 @@ let highlight lang theme_path theme_dark theme_light grammars includes format
         build_html_options ~css_classes ~line_numbers ~no_default_color
           ~css_var_prefix ~scopes_data
       in
-      match make_highlighter grammars with
+      let themed ~lang =
+        match
+          resolve_multi_themes ~theme_path ~theme_dark ~theme_light ~format
+        with
+        | Error msg ->
+            Error msg
+        | Ok (Some (theme, extra_themes)) ->
+            Result.map_error Ochre.Error.to_string
+              (Ochre.highlight_themes ~label:"light" ~theme ~extra_themes ~lang
+                 source
+              )
+        | Ok None ->
+            Result.map
+              (fun theme -> Ochre.highlight ~theme ~lang source)
+              (resolve_theme ~theme_path ~theme_dark ~theme_light)
+      in
+      match Result.bind (load_lang ()) (fun lang -> themed ~lang) with
       | Error msg ->
           error msg
-      | Ok highlighter -> (
-          match
-            resolve_multi_themes ~theme_path ~theme_dark ~theme_light ~format
-          with
-          | Error msg ->
-              error msg
-          | Ok (Some (theme, extra_themes)) ->
-              render_html_multi highlighter ~theme ~extra_themes ~lang ~options
-                source
-          | Ok None -> (
-              match resolve_theme ~theme_path ~theme_dark ~theme_light with
-              | Error msg ->
-                  error msg
-              | Ok theme ->
-                  render highlighter ~theme ~lang ~format ~options source
-            )
-        )
+      | Ok themed ->
+          render ~format ~options themed;
+          `Ok ()
     )
 
 let lang =

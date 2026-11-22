@@ -27,11 +27,15 @@ let theme_json ~keyword_style =
 }|}
     keyword_style
 
-let hl = Ochre.load_exn [ ("test", grammar_json) ]
-let theme = Ochre.Theme.load_exn (theme_json ~keyword_style:"bold")
+let hl = Support.get_ok (Ochre.load [ ("test", grammar_json) ])
+let theme =
+  fst (Support.get_ok (Ochre.Theme.load (theme_json ~keyword_style:"bold")))
 
 let theme_underline_strike =
-  Ochre.Theme.load_exn (theme_json ~keyword_style:"underline strikethrough")
+  fst
+    (Support.get_ok
+       (Ochre.Theme.load (theme_json ~keyword_style:"underline strikethrough"))
+    )
 
 let escaped s =
   let buf = Buffer.create (String.length s) in
@@ -55,8 +59,13 @@ let escaped s =
 let set_colors ~foreground ~background =
   Ochre.Transform.make "set-colors" ~after_line:(fun ~line_index:_ line ->
       List.map
-        (fun (tok : Ochre.Token.styled_token) ->
-          { tok with foreground; background }
+        (Ochre.Token.map_style (fun _ (style : Ochre.Style.t) ->
+             {
+               style with
+               foreground = Support.color foreground;
+               background = Some (Support.color background);
+             }
+         )
         )
         line
   )
@@ -68,62 +77,131 @@ let () =
   | "ansi-alpha" ->
       print_endline
         (escaped
-           (Ochre.to_ansi hl ~transforms:[ highlight_first_line ] ~theme
-              ~lang:"test" "let x\nlet y"
+           (Ochre.to_ansi
+              (Ochre.highlight ~transforms:[ highlight_first_line ] ~theme
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "let x\nlet y"
+              )
            )
         )
   | "ansi-diff" ->
       print_endline
         (escaped
-           (Ochre.to_ansi hl
-              ~transforms:[ Ochre.Transform_builtin.diff_markers ]
-              ~theme ~lang:"test" "+let x\n-let y\n"
+           (Ochre.to_ansi
+              (Ochre.highlight
+                 ~transforms:[ Ochre.Transform_builtin.diff_markers ]
+                 ~theme
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "+let x\n-let y\n"
+              )
            )
         )
   | "svg-alpha" ->
       print_endline
-        (Ochre.to_svg hl ~transforms:[ highlight_first_line ] ~theme
-           ~lang:"test" "let x\nlet y"
+        (Ochre.to_svg
+           (Ochre.highlight ~transforms:[ highlight_first_line ] ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x\nlet y"
+           )
         )
   | "svg-diff" ->
       print_endline
-        (Ochre.to_svg hl
-           ~transforms:[ Ochre.Transform_builtin.diff_markers ]
-           ~theme ~lang:"test" "+let x\n-let y\n"
+        (Ochre.to_svg
+           (Ochre.highlight
+              ~transforms:[ Ochre.Transform_builtin.diff_markers ]
+              ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "+let x\n-let y\n"
+           )
         )
   | "latex-alpha" ->
       print_endline
-        (Ochre.to_latex hl ~transforms:[ highlight_first_line ] ~theme
-           ~lang:"test" "let x\nlet y"
+        (Ochre.to_latex
+           (Ochre.highlight ~transforms:[ highlight_first_line ] ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x\nlet y"
+           )
         )
   | "latex-diff" ->
       print_endline
-        (Ochre.to_latex hl
-           ~transforms:[ Ochre.Transform_builtin.diff_markers ]
-           ~theme ~lang:"test" "+let x\n-let y\n"
+        (Ochre.to_latex
+           (Ochre.highlight
+              ~transforms:[ Ochre.Transform_builtin.diff_markers ]
+              ~theme
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "+let x\n-let y\n"
+           )
         )
   | "ansi-crlf" ->
       print_endline
-        (escaped (Ochre.to_ansi hl ~theme ~lang:"test" "# one\r\nlet\r\n"))
+        (escaped
+           (Ochre.to_ansi
+              (Ochre.highlight ~theme
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "# one\r\nlet\r\n"
+              )
+           )
+        )
   | "ansi-lone-cr" ->
-      print_endline (escaped (Ochre.to_ansi hl ~theme ~lang:"test" "a\rb\n"))
+      print_endline
+        (escaped
+           (Ochre.to_ansi
+              (Ochre.highlight ~theme
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "a\rb\n"
+              )
+           )
+        )
   | "html-crlf" ->
       print_endline
-        (escaped (Ochre.to_html hl ~theme ~lang:"test" "# one\r\nlet\r\n"))
+        (escaped
+           (Ochre.to_html
+              (Ochre.highlight ~theme
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "# one\r\nlet\r\n"
+              )
+           )
+        )
   | "html-lone-cr" ->
-      print_endline (escaped (Ochre.to_html hl ~theme ~lang:"test" "a\rb\n"))
+      print_endline
+        (escaped
+           (Ochre.to_html
+              (Ochre.highlight ~theme
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "a\rb\n"
+              )
+           )
+        )
   | "latex-controls" ->
       print_endline
         (escaped
-           (Ochre.to_latex hl ~theme ~lang:"test" "a\tb\r\n\tc\x01\x1bd\x7f\n")
+           (Ochre.to_latex
+              (Ochre.highlight ~theme
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "a\tb\r\n\tc\x01\x1bd\x7f\n"
+              )
+           )
         )
   | "svg-tabs" ->
       print_endline
-        (escaped (Ochre.to_svg hl ~theme ~lang:"test" "\tlet\tx\n  \t1\n"))
+        (escaped
+           (Ochre.to_svg
+              (Ochre.highlight ~theme
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "\tlet\tx\n \t1\n"
+              )
+           )
+        )
   | "svg-width" ->
       List.iter
         (fun source ->
-          let svg = Ochre.to_svg hl ~theme ~lang:"test" source in
+          let svg =
+            Ochre.to_svg
+              (Ochre.highlight ~theme
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 source
+              )
+          in
           let start =
             Str.search_forward (Str.regexp "width=\"\\([0-9]+\\)\"") svg 0
           in
@@ -138,34 +216,39 @@ let () =
           "ab\r\n";
           "\xf0\x9f\x98\x80";
         ]
-  | "svg-fill" ->
-      let svg =
-        Ochre.to_svg hl
-          ~transforms:[ set_colors ~foreground:None ~background:None ]
-          ~theme ~lang:"test" "let x"
-      in
-      print_endline svg
   | "html-underline-strike" ->
       print_endline
-        (Ochre.to_html hl ~theme:theme_underline_strike ~lang:"test" "let x")
+        (Ochre.to_html
+           (Ochre.highlight ~theme:theme_underline_strike
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "let x"
+           )
+        )
   | "html-underline-strike-dual" ->
       print_endline
-        (Ochre.to_html hl ~theme
-           ~extra_themes:[ ("dark", theme_underline_strike) ]
-           ~lang:"test" "let x"
+        (Ochre.to_html
+           (Support.get_ok
+              (Ochre.highlight_themes ~theme
+                 ~extra_themes:[ ("dark", theme_underline_strike) ]
+                 ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                 "let x"
+              )
+           )
         )
   | "colors-ansi" ->
       List.iter
         (fun (foreground, background) ->
-          let transforms =
-            [
-              set_colors ~foreground:(Some foreground)
-                ~background:(Some background);
-            ]
-          in
+          let transforms = [ set_colors ~foreground ~background ] in
           print_endline
             (Printf.sprintf "%s on %s: %s" foreground background
-               (escaped (Ochre.to_ansi hl ~transforms ~theme ~lang:"test" "x"))
+               (escaped
+                  (Ochre.to_ansi
+                     (Ochre.highlight ~transforms ~theme
+                        ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                        "x"
+                     )
+                  )
+               )
             )
         )
         [
@@ -178,15 +261,15 @@ let () =
   | "colors-latex" ->
       List.iter
         (fun (foreground, background) ->
-          let transforms =
-            [
-              set_colors ~foreground:(Some foreground)
-                ~background:(Some background);
-            ]
-          in
+          let transforms = [ set_colors ~foreground ~background ] in
           print_endline
             (Printf.sprintf "%s on %s: %s" foreground background
-               (Ochre.to_latex hl ~transforms ~theme ~lang:"test" "x")
+               (Ochre.to_latex
+                  (Ochre.highlight ~transforms ~theme
+                     ~lang:(Support.get_ok (Ochre.lang hl "test"))
+                     "x"
+                  )
+               )
             )
         )
         [
@@ -202,11 +285,15 @@ let () =
           ~css_variable_prefix:"--hl-" ()
       in
       let source = "let x = 1 # c" in
-      let html = Ochre.to_html hl ~options ~theme ~lang:"test" source in
-      let tokens = Ochre.to_tokens hl ~theme ~lang:"test" source in
+      let themed =
+        Ochre.highlight ~theme
+          ~lang:(Support.get_ok (Ochre.lang hl "test"))
+          source
+      in
+      let html = Ochre.to_html ~options themed in
       let css =
         Ochre.html_render_theme_css ~css_variable_prefix:"--hl-"
-          ~class_prefix:"c-" ~code:tokens theme
+          ~class_prefix:"c-" themed
       in
       let classes =
         let re = Str.regexp "class=\"\\(c-[0-9a-f]+\\)\"" in
@@ -233,26 +320,20 @@ let () =
   | "theme-css-variables" ->
       print_endline (Ochre.html_theme_css ~css_variable_prefix:"--hl-" "dark")
   | "duplicate-labels" ->
-      let attempt name options extras =
+      let attempt name extras =
         match
-          Ochre.to_html hl ~options ~theme ~extra_themes:extras ~lang:"test"
+          Ochre.highlight_themes ~theme ~extra_themes:extras
+            ~lang:(Support.get_ok (Ochre.lang hl "test"))
             "let"
         with
-        | _ ->
+        | Ok _ ->
             Printf.printf "%s: rendered\n" name
-        | exception Invalid_argument message ->
-            Printf.printf "%s: Invalid_argument %s\n" name message
+        | Error error ->
+            Printf.printf "%s: %s\n" name (Ochre.Error.to_string error)
       in
-      let no_default =
-        Ochre.Html_options.make
-          ~default_color:Ochre.Html_options.No_default_color ()
-      in
-      attempt "primary and extra share a label" no_default
-        [ ("test-theme", theme) ];
-      attempt "default color, same label is fine" Ochre.Html_options.default
-        [ ("test-theme", theme) ];
-      attempt "two extras" Ochre.Html_options.default
-        [ ("a b", theme); ("a_b", theme) ]
+      attempt "primary and extra share a label" [ ("test-theme", theme) ];
+      attempt "two extras" [ ("a b", theme); ("a_b", theme) ];
+      attempt "distinct labels" [ ("a", theme); ("b", theme) ]
   | "transform-order" ->
       let log = ref [] in
       let hook name phase =

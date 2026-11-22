@@ -1,9 +1,14 @@
 let render_page ~highlighter ~source =
   let highlighted =
     JSX.unsafe
-      (Ochre.to_html highlighter ~theme:(Ochre.Theme.load_exn Tm_themes.light_plus)
-         ~extra_themes:[ ("dark", Ochre.Theme.load_exn Tm_themes.dark_plus) ]
-         ~lang:"ocaml" source
+      (Ochre.to_html
+         (Test_html_common.get_ok
+            (Ochre.highlight_themes ~theme:(Test_html_common.load_theme Tm_themes.light_plus)
+               ~extra_themes:[ ("dark", Test_html_common.load_theme Tm_themes.dark_plus) ]
+               ~lang:(Test_html_common.lang highlighter "ocaml")
+               source
+            )
+         )
       )
   in
   let css =
@@ -80,7 +85,8 @@ let render_page ~highlighter ~source =
 
 let () =
   let highlighter =
-    Ochre.load_exn [ ("ocaml", Test_html_common.grammar_json) ]
+    Test_html_common.get_ok
+      (Ochre.load [ ("ocaml", Test_html_common.grammar_json) ])
   in
   let source =
     "let answer = 42\n\

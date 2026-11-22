@@ -15,11 +15,15 @@ opam install ochre -y
 ## Quick start
 
 ```ocaml
-let theme = Ochre.Theme.default in
-let highlighter = Ochre.load_from_files_exn ["path/to/ocaml.tmLanguage.json"] in
+let ( let* ) = Result.bind in
+let* highlighter = Ochre.load_from_files ["path/to/ocaml.tmLanguage.json"] in
+let* lang = Ochre.lang highlighter "ocaml" in
+let* theme, _warnings = Ochre.Theme.load_from_file "path/to/theme.json" in
 let source_code = "..." in
-let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" source_code
+Ok (Ochre.to_html (Ochre.highlight ~theme ~lang source_code))
 ```
+Loading and language lookup return `(_, Ochre.Error.t) result`; rendering never fails.
+
 
 ## Load any TextMate grammar with tm-grammars
 
@@ -33,9 +37,11 @@ opam install tm-grammars tm-themes -y
 Then load a grammar from OCaml and create a highlighter:
 
 ```ocaml
-let theme = Ochre.Theme.load_exn Tm_themes.nord in
-let highlighter = Ochre.load_exn [ ("ocaml", Tm_grammars.ocaml) ] in
-let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" "let x = 42"
+let ( let* ) = Result.bind in
+let* highlighter = Ochre.load [ ("ocaml", Tm_grammars.ocaml) ] in
+let* lang = Ochre.lang highlighter "ocaml" in
+let* theme, _warnings = Ochre.Theme.load Tm_themes.nord in
+Ok (Ochre.to_html (Ochre.highlight ~theme ~lang "let x = 42"))
 ```
 Try several themes with several grammars in the [playground](https://davesnx.github.io/ochre/playground.html).
 
@@ -48,7 +54,7 @@ Try several themes with several grammars in the [playground](https://davesnx.git
 - **SVG** — Standalone `<svg>` elements with monospace `<text>` and per-token `<tspan>` styling. Open preview: [SVG rendered example](https://davesnx.github.io/ochre/examples/svg-preview.svg). Source: [.svg file](test/svg-preview.svg).
 - **ANSI** — 24-bit color escape sequences for terminal display.
 - **LaTeX** — `\textcolor` commands inside an `ochrehighlight` environment. Requires the `xcolor` and `ulem` packages. See [rendered PDF](https://davesnx.github.io/ochre/examples/latex-preview.pdf) (source: [.tex file](test/latex-preview.tex)).
-All backends share the same interface: create a highlighter, pick a theme, and call the corresponding `to_*` function.
+All backends share the same interface: load a highlighter, look up a language, highlight the code with one or more themes, and call the corresponding `to_*` function.
 
 
 ## Documentation

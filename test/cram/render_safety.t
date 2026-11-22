@@ -6,14 +6,14 @@ A theme name is HTML-escaped in the class attribute of an extra theme
   $ ./test_render_safety.exe html-extra-theme-name
   <pre class="ochre ochre-themes t &quot;&gt;&lt;img src=x onerror=alert(1)&gt;" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4);--ochre-dark-bg:#1e1e1e;--ochre-dark:#d4d4d4" tabindex="0"><code><span class="line"><span style="color:var(--ochre,#ff0000);--ochre-dark:#ff0000">let</span><span style="color:var(--ochre,#d4d4d4);--ochre-dark:#d4d4d4"> x</span></span></code></pre>
 
-Colours that are not plain CSS colours are left out, never written
+Theme colours that are not hex are dropped when the theme loads, never written
   $ ./test_render_safety.exe html-colors
-  <pre class="ochre" tabindex="0"><code><span class="line">let x = &quot;s&quot;</span></code></pre>
-  <pre class="ochre ochre-themes t evil" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span style="color:var(--ochre,#ff0000);--ochre-dark:inherit">let</span><span style="color:var(--ochre,#d4d4d4);--ochre-dark:inherit"> x = </span><span style="color:var(--ochre,#00ff00);--ochre-dark:inherit">&quot;s&quot;</span></span></code></pre>
+  <pre class="ochre" style="background-color:var(--ochre-bg,#ffffff);color:var(--ochre,#000000)" tabindex="0"><code><span class="line"><span style="color:var(--ochre,#000000)">let</span><span style="color:var(--ochre,#000000)"> x = </span><span style="color:var(--ochre,#000000)">&quot;s&quot;</span></span></code></pre>
+  <pre class="ochre ochre-themes t evil" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4);--ochre-dark-bg:#ffffff;--ochre-dark:#000000" tabindex="0"><code><span class="line"><span style="color:var(--ochre,#ff0000);--ochre-dark:#000000">let</span><span style="color:var(--ochre,#d4d4d4);--ochre-dark:#000000"> x = </span><span style="color:var(--ochre,#00ff00);--ochre-dark:#000000">&quot;s&quot;</span></span></code></pre>
 
-Plain CSS colours are kept
+Only hex colours are kept: CSS names, rgb() and hsl() are dropped, hex is normalized
   $ ./test_render_safety.exe html-valid-colors
-  <pre class="ochre" style="background-color:var(--ochre-bg,hsl(10 20% 30% / 0.5));color:var(--ochre,rgb(1, 2, 3))" tabindex="0"><code><span class="line"><span style="color:var(--ochre,rgb(1, 2, 3))">let</span><span style="color:var(--ochre,rgb(1, 2, 3))"> x = </span><span style="color:var(--ochre,#0f08)">&quot;s&quot;</span></span></code></pre>
+  <pre class="ochre" style="background-color:var(--ochre-bg,#ffffff);color:var(--ochre,#000000)" tabindex="0"><code><span class="line"><span style="color:var(--ochre,#000000)">let</span><span style="color:var(--ochre,#000000)"> x = </span><span style="color:var(--ochre,#00ff0088)">&quot;s&quot;</span></span></code></pre>
 
 Options and labels are made safe for HTML attributes and CSS names
   $ ./test_render_safety.exe html-options
@@ -39,15 +39,17 @@ A theme_css label is made safe for CSS names
     --ochre-token-bg: var(--ochre-dark____style__script_-token-bg);
   }
 
-Stylesheet colours that are not plain CSS colours are left out
+Stylesheet colours that are not hex are dropped when the theme loads
   $ ./test_render_safety.exe theme-css-colors
+  .ochre { background-color:#ffffff; color:#000000 }
   .c-0f188c0cf325ded1 { color:var(--ochre,#ff0000) }
+  .c-99e599976e1971d9 { color:var(--ochre,#000000) }
   
 
-SVG colours that are not plain CSS colours are left out
+SVG colours that are not hex are dropped when the theme loads
   $ ./test_render_safety.exe svg-colors
   <svg xmlns="http://www.w3.org/2000/svg" width="112" height="38" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px">
-   <rect width="100%" height="100%" fill="none"/>
+   <rect width="100%" height="100%" fill="#ffffff"/>
     <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" fill="#d4d4d4" xml:space="preserve"><tspan fill="#d4d4d4">let</tspan><tspan fill="#d4d4d4"> x = </tspan><tspan fill="#d4d4d4">&quot;s&quot;</tspan></text>
   </svg>
 
@@ -82,33 +84,6 @@ css_ident keeps only A-Za-z0-9_-
   $ ./test_render_safety.exe escape-css-ident
   a_b____x_-_9__
   idempotent: true
-
-css_color accepts plain colours only
-  $ ./test_render_safety.exe escape-css-color
-  #fff                               accepted
-  #FFFF                              accepted
-  #1e1e1e                            accepted
-  #1e1e1eff                          accepted
-  #1e1e1                             rejected
-  #ggg                               rejected
-  red                                accepted
-  rebeccapurple                      accepted
-  rgb(1, 2, 3)                       accepted
-  RGB(1 2 3 / 50%)                   accepted
-  hsl(10deg 20% 30%)                 accepted
-  oklch(0.5 0.1 200)                 accepted
-  url(x)                             rejected
-  var(--x)                           rejected
-  red;                               rejected
-  red}                               rejected
-  \"><b>                             rejected
-  red\n                              rejected
-  #fff;color:red                     rejected
-  rgb(1,2,3));x                      rejected
-  rgb(1,2,3)x                        rejected
-  rgb(a;b)                           rejected
-                                     rejected
-  #                                  rejected
 
 A class name always starts with a letter or an underscore
 

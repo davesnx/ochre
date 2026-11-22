@@ -65,7 +65,7 @@ Include cycles are rejected
   > { "name": "b", "include": "./a.json" }
   > EOF
   $ ./test_theme.exe load-file a.json
-  error: Theme include cycle detected at: a.json
+  error: theme include cycle: a.json -> b.json -> a.json
   [1]
 
 Missing include target errors

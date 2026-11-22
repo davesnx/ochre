@@ -5,187 +5,133 @@
     HTML, ANSI terminal colors, LaTeX, and SVG output formats.
 
     {@ocaml[
-      let highlighter = Ochre.load_exn [ ("ocaml", ocaml_grammar_json) ] in
-      let html =
-        Ochre.to_html highlighter ~theme:(Ochre.Theme.load_exn Tm_themes.nord) ~lang:"ocaml"
-          "let x = 42"
-    ]} *)
+    let html =
+      match Ochre.load [ ("ocaml", ocaml_grammar_json) ] with
+      | Error e ->
+          Error e
+      | Ok highlighter -> (
+          match
+            (Ochre.lang highlighter "ocaml", Ochre.Theme.load Tm_themes.nord)
+          with
+          | Error e, _ | _, Error e ->
+              Error e
+          | Ok lang, Ok (theme, _warnings) ->
+              Ok (Ochre.to_html (Ochre.highlight ~theme ~lang "let x = 42"))
+        )
+    ]}
 
-(** {1 Highlighter}
+    Themes are data: load one from JSON with {!Theme.val-load}. The [tm-themes]
+    package has every Shiki theme as a JSON string, such as [Tm_themes.nord].
+    The examples below use a [theme] loaded this way. *)
 
-    The highlighter holds loaded grammars and drives tokenization. Load one with
-    {!val-load} or {!val-load_from_files}, then pass it to any backend function.
+(** {1 Errors} *)
 
-    The language identifiers ["plaintext"], ["text"], and ["txt"] are always
-    available, even with no grammar loaded: they produce unstyled tokens using
-    the theme's default colors. *)
+module Error : sig
+  (** Every error that loading grammars, themes and languages can return. *)
+  type t = Error.t =
+    | Unknown_language of string
+        (** No grammar is registered under this language id. *)
+    | Grammar_error of { lang : string; path : string option; message : string }
+        (** A grammar cannot be read or parsed, or its id is a duplicate. [path]
+            is the file, when the grammar came from a file. *)
+    | Theme_error of { path : string option; message : string }
+        (** A theme cannot be read or parsed. [path] is the file, when the theme
+            came from a file. *)
+    | Include_cycle of string list
+        (** Theme files include each other. The list is the chain of paths, from
+            the first file to the file that closes the cycle. *)
+    | Duplicate_theme_label of string
+        (** Two themes of a {!Themed} value have the same label. *)
+    | Unknown_theme_label of string
+        (** {!Themed.select} was given a label that no theme has. *)
+    | Foreign_token of { transform : string }
+        (** The transform returned a token taken from another {!Themed} value
+            with a different number of themes. *)
+    | Invalid_data_key of string
+        (** A decoration data key is empty or holds a byte outside
+            [A-Za-z0-9_-]. *)
 
-type t
-(** Highlighter instance. Holds loaded grammars and tokenization state. *)
+  val to_string : t -> string
+  (** A message for humans. *)
+end
 
-(** {2 load} *)
+(** {1 Colors} *)
 
-val is_plaintext_lang : string -> bool
-(** [is_plaintext_lang lang] is true for ["plaintext"], ["text"] and ["txt"],
-    which need no grammar. *)
+module Color : sig
+  type t = Color.t = private { r : int; g : int; b : int; a : int }
+  (** An sRGB color with an alpha channel. Each channel is a byte, from [0] to
+      [255]; [a = 255] is opaque. *)
 
-val load : (string * string) list -> (t, string) result
-(** Load a highlighter from grammar JSON strings.
+  val rgb : int -> int -> int -> t
+  (** [rgb r g b] is an opaque color. Each value is clipped to [0]-[255]. *)
 
-    Each pair is [(lang_id, json_content)] where [lang_id] is the language
-    identifier and [json_content] is the raw TextMate grammar JSON. Each
-    [lang_id] must be unique.
+  val rgba : int -> int -> int -> int -> t
+  (** [rgba r g b a] is a color with alpha [a]. Each value is clipped to
+      [0]-[255]. *)
 
-    Returns [Error msg] when a grammar fails to parse or a [lang_id] is
-    duplicated.
+  val oklch : float -> float -> float -> t
+  (** [oklch l c h] is the opaque sRGB color for the OKLCH lightness [l] (from
+      [0.] to [1.]), chroma [c] and hue [h] in degrees. A color outside the sRGB
+      gamut is clipped channel by channel. *)
 
-    The first call to {!val-load}, {!val-load_exn}, {!val-load_from_files}, or
-    {!val-load_from_files_exn} in a process configures ochre's Oniguruma regex
-    engine limits (retry and match-stack size) process-wide; later calls do not
-    change them.
+  val of_hex : string -> t option
+  (** [of_hex s] parses [#rgb], [#rgba], [#rrggbb] or [#rrggbbaa], in any case,
+      as vscode-textmate does. Returns [None] for any other string, such as a
+      CSS color name or [rgb()]. *)
 
-    {@ocaml[
-    match Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ] with
-    | Ok hl ->
-        Ochre.to_html hl
-          ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
-          ~lang:"ocaml" code
-    | Error msg ->
-        failwith msg
-    ]} *)
+  val to_hex : t -> string
+  (** [to_hex c] is [#rrggbb] in lowercase, or [#rrggbbaa] when [c] is not
+      opaque. HTML and SVG write colors in this form; LaTeX writes uppercase
+      [RRGGBB] for the xcolor [HTML] model. *)
 
-(** {2 load_exn} *)
+  val equal : t -> t -> bool
+end
 
-val load_exn : (string * string) list -> t
-(** Like {!val-load} but raises [Failure] when a grammar fails to parse or a
-    [lang_id] is duplicated.
+(** {1 Styles} *)
 
-    {@ocaml[
-    let hl = Ochre.load_exn [ ("ocaml", Tm_grammar_ocaml.json) ]
-    ]} *)
-
-(** {2 load_from_files} *)
-
-val load_from_files : string list -> (t, string) result
-(** Load a highlighter from grammar files on disk.
-
-    Each grammar is a path to a [.tmLanguage.json] file. The language identifier
-    is derived from the filename (e.g. ["ocaml.tmLanguage.json"] registers as
-    ["ocaml"]) and must be unique across the given files.
-
-    Returns [Error msg] when a file cannot be read, a grammar fails to parse, or
-    two files derive the same language id.
-
-    {@ocaml[
-    match
-      Ochre.load_from_files [ "/usr/share/grammars/ocaml.tmLanguage.json" ]
-    with
-    | Ok hl ->
-        Ochre.to_html hl
-          ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
-          ~lang:"ocaml" code
-    | Error msg ->
-        failwith msg
-    ]} *)
-
-(** {2 load_from_files_exn} *)
-
-val load_from_files_exn : string list -> t
-(** Like {!val-load_from_files} but raises [Failure] when a file cannot be read,
-    a grammar fails to parse, or two files derive the same language id.
-
-    {@ocaml[
-    let hl =
-      Ochre.load_from_files_exn [ "/usr/share/grammars/ocaml.tmLanguage.json" ]
-    ]} *)
-
-(** {1 Tokens}
-
-    Tokens are the basic unit of highlighted code. After tokenization, each
-    fragment of source code becomes a {!type:Token.styled_token} carrying
-    colors, font styles, and scope information resolved from a theme. *)
-
-module Token : sig
-  (** {2 color} *)
-
-  type color = string
-  (** Hex color string (e.g. ["#ff0000"]). *)
-
-  (** {2 font_style} *)
-
-  type font_style = Token.font_style =
-    | Bold
-    | Italic
-    | Underline
-    | Strikethrough  (** Font style that can be applied to a token. *)
-
-  (** {2 decoration_properties} *)
-
-  type decoration_properties = Token.decoration_properties = {
-    class_ : string option;
-    style : string option;
-    data : (string * string) list;
+module Style : sig
+  type font_style = Style.font_style = {
+    bold : bool;
+    italic : bool;
+    underline : bool;
+    strikethrough : bool;
   }
-  (** Format-agnostic properties attached by a decoration. Only the HTML and SVG
-      renderers apply them, mapping [class_]/[style]/[data] to HTML/SVG
-      attributes; the ANSI and LaTeX renderers ignore decorations. *)
+  (** The font style of a token. *)
 
-  (** {2 styled_token} *)
+  val plain : font_style
+  (** No bold, italic, underline or strikethrough. *)
 
-  type styled_token = Token.styled_token = {
-    text : string;
-    foreground : color option;
-    background : color option;
-    font_style : font_style list;
-    scopes : string list;
-    decoration : decoration_properties option;
+  type t = Style.t = {
+    foreground : Color.t;
+    background : Color.t option;
+        (** [None] shows the theme background. A theme rule background equal to
+            the theme background is [None]. *)
+    font_style : font_style;
   }
-  (** A token with resolved styling from a theme. Each token represents a
-      fragment of source code with its associated colors and font styles, as
-      determined by TextMate scope matching. When a decoration targets this
-      token, the [decoration] field carries the associated properties. *)
-
-  (** {2 line} *)
-
-  type line = styled_token list
-  (** A line of styled tokens. *)
-
-  (** {2 highlighted_code} *)
-
-  type highlighted_code = line list
-  (** Complete highlighted code: a list of lines, each containing styled tokens.
-  *)
+  (** The style of a token under one theme. *)
 end
 
 (** {1 Themes}
 
     A theme maps TextMate scopes to colors and font styles. Ochre loads any VS
     Code / TextMate theme from JSON. The [tm-themes] package has the Shiki
-    themes as OCaml strings, and {!Theme.default} is a small theme for when none
-    is given. *)
+    themes as OCaml strings. *)
 
 module Theme : sig
   (** {2 color} *)
 
-  type color = string
-  (** Hex color string (e.g. ["#569cd6"]). *)
-
-  (** {2 font_style} *)
-
-  type font_style = Token.font_style =
-    | Bold
-    | Italic
-    | Underline
-    | Strikethrough  (** Font style variants. *)
+  type color = Color.t
 
   (** {2 token_color_settings} *)
 
   type token_color_settings = Theme.token_color_settings = {
     foreground : color option;
     background : color option;
-    font_style : font_style list option;
+    font_style : Style.font_style option;
   }
-  (** Color and style settings resolved from a theme rule. *)
+  (** Color and style settings of a theme rule. [None] inherits the value of the
+      enclosing scope. A [font_style] of {!Style.plain} is the ["none"] or empty
+      ["fontStyle"] of the theme JSON: it resets the font style. *)
 
   (** {2 token_color_rule} *)
 
@@ -210,20 +156,40 @@ module Theme : sig
   (** A loaded theme with default foreground/background colors and a list of
       token coloring rules. *)
 
+  (** {2 warning} *)
+
+  type warning = Theme.warning = {
+    path : string option;  (** The file that holds the value, if any. *)
+    location : string;
+        (** Where the value is, such as ["tokenColors[2].settings.foreground"]
+            or ["colors.editor.background"]. *)
+    value : string;  (** The value that was dropped. *)
+  }
+  (** A color that is not [#rgb], [#rgba], [#rrggbb] or [#rrggbbaa]. As in
+      vscode-textmate, loading drops it, so the rule or the [colors] entry acts
+      as if the value were not there. *)
+
+  val warning_to_string : warning -> string
+  (** A message for humans. *)
+
   (** {2 load} *)
 
-  val load : ?base_dir:string -> string -> (theme, string) result
-  (** Load a theme from a raw JSON string.
+  val load :
+    ?base_dir:string -> string -> (theme * warning list, Error.t) result
+  (** Load a theme from a raw JSON string. Returns the theme and one warning for
+      each color that was dropped.
 
       When [~base_dir] is provided, ["include"] paths in the JSON are resolved
       relative to that directory (same as {!val-load_from_file} does with the
-      file's parent directory). When omitted, ["include"] fields are silently
-      ignored.
+      file's parent directory). When omitted, an ["include"] is an
+      {!Error.Theme_error}.
 
-      Returns [Error msg] when the JSON is malformed.
+      Returns {!Error.Theme_error} when the JSON is malformed or an included
+      file cannot be read, and {!Error.Include_cycle} when included files
+      include each other.
 
       {@ocaml[
-      let theme =
+      let result =
         Ochre.Theme.load
           {|{
           "name": "my-theme",
@@ -238,37 +204,24 @@ module Theme : sig
         }|}
       ]} *)
 
-  (** {2 load_exn} *)
-
-  val load_exn : ?base_dir:string -> string -> theme
-  (** Like {!val-load} but raises [Failure] when the JSON is malformed or
-      contains invalid theme data. *)
-
   (** {2 load_from_file} *)
 
-  val load_from_file : string -> (theme, string) result
-  (** Load a theme from a VS Code theme JSON file.
+  val load_from_file : string -> (theme * warning list, Error.t) result
+  (** Load a theme from a VS Code theme JSON file, like {!val-load} with the
+      file's directory as [base_dir].
 
       Falls back to the filename as the theme name when none is specified in the
-      JSON. Returns [Error msg] when the file cannot be read or contains invalid
       JSON.
 
       {@ocaml[
       match Ochre.Theme.load_from_file "/path/to/theme.json" with
-      | Ok theme ->
+      | Ok (theme, warnings) ->
+          List.iter
+            (fun w -> prerr_endline (Ochre.Theme.warning_to_string w))
+            warnings;
           theme
-      | Error msg ->
-          failwith msg
-      ]} *)
-
-  (** {2 load_from_file_exn} *)
-
-  val load_from_file_exn : string -> theme
-  (** Like {!val-load_from_file} but raises [Failure] when the file cannot be
-      read or contains invalid theme data.
-
-      {@ocaml[
-      let theme = Ochre.Theme.load_from_file_exn "/path/to/theme.json"
+      | Error e ->
+          failwith (Ochre.Error.to_string e)
       ]} *)
 
   (** {2 make} *)
@@ -286,12 +239,17 @@ module Theme : sig
         Ochre.Theme.make ~name:"my-theme"
           ~colors:
             [
-              ("editor.foreground", "#d4d4d4"); ("editor.background", "#1e1e1e");
+              ("editor.foreground", Ochre.Color.rgb 0xd4 0xd4 0xd4);
+              ("editor.background", Ochre.Color.rgb 0x1e 0x1e 0x1e);
             ]
           ~token_colors:
             [
-              Ochre.Theme.rule ~scope:[ "comment" ] ~foreground:"#6a9955" ();
-              Ochre.Theme.rule ~scope:[ "keyword" ] ~foreground:"#569cd6" ();
+              Ochre.Theme.rule ~scope:[ "comment" ]
+                ~foreground:(Ochre.Color.rgb 0x6a 0x99 0x55)
+                ();
+              Ochre.Theme.rule ~scope:[ "keyword" ]
+                ~foreground:(Ochre.Color.oklch 0.65 0.12 250.)
+                ();
             ]
           ()
       ]} *)
@@ -303,74 +261,551 @@ module Theme : sig
     ?scope:string list ->
     ?foreground:color ->
     ?background:color ->
-    ?font_style:font_style list ->
+    ?font_style:Style.font_style ->
     unit ->
     token_color_rule
   (** Construct a token color rule. *)
+end
 
-  (** {2 default} *)
+(** {1 Highlighter}
 
-  val default : theme
-  (** A small dark theme with the colours of [dark-plus], used when no theme is
-      given. Load full themes from the [tm-themes] package:
+    The highlighter holds loaded grammars. Load one with {!val-load} or
+    {!val-load_from_files}, then look up a language with {!val-lang}. *)
+
+type t
+(** Highlighter instance. Holds loaded grammars. *)
+
+(** {2 load} *)
+
+val load : (string * string) list -> (t, Error.t) result
+(** Load a highlighter from grammar JSON strings.
+
+    Each pair is [(lang_id, json_content)] where [lang_id] is the language
+    identifier and [json_content] is the raw TextMate grammar JSON. Each
+    [lang_id] must be unique.
+
+    Returns {!Error.Grammar_error} when a grammar fails to parse or a [lang_id]
+    is duplicated.
+
+    The first call to {!val-load} or {!val-load_from_files} in a process
+    configures ochre's Oniguruma regex engine limits (retry and match-stack
+    size) process-wide; later calls do not change them.
+
+    {@ocaml[
+    match Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ] with
+    | Ok hl ->
+        hl
+    | Error e ->
+        failwith (Ochre.Error.to_string e)
+    ]} *)
+
+(** {2 load_from_files} *)
+
+val load_from_files : string list -> (t, Error.t) result
+(** Load a highlighter from grammar files on disk.
+
+    Each grammar is a path to a [.tmLanguage.json] file. The language identifier
+    is derived from the filename (e.g. ["ocaml.tmLanguage.json"] registers as
+    ["ocaml"]) and must be unique across the given files.
+
+    Returns {!Error.Grammar_error} with the path when a file cannot be read, a
+    grammar fails to parse, or two files derive the same language id. *)
+
+(** {2 Languages} *)
+
+module Lang : sig
+  type t
+  (** A checked language: a loaded grammar with its grammar collection, or plain
+      text. Render functions take a [Lang.t], so they never fail on an unknown
+      language. *)
+
+  val plaintext : t
+  (** Plain text: one unstyled token per line, in the theme's default colors. *)
+
+  val name : t -> string
+  (** The language id that was looked up, or ["plaintext"]. *)
+end
+
+val lang : t -> string -> (Lang.t, Error.t) result
+(** [lang hl id] looks up the language [id] in [hl]. The ids ["plaintext"],
+    ["text"] and ["txt"] always resolve, to plain text, unless a grammar is
+    registered under that id. Returns {!Error.Unknown_language} otherwise.
+
+    {@ocaml[
+    match Ochre.lang hl "ocaml" with
+    | Ok lang ->
+        Ochre.to_html (Ochre.highlight ~theme ~lang "let x = 42")
+    | Error e ->
+        failwith (Ochre.Error.to_string e)
+    ]} *)
+
+(** {1 Tokens}
+
+    Tokens are the basic unit of highlighted code. Each token is a fragment of
+    the source with its TextMate scopes, its position in the source, and one
+    {!Style.t} per theme. *)
+
+module Token : sig
+  type position = Token.position = {
+    offset : int;  (** Byte offset in the source. *)
+    line : int;  (** Line, from [0]. *)
+    column : int;  (** Byte offset in the line. *)
+    length : int;  (** Number of source bytes the token covers. *)
+  }
+  (** Where a token comes from in the original source. Transforms never change
+      the position of the text they keep: a token keeps the position of its
+      source text when a transform removes other text, and a piece of a split
+      token gets the position of its own bytes. A token that a transform inserts
+      has a [length] of [0] at the insert point. *)
+
+  type decoration_properties = Token.decoration_properties = private {
+    class_ : string option;
+    style : string option;
+    data : (string * string) list;
+  }
+  (** Format-agnostic properties attached by a decoration. Only the HTML and SVG
+      renderers apply them, mapping [class_]/[style]/[data] to HTML/SVG
+      attributes; the ANSI and LaTeX renderers ignore decorations. *)
+
+  type styles = Token.styles
+  (** One {!Style.t} per theme of the {!Themed} value the token belongs to. *)
+
+  type t = Token.t = {
+    text : string;
+    position : position;
+    scopes : string list;
+    styles : styles;
+    decoration : decoration_properties option;
+  }
+  (** A token. Build new tokens from existing ones, with [{ token with ... }],
+      {!val-sub}, {!val-insert_before} or {!val-insert_after}, so that they keep
+      one style per theme. *)
+
+  type line = t list
+  (** A line of tokens. The last token of every line but the last ends with
+      ["\n"]. *)
+
+  val style : t -> Style.t
+  (** The style of the token under the default theme. *)
+
+  val all_styles : t -> Style.t list
+  (** The styles of the token, one per theme, in the order of
+      {!Themed.t.themes}: the default theme first, then the extra themes. *)
+
+  val map_style : (Theme.theme -> Style.t -> Style.t) -> t -> t
+  (** [map_style f token] applies [f] once per theme to the style of [token]
+      under that theme.
 
       {@ocaml[
-      let theme = Ochre.Theme.load_exn Tm_themes.nord
+      let underline token =
+        Ochre.Token.map_style
+          (fun _theme style ->
+            {
+              style with
+              font_style = { style.font_style with underline = true };
+            }
+          )
+          token
+      ]} *)
+
+  val sub : t -> pos:int -> len:int -> t option
+  (** [sub token ~pos ~len] is the token for the [len] bytes of [token.text]
+      from byte [pos], with the position of those bytes. Returns [None] when the
+      range is not inside [token.text]. *)
+
+  val insert_before : t -> string -> t
+  (** [insert_before token text] is a new token with [text], the scopes and
+      styles of [token], no decoration, and a zero-length position at the start
+      of [token]. *)
+
+  val insert_after : t -> string -> t
+  (** Like {!val-insert_before}, at the end of [token]. *)
+end
+
+(** {1 Themed code}
+
+    Highlighted code is tokenized once and styled under one or more themes. *)
+
+module Themed : sig
+  type t = Themed.t = private {
+    themes : (string * Theme.theme) * (string * Theme.theme) list;
+        (** The labelled default theme, then the labelled extra themes. The
+            default label is the [?label] given to {!val-highlight} or
+            {!val-highlight_themes}, or the theme name. *)
+    lines : Token.line list;
+  }
+  (** Highlighted code. Each token has one style per theme, in the order of
+      [themes]. Make one with {!val-highlight} or {!val-highlight_themes}. *)
+
+  val select : string -> t -> (t, Error.t) result
+  (** [select label themed] makes the theme labelled [label] the default theme,
+      and keeps the others as extra themes in their order. Renderers that show
+      one theme, such as {!val-to_ansi}, show the default theme. Returns
+      {!Error.Unknown_theme_label} when no theme has [label].
+
+      {@ocaml[
+      match Ochre.Themed.select "dark" themed with
+      | Ok dark ->
+          print_string (Ochre.to_ansi dark)
+      | Error e ->
+          prerr_endline (Ochre.Error.to_string e)
       ]} *)
 end
 
+(** {1 Decorations}
+
+    Decorations attach format-agnostic properties (CSS class, inline style, data
+    attributes) to ranges of source code identified by line/character position.
+    They are applied after tokenization but before transforms.
+
+    {!Decoration.val-make} returns {!Error.Invalid_data_key} when a data key is
+    empty or holds a byte outside [A-Za-z0-9_-], because the key becomes part of
+    a [data-*] attribute name. Decorations and token decoration properties are
+    private records, so every data key goes through this check. *)
+
+module Decoration : sig
+  (** {2 position} *)
+
+  type position = Decoration.position = { line : int; character : int }
+  (** 0-indexed position in source code. [character] counts Unicode scalar
+      values, not UTF-8 bytes.
+
+      Negative [character] values count Unicode scalar values from the end of
+      the line: [-1] means the line end, [-2] means one scalar before the end,
+      etc. *)
+
+  (** {2 properties} *)
+
+  type properties = Decoration.properties = {
+    class_ : string option;
+    style : string option;
+    data : (string * string) list;
+  }
+  (** Properties to attach to a decorated range. *)
+
+  (** {2 t} *)
+
+  type t = Decoration.t = private {
+    start : position;
+    end_ : position;
+    properties : properties;
+  }
+  (** A decoration targeting a range from [start] (inclusive) to [end_]
+      (exclusive). *)
+
+  (** {2 pos} *)
+
+  val pos : int -> int -> position
+  (** [pos line character] creates a position. *)
+
+  (** {2 make} *)
+
+  val make :
+    ?class_:string ->
+    ?style:string ->
+    ?data:(string * string) list ->
+    start:position ->
+    end_:position ->
+    unit ->
+    (t, Error.t) result
+  (** Create a decoration. Returns {!Error.Invalid_data_key} when a key of
+      [~data] is empty or holds a byte outside [A-Za-z0-9_-].
+
+      {@ocaml[
+      let d =
+        Ochre.Decoration.make ~class_:"highlighted"
+          ~start:(Ochre.Decoration.pos 0 0)
+          ~end_:(Ochre.Decoration.pos 0 11)
+          ()
+      ]} *)
+
+  (** {2 apply} *)
+
+  val apply : source:string -> t list -> Token.line list -> Token.line list
+  (** [apply ~source decorations lines] maps decoration ranges onto tokens,
+      splitting tokens at boundaries and attaching properties. A token is
+      matched by its {!Token.type-position}, so [source] must be the source the
+      tokens come from.
+
+      Overlapping decorations are merged: classes are space-concatenated, styles
+      are semicolon-concatenated, data attributes are merged (later wins).
+
+      Character positions are Unicode scalar positions; they are converted to
+      the byte positions of the tokens once per line. Never raises: each byte
+      that is not part of a valid UTF-8 sequence counts as one character.
+      {!val-highlight} applies [~decorations] with this function, before
+      transforms. *)
+end
+
+(** {1 Transforms}
+
+    Transforms run after tokenization, theming and decorations, but before
+    rendering. They change structure (text, splitting, decorations) through the
+    token fields, and style through {!Token.map_style}, which runs once per
+    theme. A token taken from another {!Themed} value with the same number of
+    themes keeps the styles it carries. *)
+
+module Transform : sig
+  type token = Token.t
+  type line = token list
+  type document = line list
+
+  (** {2 t} *)
+
+  type t = Transform.t = {
+    name : string;
+    before_line : (line_index:int -> line -> line) option;
+    after_line : (line_index:int -> line -> line) option;
+    before_render : (document -> document) option;
+    after_render : (document -> document) option;
+  }
+  (** A transform with named hooks. Each hook is optional. The pipeline calls
+      them in this order:
+
+      + [before_render] on the full document
+      + [before_line] for each line (by index)
+      + [after_line] for each line (by index)
+      + [after_render] on the full document
+
+      When multiple transforms are provided, each hook phase folds over all
+      transforms in list order before moving to the next phase. *)
+
+  (** {2 make} *)
+
+  val make :
+    ?before_line:(line_index:int -> line -> line) ->
+    ?after_line:(line_index:int -> line -> line) ->
+    ?before_render:(document -> document) ->
+    ?after_render:(document -> document) ->
+    string ->
+    t
+  (** [make name] creates a transform with the given hooks.
+
+      {@ocaml[
+      let bold_keywords =
+        Ochre.Transform.make "bold-keywords"
+          ~after_line:(fun ~line_index:_ line ->
+            List.map
+              (fun (tok : Ochre.Token.t) ->
+                if tok.text = "let" || tok.text = "in" then
+                  Ochre.Token.map_style
+                    (fun _ style ->
+                      {
+                        style with
+                        font_style = { style.font_style with bold = true };
+                      }
+                    )
+                    tok
+                else
+                  tok
+              )
+              line
+        )
+      ]} *)
+
+  (** {2 run} *)
+
+  val run : t list -> document -> document
+  (** [run transforms document] applies all transforms to the document.
+
+      Transforms are applied in list order. An empty list returns the document
+      unchanged. *)
+end
+
+(** {2 Built-in transforms}
+
+    Ready-to-use transforms for common highlighting patterns. *)
+
+module Transform_builtin : sig
+  (** {2 line_highlight} *)
+
+  val line_highlight : ?background:Color.t -> int list -> Transform.t
+  (** Highlights the given line indices (0-based) by setting every token's
+      background color, under every theme.
+
+      Default background: ["#8888883a"].
+
+      {@ocaml[
+      Ochre.highlight
+        ~transforms:[ Ochre.Transform_builtin.line_highlight [ 0; 2 ] ]
+        ~theme ~lang code
+      ]} *)
+
+  (** {2 word_highlight} *)
+
+  val word_highlight :
+    ?foreground:Color.t ->
+    ?font_style:Style.font_style ->
+    string list ->
+    Transform.t
+  (** Highlights tokens whose text matches one of the given words, under every
+      theme.
+
+      Default foreground: ["#ffff00"]. Default font style: bold.
+
+      {@ocaml[
+      Ochre.highlight
+        ~transforms:[ Ochre.Transform_builtin.word_highlight [ "x"; "y" ] ]
+        ~theme ~lang code
+      ]} *)
+
+  (** {2 diff_markers} *)
+
+  val diff_markers : Transform.t
+  (** Strips leading [+] or [-] from the first token of each line and applies a
+      green or red background to the entire line, under every theme. *)
+
+  (** {2 scope_marker} *)
+
+  val scope_marker : ?background:Color.t -> string -> Transform.t
+  (** Highlights tokens that have at least one scope starting with [prefix].
+
+      Default background: ["#ffff0033"]. *)
+
+  (** {2 notation_highlight} *)
+
+  val notation_highlight : ?background:Color.t -> unit -> Transform.t
+  (** Notation-based line highlight. Finds a [[!code highlight]] or [[!code hl]]
+      marker in the comment that ends a line, removes it, and sets the
+      background color on the entire line. Mirrors Shiki's
+      [transformerNotationHighlight], and so do the rules below, which hold for
+      the three notation transforms.
+
+      The marker must be inside the last comment of the line: a [//], [#], [;],
+      [%] or [--] comment that runs to the end of the line, or a [/* */],
+      [<!-- -->], [(* *)], [{- -}] or [--[[ ]]] comment that closes at the end
+      of the line. A comment is found from its comment scope when the grammar
+      gives one, and from its opener otherwise, so plain text and Markdown work
+      too. A marker in a string, or in a block comment that code follows, is
+      left alone. The whole comment goes, with the blanks before it, when the
+      marker was all it held; other text in the comment stays. The newline
+      stays.
+
+      [[!code highlight:3]] applies to three lines. When the comment is alone on
+      its line, the line is removed and the marker applies to the lines below
+      it.
+
+      Default background: ["#8888883a"].
+
+      {@ocaml[
+      let code = "let x = 42 // [!code highlight]\nlet y = 10" in
+      let transforms = [ Ochre.Transform_builtin.notation_highlight () ] in
+      Ochre.highlight ~transforms ~theme ~lang code
+      ]} *)
+
+  (** {2 notation_diff} *)
+
+  val notation_diff :
+    ?add_background:Color.t -> ?remove_background:Color.t -> unit -> Transform.t
+  (** Notation-based diff markers. Finds [[!code ++]] and [[!code --]] markers
+      in comments, removes them, and applies green or red backgrounds to the
+      entire line. Mirrors Shiki's [transformerNotationDiff]; see
+      {!val-notation_highlight} for where a marker may sit and what is removed.
+
+      Default add background: ["#22883322"]. Default remove background:
+      ["#88222222"].
+
+      {@ocaml[
+      let code = "let x = 42 // [!code ++]\nlet y = 10 // [!code --]" in
+      let transforms = [ Ochre.Transform_builtin.notation_diff () ] in
+      Ochre.highlight ~transforms ~theme ~lang code
+      ]} *)
+
+  (** {2 notation_word_highlight} *)
+
+  val notation_word_highlight :
+    ?foreground:Color.t -> ?font_style:Style.font_style -> unit -> Transform.t
+  (** Notation-based word highlight. Finds [[!code word:xxx]] markers in
+      comments, removes them, and highlights all occurrences of [xxx], across
+      token boundaries. Without a count the highlight runs from the line of the
+      marker to the end of the code; [[!code word:xxx:2]] limits it to two
+      lines. A backslash escapes a character of the word. Mirrors Shiki's
+      [transformerNotationWordHighlight]; see {!val-notation_highlight} for
+      where a marker may sit and what is removed.
+
+      Default foreground: ["#ffff00"]. Default font style: bold.
+
+      {@ocaml[
+      let code = "let x = 42 // [!code word:x]" in
+      let transforms = [ Ochre.Transform_builtin.notation_word_highlight () ] in
+      Ochre.highlight ~transforms ~theme ~lang code
+      ]} *)
+end
+
+(** {1 Highlighting} *)
+
+val highlight :
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
+  ?label:string ->
+  theme:Theme.theme ->
+  lang:Lang.t ->
+  string ->
+  Themed.t
+(** [highlight ~theme ~lang source] tokenizes [source] and styles it with
+    [theme]. Decorations are applied after tokenization and transforms run after
+    decorations. [~label] names the theme for HTML with
+    {!Html_options.No_default_color}; it defaults to the theme name.
+
+    The source may contain bytes that are not valid UTF-8. They are kept byte
+    for byte in the token texts. The tokenizer sees each such byte as an
+    underscore, so it behaves like a non-ASCII letter.
+
+    {@ocaml[
+    let themed = Ochre.highlight ~theme ~lang code in
+    List.iter
+      (List.iter (fun (tok : Ochre.Token.t) -> print_string tok.text))
+      themed.lines
+    ]} *)
+
+val highlight_themes :
+  ?decorations:Decoration.t list ->
+  ?transforms:Transform.t list ->
+  ?label:string ->
+  theme:Theme.theme ->
+  extra_themes:(string * Theme.theme) list ->
+  lang:Lang.t ->
+  string ->
+  (Themed.t, Error.t) result
+(** Like {!val-highlight}, styled with the default [theme] and each labelled
+    extra theme. [source] is tokenized once, and each transform runs once: it
+    changes the style under every theme with {!Token.map_style}.
+
+    Returns {!Error.Duplicate_theme_label} when two labels are equal after each
+    byte outside [A-Za-z0-9_-] becomes ['_']. The default theme takes part with
+    [~label], or its name. Returns {!Error.Foreign_token} when a transform
+    returns a token whose number of styles differs from the number of themes,
+    such as a token taken from another {!Themed} value.
+
+    {@ocaml[
+    match
+      Ochre.highlight_themes ~label:"light" ~theme:light_theme
+        ~extra_themes:[ ("dark", dark_theme) ]
+        ~lang code
+    with
+    | Ok themed ->
+        Ochre.to_html themed
+    | Error e ->
+        failwith (Ochre.Error.to_string e)
+    ]} *)
+
 (** {1 Backends}
 
-    Ochre can render highlighted code to several output formats. All backends
-    share the same pattern: pass a highlighter, a theme, a language, and the
-    source code.
+    Ochre renders {!Themed} code to several output formats. Render functions
+    never fail.
 
     - {b HTML} — Self-contained [<pre><code>] blocks with inline styles or CSS
-      classes. Supports multi-theme via CSS custom properties, line numbers, and
-      configurable class prefixes.
+      classes. Shows every theme through CSS custom properties.
     - {b ANSI} — 24-bit color escape sequences for terminal display.
     - {b LaTeX} — [\textcolor] commands inside an [ochrehighlight] environment.
       Requires the [xcolor] and [ulem] packages.
     - {b SVG} — Standalone [<svg>] elements with monospace [<text>] and
       per-token [<tspan>] styling.
-    - {b Tokens} — Structured token output for full rendering control.
     - {b Debug tokens} — Raw token text for debugging grammar and scope
-      matching. *)
+      matching.
 
-(** {2 to_tokens} *)
-
-val to_tokens :
-  t ->
-  ?decorations:Decoration.t list ->
-  ?transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  Token.highlighted_code
-(** Highlight source code and return structured tokens. Use this when you need
-    full control over rendering.
-
-    When [~decorations] or [~transforms] are provided, decorations are applied
-    after tokenization and transforms run after decorations.
-
-    Raises [Failure] if the grammar for [lang] cannot be found. The languages
-    ["plaintext"], ["text"], and ["txt"] never raise: they yield unstyled
-    tokens.
-
-    The source may contain bytes that are not valid UTF-8. They never raise and
-    are kept byte for byte in the token texts. The tokenizer sees each such byte
-    as an underscore, so it behaves like a non-ASCII letter.
-
-    {@ocaml[
-    let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
-    List.iter
-      (fun line ->
-        List.iter
-          (fun (tok : Ochre.Token.styled_token) -> Printf.printf "%s" tok.text)
-          line
-      )
-      tokens
-    ]} *)
+    ANSI, LaTeX and SVG show the default theme. Use {!Themed.select} to show
+    another one. *)
 
 (** {2 HTML options} *)
 
@@ -410,7 +845,8 @@ module Html_options : sig
   (** {2 default} *)
 
   val default : t
-  (** Default options (backward compatible with legacy output). *)
+  (** Inline styles, default colors, no extra classes, no line numbers, the
+      [--ochre-] variable prefix and no scope attributes. *)
 
   (** {2 make} *)
 
@@ -435,49 +871,23 @@ end
 
 (** {2 to_html} *)
 
-val to_html :
-  t ->
-  ?decorations:Decoration.t list ->
-  ?transforms:Transform.t list ->
-  ?options:Html_options.t ->
-  ?theme:Theme.theme ->
-  ?label:string ->
-  ?extra_themes:(string * Theme.theme) list ->
-  lang:string ->
-  string ->
-  string
-(** Highlight source code to HTML.
-
-    Raises [Failure] if the grammar for [lang] cannot be found.
-
-    Raises [Invalid_argument] when two themes share a label. Labels are compared
-    after each byte outside [A-Za-z0-9_-] becomes ['_']. The default theme takes
-    part, under [~label] or its name, only with
-    {!Html_options.No_default_color}.
-
-    Raises [Invalid_argument] when [~extra_themes] is non-empty and a transform
-    produces a different token structure (different token texts) for the extra
-    themes than for the default theme, for example a transform that splits
-    tokens depending on their colour. Every theme must yield the same tokens,
-    because the renderer emits one element per token with one set of variables
-    per theme.
+val to_html : ?options:Html_options.t -> Themed.t -> string
+(** Render highlighted code to HTML.
 
     {3 Single theme}
 
-    Pass [~theme] for a self-contained block with inline styles:
-
     {@ocaml[
-    Ochre.to_html hl
-      ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
-      ~lang:"ocaml" "let x = 42"
+    Ochre.to_html (Ochre.highlight ~theme ~lang "let x = 42")
     ]}
 
     {3 Multiple themes}
 
-    Pass [~extra_themes] with labelled extra themes. Each label becomes a CSS
-    custom property prefix ([--ochre-<label>]). The default theme is emitted as
-    base fallback variables ([var(--ochre-bg,<bg>)], [var(--ochre,<fg>)]), while
-    extra themes are emitted as label-scoped variables.
+    Each extra theme label becomes a CSS custom property prefix
+    ([--ochre-<label>]). The default theme is emitted as base fallback variables
+    ([var(--ochre-bg,<bg>)], [var(--ochre,<fg>)]), while extra themes are
+    emitted as label-scoped variables. With {!Html_options.No_default_color},
+    the default theme is emitted as [--ochre-<label>] like an extra theme, with
+    its label.
 
     A token follows every theme for its colour, background, [font-weight],
     [font-style] and [text-decoration]. When any theme gives a token a value for
@@ -488,34 +898,6 @@ val to_html :
     into nor vanish from another. The token background uses [--ochre-token-bg],
     not the page background [--ochre-bg]. Underline and strikethrough together
     give [underline line-through].
-
-    [~label] names the default theme for [Html_options.No_default_color], where
-    it is emitted as [--ochre-<label>] like an extra theme. It defaults to the
-    theme name, or to the label of the first entry of [~extra_themes] when
-    [~theme] is omitted.
-
-    {@ocaml[
-    Ochre.to_html hl
-      ~theme:(Ochre.Theme.load_exn Tm_themes.light_plus)
-      ~extra_themes:[ ("dark", Ochre.Theme.load_exn Tm_themes.nord) ]
-      ~lang:"ocaml" "let x = 42"
-    ]}
-
-    {3 Options}
-
-    Pass [~options] to control rendering behaviour:
-
-    {@ocaml[
-    let opts =
-      Ochre.Html_options.make ~line_numbers:true ~default_color:No_default_color
-        ()
-    in
-    Ochre.to_html hl ~options:opts ~theme ~lang:"ocaml" code
-    ]}
-
-    When [~theme] is omitted but [~extra_themes] is provided, the first entry
-    becomes the default. When neither [~theme] nor [~extra_themes] is provided,
-    {!Theme.default} is used.
 
     Pair with {!val-html_theme_css} to activate alternate themes via CSS. *)
 
@@ -537,107 +919,68 @@ val html_theme_css : ?css_variable_prefix:string -> string -> string
 (** {2 html_render_theme_css} *)
 
 val html_render_theme_css :
-  ?css_variable_prefix:string ->
-  class_prefix:string ->
-  ?code:Token.highlighted_code ->
-  Theme.theme ->
-  string
-(** [html_render_theme_css ~class_prefix ?code theme] generates a CSS stylesheet
-    for [theme] when using {!Html_options.Css_classes} mode: a rule for [.ochre]
-    with the theme colours, and one class for each token style. A class name is
-    [class_prefix] followed by a hash of the style. Pass the
-    [css_variable_prefix] of the {!Html_options.type-t} used to render the HTML
-    as [~css_variable_prefix]; the class names depend on it.
+  ?css_variable_prefix:string -> class_prefix:string -> Themed.t -> string
+(** [html_render_theme_css ~class_prefix themed] generates a complete CSS
+    stylesheet for the default theme of [themed] when using
+    {!Html_options.Css_classes} mode. Walks all tokens to discover unique styles
+    and maps each to a deterministic class name prefixed with [class_prefix].
+    Pass the [css_variable_prefix] of the {!Html_options.type-t} used to render
+    the HTML as [~css_variable_prefix]; the class names depend on it. *)
 
-    With [~code], the stylesheet has a class only for the styles of those
-    tokens. Without it, the stylesheet has a class for each style that the theme
-    can give a token, so one stylesheet serves all code highlighted with
-    [theme].
+(** {2 html_render_whole_theme_css} *)
+
+val html_render_whole_theme_css :
+  ?css_variable_prefix:string -> class_prefix:string -> Theme.theme -> string
+(** [html_render_whole_theme_css ~class_prefix theme] generates a CSS stylesheet
+    for every style that [theme] can give a token, with no code to highlight:
+    the [.ochre] rule with the theme background and foreground, then one class
+    for each style. The class names are the ones that
+    {!Html_options.Css_classes} rendering with [class_prefix] uses, so the
+    stylesheet covers any code highlighted with [theme]. A style that a
+    transform makes, such as a line highlight, is not in the stylesheet; the
+    HTML keeps it inline. Pass the [css_variable_prefix] of the
+    {!Html_options.type-t} used to render the HTML as [~css_variable_prefix];
+    the class names depend on it.
 
     {@ocaml[
-    let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
-    let css =
-      Ochre.html_render_theme_css ~class_prefix:"oc-" ~code:tokens theme
-    in
-    Printf.printf "<style>%s</style>" css;
-    let site_css = Ochre.html_render_theme_css ~class_prefix:"oc-" theme in
-    print_string site_css
+    let css = Ochre.html_render_whole_theme_css ~class_prefix:"hl-" theme
     ]} *)
 
 (** {2 to_ansi} *)
 
-val to_ansi :
-  t ->
-  ?decorations:Decoration.t list ->
-  ?transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-(** Highlight source code to ANSI terminal escape sequences.
+val to_ansi : Themed.t -> string
+(** Render highlighted code to ANSI terminal escape sequences.
 
     Produces text with embedded 24-bit ANSI color codes for terminal display. A
     terminal has no alpha channel: a translucent background, such as the one of
     the line-highlight transforms, is blended over the theme background, and a
-    translucent foreground over the background behind it. Colours must be
-    [#rgb], [#rgba], [#rrggbb] or [#rrggbbaa]; a background in any other form is
-    left out. Raises [Failure] if the grammar for [lang] cannot be found.
+    translucent foreground over the background behind it.
 
     {@ocaml[
-    let ansi =
-      Ochre.to_ansi hl
-        ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
-        ~lang:"ocaml" code
-    in
-    print_string ansi
+    print_string (Ochre.to_ansi (Ochre.highlight ~theme ~lang code))
     ]} *)
 
 (** {2 to_latex} *)
 
-val to_latex :
-  t ->
-  ?decorations:Decoration.t list ->
-  ?transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-(** Highlight source code to LaTeX with [\textcolor] commands.
+val to_latex : Themed.t -> string
+(** Render highlighted code to LaTeX with [\textcolor] commands.
 
     Produces a block wrapped in an [ochrehighlight] environment. Requires the
     [xcolor] and [ulem] LaTeX packages ([\usepackage[normalem]{ulem}] provides
-    [\sout] for strikethrough). Raises [Failure] if the grammar for [lang]
-    cannot be found.
+    [\sout] for strikethrough).
 
     A token background, such as the one of the line-highlight transforms, is
     drawn with [\colorbox] in a group that sets [\fboxsep] to [0pt]. LaTeX has
     no alpha channel, so a translucent background is blended over the theme
-    background, and a background equal to the theme background is not drawn.
-    Colours must be [#rgb], [#rgba], [#rrggbb] or [#rrggbbaa]. A tab becomes
-    spaces up to the next multiple of 8 columns, a carriage return is dropped,
-    and every other C0 control character and DEL is written in caret notation,
-    like [cat -v]. The output was not compiled with TeX.
-
-    {@ocaml[
-    let latex =
-      Ochre.to_latex hl
-        ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
-        ~lang:"ocaml" code
-    in
-    Printf.printf "\\begin{document}\n%s\n\\end{document}" latex
-    ]} *)
+    background, and a background equal to the theme background is not drawn. A
+    tab becomes spaces up to the next multiple of 8 columns, a carriage return
+    is dropped, and every other C0 control character and DEL is written in caret
+    notation, like [cat -v]. The output was not compiled with TeX. *)
 
 (** {2 to_svg} *)
 
-val to_svg :
-  t ->
-  ?decorations:Decoration.t list ->
-  ?transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-(** Highlight source code to a self-contained SVG element.
+val to_svg : Themed.t -> string
+(** Render highlighted code to a self-contained SVG element.
 
     Produces an [<svg>] with monospace [<text>] elements and per-token [<tspan>]
     styling. Suitable for embedding in documents or rendering as an image. The
@@ -648,40 +991,15 @@ val to_svg :
     The width counts display cells: a Unicode scalar value is one cell, an East
     Asian wide or fullwidth character two, a combining mark none, and a carriage
     return none. A tab becomes spaces up to the next multiple of 8 cells, so the
-    indentation survives [xml:space="preserve"]. Raises [Failure] if the grammar
-    for [lang] cannot be found.
-
-    {@ocaml[
-    let svg =
-      Ochre.to_svg hl
-        ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
-        ~lang:"ocaml" code
-    ]} *)
+    indentation survives [xml:space="preserve"]. *)
 
 (** {2 to_debug_tokens} *)
 
-val to_debug_tokens :
-  t ->
-  ?decorations:Decoration.t list ->
-  ?transforms:Transform.t list ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-(** Highlight source code and render each token as [{text}[scope1,scope2,...]].
+val to_debug_tokens : Themed.t -> string
+(** Render each token as [{text}[scope1,scope2,...]].
 
-    Useful for debugging grammar and scope matching. Colours and backgrounds are
-    not part of this format, so the line-highlight transforms do not show in it.
-    Raises [Failure] if the grammar for [lang] cannot be found.
-
-    {@ocaml[
-    let debug =
-      Ochre.to_debug_tokens hl
-        ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
-        ~lang:"ocaml" code
-    in
-    print_string debug
-    ]} *)
+    Useful for debugging grammar and scope matching. Styles are not part of this
+    format, so it is the same under every theme. *)
 
 (** {2 output_format} *)
 
@@ -713,306 +1031,10 @@ val output_format_of_string : string -> output_format option
 (** {2 to_string} *)
 
 val to_string :
-  t ->
-  ?decorations:Decoration.t list ->
-  ?transforms:Transform.t list ->
-  ?options:Html_options.t ->
-  ?extra_themes:(string * Theme.theme) list ->
-  format:output_format ->
-  theme:Theme.theme ->
-  lang:string ->
-  string ->
-  string
-(** Highlight source code to one of the supported output formats.
-
-    [~options] and [~extra_themes] apply only when [format] is {!Html}; the
-    other formats ignore them. See {!val-to_html} for their meaning.
+  ?options:Html_options.t -> format:output_format -> Themed.t -> string
+(** Render highlighted code to one of the supported output formats. [~options]
+    applies only to {!Html}.
 
     {@ocaml[
-    let output = Ochre.to_string hl ~format:Html ~theme ~lang:"ocaml" code
+    let output = Ochre.to_string ~format:Html themed
     ]} *)
-
-(** {1 Transforms}
-
-    Transforms run after tokenization and theming, but before rendering. They
-    can modify tokens, lines, or the entire document. *)
-
-module Transform : sig
-  type token = Token.styled_token
-  (** Alias for a styled token. *)
-
-  type line = token list
-  (** A line of styled tokens. *)
-
-  type document = line list
-  (** The full highlighted document (list of lines). *)
-
-  (** {2 t} *)
-
-  type t = Transform.t = {
-    name : string;
-    before_line : (line_index:int -> line -> line) option;
-    after_line : (line_index:int -> line -> line) option;
-    before_render : (document -> document) option;
-    after_render : (document -> document) option;
-  }
-  (** A transform with named hooks. Each hook is optional. The pipeline calls
-      them in this order:
-
-      + [before_render] on the full document
-      + [before_line] for each line (by index)
-      + [after_line] for each line (by index)
-      + [after_render] on the full document
-
-      When multiple transforms are provided, each hook phase folds over all
-      transforms in list order before moving to the next phase. *)
-
-  (** {2 make} *)
-
-  val make :
-    ?before_line:(line_index:int -> line -> line) ->
-    ?after_line:(line_index:int -> line -> line) ->
-    ?before_render:(document -> document) ->
-    ?after_render:(document -> document) ->
-    string ->
-    t
-  (** [make name] creates a transform with the given hooks.
-
-      {@ocaml[
-      let bold_keywords =
-        Ochre.Transform.make "bold-keywords"
-          ~after_line:(fun ~line_index:_ line ->
-            List.map
-              (fun (tok : Ochre.Token.styled_token) ->
-                if tok.text = "let" || tok.text = "in" then
-                  { tok with font_style = Bold :: tok.font_style }
-                else
-                  tok
-              )
-              line
-        )
-      ]} *)
-
-  (** {2 run} *)
-
-  val run : t list -> document -> document
-  (** [run transforms document] applies all transforms to the document.
-
-      Transforms are applied in list order. An empty list returns the document
-      unchanged.
-
-      {@ocaml[
-      let transformed = Ochre.Transform.run transforms document
-      ]} *)
-end
-
-(** {2 Built-in transforms}
-
-    Ready-to-use transforms for common highlighting patterns. *)
-
-module Transform_builtin : sig
-  (** {2 line_highlight} *)
-
-  val line_highlight : ?background:string -> int list -> Transform.t
-  (** Highlights the given line indices (0-based) by setting every token's
-      background color.
-
-      Default background: ["#8888883a"].
-
-      {@ocaml[
-      Ochre.to_html hl
-        ~transforms:[ Ochre.Transform_builtin.line_highlight [ 0; 2 ] ]
-        ~theme ~lang:"ocaml" code
-      ]} *)
-
-  (** {2 word_highlight} *)
-
-  val word_highlight :
-    ?foreground:string ->
-    ?font_style:Token.font_style list ->
-    string list ->
-    Transform.t
-  (** Highlights tokens whose text matches one of the given words.
-
-      Default foreground: ["#ffff00"]. Default font style: [[Bold]].
-
-      {@ocaml[
-      Ochre.to_html hl
-        ~transforms:[ Ochre.Transform_builtin.word_highlight [ "x"; "y" ] ]
-        ~theme ~lang:"ocaml" code
-      ]} *)
-
-  (** {2 diff_markers} *)
-
-  val diff_markers : Transform.t
-  (** Strips leading [+] or [-] from the first token of each line and applies a
-      green or red background to the entire line. *)
-
-  (** {2 scope_marker} *)
-
-  val scope_marker : ?background:string -> string -> Transform.t
-  (** Highlights tokens that have at least one scope starting with [prefix].
-
-      Default background: ["#ffff0033"]. *)
-
-  (** {2 notation_highlight} *)
-
-  val notation_highlight : ?background:string -> unit -> Transform.t
-  (** Notation-based line highlight. Finds a [[!code highlight]] or [[!code hl]]
-      marker in the comment that ends a line, removes it, and sets the
-      background color on the entire line. Mirrors Shiki's
-      [transformerNotationHighlight], and so do the rules below, which hold for
-      the three notation transforms.
-
-      The marker must be inside the last comment of the line: a [//], [#], [;],
-      [%] or [--] comment that runs to the end of the line, or a [/* */],
-      [<!-- -->], [(* *)], [{- -}] or [--[[ ]]] comment that closes at the end
-      of the line. A comment is found from its comment scope when the grammar
-      gives one, and from its opener otherwise, so plain text and Markdown work
-      too. A marker in a string, or in a block comment that code follows, is
-      left alone. The whole comment goes, with the blanks before it, when the
-      marker was all it held; other text in the comment stays. The newline
-      stays.
-
-      [[!code highlight:3]] applies to three lines. When the comment is alone on
-      its line, the line is removed and the marker applies to the lines below
-      it.
-
-      Default background: ["#8888883a"].
-
-      {@ocaml[
-      let code = "let x = 42 // [!code highlight]\nlet y = 10" in
-      let transforms = [ Ochre.Transform_builtin.notation_highlight () ] in
-      Ochre.to_html hl ~transforms ~theme ~lang:"test" code
-      ]} *)
-
-  (** {2 notation_diff} *)
-
-  val notation_diff :
-    ?add_background:string -> ?remove_background:string -> unit -> Transform.t
-  (** Notation-based diff markers. Finds [[!code ++]] and [[!code --]] markers
-      in comments, removes them, and applies green or red backgrounds to the
-      entire line. Mirrors Shiki's [transformerNotationDiff]; see
-      {!val-notation_highlight} for where a marker may sit and what is removed.
-
-      Default add background: ["#22883322"]. Default remove background:
-      ["#88222222"].
-
-      {@ocaml[
-      let code = "let x = 42 // [!code ++]\nlet y = 10 // [!code --]" in
-      let transforms = [ Ochre.Transform_builtin.notation_diff () ] in
-      Ochre.to_html hl ~transforms ~theme ~lang:"test" code
-      ]} *)
-
-  (** {2 notation_word_highlight} *)
-
-  val notation_word_highlight :
-    ?foreground:string ->
-    ?font_style:Token.font_style list ->
-    unit ->
-    Transform.t
-  (** Notation-based word highlight. Finds [[!code word:xxx]] markers in
-      comments, removes them, and highlights all occurrences of [xxx], across
-      token boundaries. Without a count the highlight runs from the line of the
-      marker to the end of the code; [[!code word:xxx:2]] limits it to two
-      lines. A backslash escapes a character of the word. Mirrors Shiki's
-      [transformerNotationWordHighlight]; see {!val-notation_highlight} for
-      where a marker may sit and what is removed.
-
-      Default foreground: ["#ffff00"]. Default font style: [[Bold]].
-
-      {@ocaml[
-      let code = "let x = 42 // [!code word:x]" in
-      let transforms = [ Ochre.Transform_builtin.notation_word_highlight () ] in
-      Ochre.to_html hl ~transforms ~theme ~lang:"test" code
-      ]} *)
-end
-
-(** {1 Decorations}
-
-    Decorations attach format-agnostic properties (CSS class, inline style, data
-    attributes) to ranges of source code identified by line/character position.
-    They are applied after tokenization but before transforms. *)
-
-module Decoration : sig
-  (** {2 position} *)
-
-  type position = Decoration.position = { line : int; character : int }
-  (** 0-indexed position in source code. [character] counts Unicode scalar
-      values, not UTF-8 bytes.
-
-      Negative [character] values count Unicode scalar values from the end of
-      the line: [-1] means the line end, [-2] means one scalar before the end,
-      etc. *)
-
-  (** {2 properties} *)
-
-  type properties = Decoration.properties = {
-    class_ : string option;
-    style : string option;
-    data : (string * string) list;
-  }
-  (** Properties to attach to a decorated range. *)
-
-  (** {2 t} *)
-
-  type t = Decoration.t = {
-    start : position;
-    end_ : position;
-    properties : properties;
-  }
-  (** A decoration targeting a range from [start] (inclusive) to [end_]
-      (exclusive). *)
-
-  (** {2 pos} *)
-
-  val pos : int -> int -> position
-  (** [pos line character] creates a position. *)
-
-  (** {2 make} *)
-
-  val make :
-    ?class_:string ->
-    ?style:string ->
-    ?data:(string * string) list ->
-    start:position ->
-    end_:position ->
-    unit ->
-    t
-  (** Create a decoration.
-
-      {@ocaml[
-      let d =
-        Ochre.Decoration.make ~class_:"highlighted"
-          ~start:(Ochre.Decoration.pos 0 0)
-          ~end_:(Ochre.Decoration.pos 0 11)
-          ()
-      ]} *)
-
-  (** {2 apply} *)
-
-  val apply :
-    source:string -> t list -> Token.highlighted_code -> Token.highlighted_code
-  (** [apply ~source decorations tokens] maps decoration ranges onto tokens,
-      splitting tokens at boundaries and attaching properties.
-
-      Overlapping decorations are merged: classes are space-concatenated, styles
-      are semicolon-concatenated, data attributes are merged (later wins).
-
-      Character positions are Unicode scalar positions; token offsets remain
-      UTF-8 byte-based. Never raises: each byte that is not part of a valid
-      UTF-8 sequence counts as one character.
-
-      {@ocaml[
-        let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
-        let decorated =
-          Ochre.Decoration.apply ~source:code
-            [
-              Ochre.Decoration.make ~class_:"hl"
-                ~start:(Ochre.Decoration.pos 0 0)
-                ~end_:(Ochre.Decoration.pos 0 3)
-                ();
-            ]
-            tokens
-      ]} *)
-end

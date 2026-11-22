@@ -11,19 +11,23 @@ let grammar_json =
 }|}
 
 let theme ~name ~background ~foreground ~rules =
-  Ochre.Theme.load_exn
-    (Printf.sprintf
-       {|{ "name": %S,
+  fst
+    (Support.get_ok
+       (Ochre.Theme.load
+          (Printf.sprintf
+             {|{ "name": %S,
            "colors": { "editor.foreground": %S, "editor.background": %S },
            "tokenColors": [ %s ] }|}
-       name foreground background
-       (String.concat ","
-          (List.map
-             (fun (scope, settings) ->
-               Printf.sprintf {|{ "scope": %S, "settings": { %s } }|} scope
-                 settings
+             name foreground background
+             (String.concat ","
+                (List.map
+                   (fun (scope, settings) ->
+                     Printf.sprintf {|{ "scope": %S, "settings": { %s } }|}
+                       scope settings
+                   )
+                   rules
+                )
              )
-             rules
           )
        )
     )
@@ -57,7 +61,7 @@ let sepia =
     ~rules:
       [ ("comment", {|"foreground": "#998877", "fontStyle": "strikethrough"|}) ]
 
-let hl = Ochre.load_exn [ ("test", grammar_json) ]
+let hl = Support.get_ok (Ochre.load [ ("test", grammar_json) ])
 let source = "let x = 42 # note\nif \"s\" then 7\n"
 
 let strip s = String.trim s
@@ -183,24 +187,10 @@ let tokens_with_class_styles html css =
   in
   all 0 []
 
-let expected_weight (tok : Ochre.Token.styled_token) =
-  if List.mem Ochre.Token.Bold tok.font_style then
-    "bold"
-  else
-    "normal"
+let lower = String.lowercase_ascii
 
-let expected_style (tok : Ochre.Token.styled_token) =
-  if List.mem Ochre.Token.Italic tok.font_style then
-    "italic"
-  else
-    "normal"
-
-let expected_decoration (tok : Ochre.Token.styled_token) =
-  match
-    ( List.mem Ochre.Token.Underline tok.font_style,
-      List.mem Ochre.Token.Strikethrough tok.font_style
-    )
-  with
+let expected_decoration (style : Ochre.Style.font_style) =
+  match (style.underline, style.strikethrough) with
   | true, true ->
       "underline line-through"
   | true, false ->
@@ -210,17 +200,26 @@ let expected_decoration (tok : Ochre.Token.styled_token) =
   | false, false ->
       "none"
 
-let lower = String.lowercase_ascii
-
-let expectations (theme : Ochre.Theme.theme) (tok : Ochre.Token.styled_token) =
+let expectations (tok : Ochre.Token.t) =
+  let style = Ochre.Token.style tok in
   [
-    ("font-weight", expected_weight tok);
-    ("font-style", expected_style tok);
-    ("text-decoration", expected_decoration tok);
-    ( "background-color",
-      Option.value (Option.map lower tok.background) ~default:"transparent"
+    ( "font-weight",
+      if style.font_style.bold then
+        "bold"
+      else
+        "normal"
     );
-    ("color", lower (Option.value tok.foreground ~default:theme.fg));
+    ( "font-style",
+      if style.font_style.italic then
+        "italic"
+      else
+        "normal"
+    );
+    ("text-decoration", expected_decoration style.font_style);
+    ( "background-color",
+      Option.fold ~none:"transparent" ~some:Support.hex style.background
+    );
+    ("color", Support.hex style.foreground);
   ]
 
 let neutral = function
@@ -237,18 +236,26 @@ let flatten code = List.concat code
 
 let check ~title ~options ~primary_label (primary : Ochre.Theme.theme) extras =
   let html =
-    Ochre.to_html hl ~options ~theme:primary ~extra_themes:extras ~lang:"test"
-      source
+    Ochre.to_html ~options
+      (Support.get_ok
+         (Ochre.highlight_themes ~theme:primary ~extra_themes:extras
+            ~lang:(Support.get_ok (Ochre.lang hl "test"))
+            source
+         )
+      )
   in
   let default_mode = options.Ochre.Html_options.default_color = Default_color in
-  let primary_tokens = Ochre.to_tokens hl ~theme:primary ~lang:"test" source in
+  let primary_themed =
+    Ochre.highlight ~theme:primary
+      ~lang:(Support.get_ok (Ochre.lang hl "test"))
+      source
+  in
+  let primary_tokens = primary_themed.lines in
   let styles =
     match options.style_mode with
     | Css_classes { class_prefix } when default_mode ->
         tokens_with_class_styles html
-          (Ochre.html_render_theme_css ~class_prefix ~code:primary_tokens
-             primary
-          )
+          (Ochre.html_render_theme_css ~class_prefix primary_themed)
     | _ ->
         tokens_of html
   in
@@ -283,7 +290,14 @@ let check ~title ~options ~primary_label (primary : Ochre.Theme.theme) extras =
           | None ->
               resolve pre_env page_color
         in
-        let tokens = flatten (Ochre.to_tokens hl ~theme ~lang:"test" source) in
+        let tokens =
+          flatten
+            (Ochre.highlight ~theme
+               ~lang:(Support.get_ok (Ochre.lang hl "test"))
+               source
+            )
+              .lines
+        in
         List.iteri
           (fun i (style, tok) ->
             let decls = split_decls style in
@@ -315,7 +329,7 @@ let check ~title ~options ~primary_label (primary : Ochre.Theme.theme) extras =
                       label i prop got expected
                     :: !problems
               )
-              (expectations theme tok)
+              (expectations tok)
           )
           (List.combine styles tokens)
       )

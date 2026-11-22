@@ -17,7 +17,6 @@ val make :
   start:position ->
   end_:position ->
   unit ->
-  t
+  (t, Error.t) result
 
-val apply :
-  source:string -> t list -> Token.highlighted_code -> Token.highlighted_code
+val apply : source:string -> t list -> Token.t list list -> Token.t list list

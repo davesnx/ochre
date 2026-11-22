@@ -10,6 +10,15 @@ let grammar_json =
   ]
 }|}
 
+let get_ok = function
+  | Ok value ->
+      value
+  | Error error ->
+      failwith (Ochre.Error.to_string error)
+
+let lang highlighter name = get_ok (Ochre.lang highlighter name)
+let load_theme json = fst (get_ok (Ochre.Theme.load json))
+
 let attrs attrs = List.map (fun (name, value) -> (name, `String value)) attrs
 
 let serve_html ~name ~port ~html =

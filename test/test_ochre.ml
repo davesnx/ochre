@@ -1,3 +1,70 @@
+let get_ok = function
+  | Ok value ->
+      value
+  | Error error ->
+      failwith (Ochre.Error.to_string error)
+
+let load_theme json = fst (get_ok (Ochre.Theme.load json))
+let dark_plus = load_theme Tm_themes.dark_plus
+let light_plus = load_theme Tm_themes.light_plus
+let nord = load_theme Tm_themes.nord
+
+let hex = Ochre.Color.to_hex
+let color s = Option.get (Ochre.Color.of_hex s)
+let fg (tok : Ochre.Token.t) = hex (Ochre.Token.style tok).foreground
+let bg (tok : Ochre.Token.t) = Option.map hex (Ochre.Token.style tok).background
+
+let font_styles (tok : Ochre.Token.t) =
+  let style = (Ochre.Token.style tok).font_style in
+  List.filter_map
+    (fun (on, name) ->
+      if on then
+        Some name
+      else
+        None
+    )
+    [
+      (style.bold, "bold");
+      (style.italic, "italic");
+      (style.underline, "underline");
+      (style.strikethrough, "strikethrough");
+    ]
+
+let lines_of pieces =
+  let source = String.concat "" (List.concat pieces) in
+  let themed =
+    Ochre.highlight ~theme:dark_plus ~lang:Ochre.Lang.plaintext source
+  in
+  List.map2
+    (fun line pieces ->
+      match line with
+      | [ (token : Ochre.Token.t) ] ->
+          let _, tokens =
+            List.fold_left
+              (fun (pos, acc) piece ->
+                let len = String.length piece in
+                match Ochre.Token.sub token ~pos ~len with
+                | Some piece ->
+                    (pos + len, piece :: acc)
+                | None ->
+                    Alcotest.failf "piece %S is not inside %S" piece token.text
+              )
+              (0, []) pieces
+          in
+          List.rev tokens
+      | _ ->
+          assert false
+    )
+    themed.lines pieces
+
+let make_tok text = List.hd (List.hd (lines_of [ [ text ] ]))
+
+let with_style f (tok : Ochre.Token.t) =
+  Ochre.Token.map_style (fun _ s -> f s) tok
+
+let with_fg c tok =
+  with_style (fun s -> { s with Ochre.Style.foreground = color c }) tok
+
 let grammar_json =
   {|{
   "scopeName": "source.test",
@@ -10,16 +77,12 @@ let grammar_json =
   ]
 }|}
 
-let dark_plus = Ochre.Theme.load_exn Tm_themes.dark_plus
-let light_plus = Ochre.Theme.load_exn Tm_themes.light_plus
-let nord = Ochre.Theme.load_exn Tm_themes.nord
-
 let highlight () =
   let path = "test.tmLanguage.json" in
   let oc = open_out path in
   output_string oc grammar_json;
   close_out oc;
-  let hl = Ochre.load_from_files_exn [ path ] in
+  let hl = get_ok (Ochre.load_from_files [ path ]) in
   Sys.remove path;
   hl
 
@@ -44,26 +107,21 @@ let test_theme_loading () =
     }
   |}
   in
-  let theme = Ochre.Theme.load_exn theme_json in
+  let theme = fst (get_ok (Ochre.Theme.load theme_json)) in
   Alcotest.(check string) "theme name" "test-theme" theme.name;
-  Alcotest.(check string) "theme fg" "#000000" theme.fg;
-  Alcotest.(check string) "theme bg" "#ffffff" theme.bg;
+  Alcotest.(check string) "theme fg" "#000000" (hex theme.fg);
+  Alcotest.(check string) "theme bg" "#ffffff" (hex theme.bg);
   Alcotest.(check int) "token_colors length" 1 (List.length theme.token_colors)
-
-let test_default_theme_without_theme () =
-  let highlighter = highlight () in
-  let source = "let x = 1 # note" in
-  Alcotest.(check string)
-    "to_html without ~theme uses Theme.default"
-    (Ochre.to_html highlighter ~theme:Ochre.Theme.default ~lang:"test" source)
-    (Ochre.to_html highlighter ~lang:"test" source)
 
 let test_source_text_is_preserved () =
   let highlighter = highlight () in
   let rendered_source source =
-    Ochre.to_tokens highlighter ~theme:dark_plus ~lang:"test" source
-    |> List.concat
-    |> List.map (fun (token : Ochre.Token.styled_token) -> token.text)
+    (Ochre.highlight ~theme:dark_plus
+       ~lang:(get_ok (Ochre.lang highlighter "test"))
+       source
+    )
+      .lines |> List.concat
+    |> List.map (fun (token : Ochre.Token.t) -> token.text)
     |> String.concat ""
   in
   List.iter
@@ -76,45 +134,57 @@ let test_theme_make_raw () =
   let theme =
     Ochre.Theme.make ~name:"raw-theme"
       ~colors:
-        [ ("editor.foreground", "#111111"); ("editor.background", "#fafafa") ]
+        [
+          ("editor.foreground", color "#111111");
+          ("editor.background", color "#fafafa");
+        ]
       ~token_colors:
         [
-          Ochre.Theme.rule ~scope:[ "keyword" ] ~foreground:"#ff0000" ();
-          Ochre.Theme.rule ~scope:[ "comment" ] ~foreground:"#00aa00"
-            ~font_style:[ Ochre.Theme.Italic ] ();
+          Ochre.Theme.rule ~scope:[ "keyword" ] ~foreground:(color "#ff0000") ();
+          Ochre.Theme.rule ~scope:[ "comment" ] ~foreground:(color "#00aa00")
+            ~font_style:{ Ochre.Style.plain with italic = true }
+            ();
         ]
       ()
   in
   Alcotest.(check string) "theme name" "raw-theme" theme.name;
-  Alcotest.(check string) "theme fg" "#111111" theme.fg;
-  Alcotest.(check string) "theme bg" "#fafafa" theme.bg;
+  Alcotest.(check string) "theme fg" "#111111" (hex theme.fg);
+  Alcotest.(check string) "theme bg" "#fafafa" (hex theme.bg);
   Alcotest.(check int) "token_colors length" 2 (List.length theme.token_colors)
 
 let test_scope_matching () =
   let hl = highlight () in
   let theme =
-    Ochre.Theme.load_exn
-      {|{
+    fst
+      (get_ok
+         (Ochre.Theme.load
+            {|{
       "name": "test",
       "colors": { "editor.foreground": "#d4d4d4", "editor.background": "#1e1e1e" },
       "tokenColors": [
         { "scope": "keyword", "settings": { "foreground": "#ff0000" } }
       ]
     }|}
+         )
+      )
   in
-  let tokens = Ochre.to_tokens hl ~theme ~lang:"test" "let x = 42" in
+  let tokens =
+    (Ochre.highlight ~theme ~lang:(get_ok (Ochre.lang hl "test")) "let x = 42")
+      .lines
+  in
   match tokens with
   | (first :: _) :: _ ->
-      Alcotest.(check (option string))
-        "keyword gets red" (Some "#ff0000") first.foreground
+      Alcotest.(check string) "keyword gets red" "#ff0000" (fg first)
   | _ ->
       Alcotest.fail "expected at least one token"
 
 let test_scope_property_merge () =
   let hl = highlight () in
   let theme =
-    Ochre.Theme.load_exn
-      {|{
+    fst
+      (get_ok
+         (Ochre.Theme.load
+            {|{
       "name": "merge-test",
       "colors": { "editor.foreground": "#d4d4d4", "editor.background": "#1e1e1e" },
       "tokenColors": [
@@ -122,15 +192,20 @@ let test_scope_property_merge () =
         { "scope": "keyword.control", "settings": { "fontStyle": "bold" } }
       ]
     }|}
+         )
+      )
   in
-  let tokens = Ochre.to_tokens hl ~theme ~lang:"test" "let x = 42" in
+  let tokens =
+    (Ochre.highlight ~theme ~lang:(get_ok (Ochre.lang hl "test")) "let x = 42")
+      .lines
+  in
   match tokens with
   | (first :: _) :: _ ->
-      Alcotest.(check (option string))
-        "foreground merged from broader rule" (Some "#ff0000") first.foreground;
+      Alcotest.(check string)
+        "foreground merged from broader rule" "#ff0000" (fg first);
       Alcotest.(check bool)
         "font style merged from narrower rule" true
-        (List.mem Ochre.Token.Bold first.font_style)
+        (List.mem "bold" (font_styles first))
   | _ ->
       Alcotest.fail "expected at least one token"
 
@@ -150,10 +225,14 @@ let test_capture_arrays_in_grammar () =
     ]
   }|}
   in
-  let hl = Ochre.load_exn [ ("capture-array", grammar_with_capture_array) ] in
+  let hl =
+    get_ok (Ochre.load [ ("capture-array", grammar_with_capture_array) ])
+  in
   let theme =
-    Ochre.Theme.load_exn
-      {|{
+    fst
+      (get_ok
+         (Ochre.Theme.load
+            {|{
       "name": "test",
       "colors": {
         "editor.foreground": "#d4d4d4",
@@ -161,51 +240,66 @@ let test_capture_arrays_in_grammar () =
       },
       "tokenColors": []
     }|}
+         )
+      )
   in
-  let _ = Ochre.to_tokens hl ~theme ~lang:"capture-array" "let x = 1" in
+  let _ =
+    (Ochre.highlight ~theme
+       ~lang:(get_ok (Ochre.lang hl "capture-array"))
+       "let x = 1"
+    )
+      .lines
+  in
   ()
 
 let test_transform_empty_passthrough () =
   let hl = highlight () in
   let theme =
-    Ochre.Theme.load_exn
-      {|{
+    fst
+      (get_ok
+         (Ochre.Theme.load
+            {|{
       "name": "test",
       "colors": { "editor.foreground": "#d4d4d4", "editor.background": "#1e1e1e" },
       "tokenColors": [
         { "scope": "keyword", "settings": { "foreground": "#ff0000" } }
       ]
     }|}
+         )
+      )
   in
-  let tokens = Ochre.to_tokens hl ~theme ~lang:"test" "let x = 42" in
+  let tokens =
+    (Ochre.highlight ~theme ~lang:(get_ok (Ochre.lang hl "test")) "let x = 42")
+      .lines
+  in
   let tokens_with =
-    Ochre.to_tokens hl ~transforms:[] ~theme ~lang:"test" "let x = 42"
+    (Ochre.highlight ~transforms:[] ~theme
+       ~lang:(get_ok (Ochre.lang hl "test"))
+       "let x = 42"
+    )
+      .lines
   in
   Alcotest.(check int)
     "same number of lines" (List.length tokens) (List.length tokens_with);
   List.iter2
     (fun line1 line2 ->
       List.iter2
-        (fun (t1 : Ochre.Token.styled_token) (t2 : Ochre.Token.styled_token) ->
+        (fun (t1 : Ochre.Token.t) (t2 : Ochre.Token.t) ->
           Alcotest.(check string) "same text" t1.text t2.text;
-          Alcotest.(check (option string)) "same fg" t1.foreground t2.foreground;
-          Alcotest.(check (option string)) "same bg" t1.background t2.background
+          Alcotest.(check string) "same fg" (fg t1) (fg t2);
+          Alcotest.(check (option string)) "same bg" (bg t1) (bg t2)
         )
         line1 line2
     )
     tokens tokens_with
 
 let test_transform_ordering () =
-  let doc : Ochre.Token.highlighted_code =
+  let doc : Ochre.Token.line list =
     [
       [
         {
-          Ochre.Token.text = "let";
-          foreground = Some "#ff0000";
-          background = None;
-          font_style = [];
+          (with_fg "#ff0000" (make_tok "let")) with
           scopes = [ "keyword.control.test"; "source.test" ];
-          decoration = None;
         };
       ];
     ]
@@ -213,8 +307,12 @@ let test_transform_ordering () =
   let t1 =
     Ochre.Transform.make "first" ~after_line:(fun ~line_index:_ line ->
         List.map
-          (fun (tok : Ochre.Token.styled_token) ->
-            { tok with background = Some "#111111" }
+          (fun (tok : Ochre.Token.t) ->
+            with_style
+              (fun s ->
+                { s with Ochre.Style.background = Some (color "#111111") }
+              )
+              tok
           )
           line
     )
@@ -222,8 +320,12 @@ let test_transform_ordering () =
   let t2 =
     Ochre.Transform.make "second" ~after_line:(fun ~line_index:_ line ->
         List.map
-          (fun (tok : Ochre.Token.styled_token) ->
-            { tok with background = Some "#222222" }
+          (fun (tok : Ochre.Token.t) ->
+            with_style
+              (fun s ->
+                { s with Ochre.Style.background = Some (color "#222222") }
+              )
+              tok
           )
           line
     )
@@ -232,56 +334,29 @@ let test_transform_ordering () =
   match result with
   | [ [ tok ] ] ->
       Alcotest.(check (option string))
-        "last transform wins" (Some "#222222") tok.background
+        "last transform wins" (Some "#222222") (bg tok)
   | _ ->
       Alcotest.fail "expected 1 line with 1 token"
 
 let test_transform_determinism () =
-  let doc : Ochre.Token.highlighted_code =
-    [
-      [
-        {
-          Ochre.Token.text = "a";
-          foreground = None;
-          background = None;
-          font_style = [];
-          scopes = [];
-          decoration = None;
-        };
-      ];
-      [
-        {
-          Ochre.Token.text = "b";
-          foreground = None;
-          background = None;
-          font_style = [];
-          scopes = [];
-          decoration = None;
-        };
-      ];
-      [
-        {
-          Ochre.Token.text = "c";
-          foreground = None;
-          background = None;
-          font_style = [];
-          scopes = [];
-          decoration = None;
-        };
-      ];
-    ]
+  let doc : Ochre.Token.line list =
+    [ [ make_tok "a" ]; [ make_tok "b" ]; [ make_tok "c" ] ]
   in
   let transforms =
     [
       Ochre.Transform_builtin.line_highlight [ 0; 2 ];
       Ochre.Transform.make "tag" ~after_line:(fun ~line_index:_ line ->
           List.map
-            (fun (tok : Ochre.Token.styled_token) ->
-              {
-                tok with
-                foreground =
-                  Some (Option.value ~default:"none" tok.foreground ^ "-tagged");
-              }
+            (fun (tok : Ochre.Token.t) ->
+              with_style
+                (fun s ->
+                  {
+                    s with
+                    Ochre.Style.font_style =
+                      { s.font_style with underline = true };
+                  }
+                )
+                tok
             )
             line
       );
@@ -293,49 +368,24 @@ let test_transform_determinism () =
   List.iter2
     (fun line1 line2 ->
       List.iter2
-        (fun (t1 : Ochre.Token.styled_token) (t2 : Ochre.Token.styled_token) ->
+        (fun (t1 : Ochre.Token.t) (t2 : Ochre.Token.t) ->
           Alcotest.(check string) "deterministic text" t1.text t2.text;
-          Alcotest.(check (option string))
-            "deterministic fg" t1.foreground t2.foreground;
-          Alcotest.(check (option string))
-            "deterministic bg" t1.background t2.background
+          Alcotest.(check string) "deterministic fg" (fg t1) (fg t2);
+          Alcotest.(check (option string)) "deterministic bg" (bg t1) (bg t2)
         )
         line1 line2
     )
     r1 r2
 
 let test_transform_line_highlight () =
-  let doc : Ochre.Token.highlighted_code =
-    [
-      [
-        {
-          Ochre.Token.text = "a";
-          foreground = None;
-          background = None;
-          font_style = [];
-          scopes = [];
-          decoration = None;
-        };
-      ];
-      [
-        {
-          Ochre.Token.text = "b";
-          foreground = None;
-          background = None;
-          font_style = [];
-          scopes = [];
-          decoration = None;
-        };
-      ];
-    ]
-  in
+  let doc : Ochre.Token.line list = [ [ make_tok "a" ]; [ make_tok "b" ] ] in
   let transforms = [ Ochre.Transform_builtin.line_highlight [ 0 ] ] in
   let result = Ochre.Transform.run transforms doc in
   match result with
   | [ [ tok0 ]; [ tok1 ] ] ->
       Alcotest.(check (option string))
-        "line 0 highlighted" (Some "#8888883a") tok0.background;
-      Alcotest.(check (option string)) "line 1 unchanged" None tok1.background
+        "line 0 highlighted" (Some "#8888883a") (bg tok0);
+      Alcotest.(check (option string)) "line 1 unchanged" None (bg tok1)
   | _ ->
       Alcotest.fail "expected 2 lines with 1 token each"
 
@@ -344,27 +394,26 @@ let test_default_highlight_shows_on_light_and_dark () =
   let transforms = [ Ochre.Transform_builtin.line_highlight [ 0 ] ] in
   List.iter
     (fun (name, theme) ->
-      let plain = Ochre.to_ansi highlighter ~theme ~lang:"test" "x" in
-      let lit = Ochre.to_ansi highlighter ~transforms ~theme ~lang:"test" "x" in
+      let plain =
+        Ochre.to_ansi
+          (Ochre.highlight ~theme
+             ~lang:(get_ok (Ochre.lang highlighter "test"))
+             "x"
+          )
+      in
+      let lit =
+        Ochre.to_ansi
+          (Ochre.highlight ~transforms ~theme
+             ~lang:(get_ok (Ochre.lang highlighter "test"))
+             "x"
+          )
+      in
       Alcotest.(check bool) (name ^ ": highlight is visible") true (plain <> lit)
     )
     [ ("dark", dark_plus); ("light", light_plus) ]
 
 let test_transform_before_render_then_line () =
-  let doc : Ochre.Token.highlighted_code =
-    [
-      [
-        {
-          Ochre.Token.text = "x";
-          foreground = None;
-          background = None;
-          font_style = [];
-          scopes = [];
-          decoration = None;
-        };
-      ];
-    ]
-  in
+  let doc : Ochre.Token.line list = [ [ make_tok "x" ] ] in
   let log = ref [] in
   let t =
     Ochre.Transform.make "logger"
@@ -392,16 +441,6 @@ let test_transform_before_render_then_line () =
     [ "before_render"; "before_line"; "after_line"; "after_render" ]
     order
 
-let make_tok text =
-  {
-    Ochre.Token.text;
-    foreground = None;
-    background = None;
-    font_style = [];
-    scopes = [];
-    decoration = None;
-  }
-
 let test_decoration_empty_passthrough () =
   let tokens = [ [ make_tok "hello" ] ] in
   let result = Ochre.Decoration.apply ~source:"hello" [] tokens in
@@ -415,8 +454,10 @@ let test_decoration_empty_passthrough () =
 let test_decoration_whole_token () =
   let tokens = [ [ make_tok "hello" ] ] in
   let d =
-    Ochre.Decoration.make ~class_:"hl" ~start:(Ochre.Decoration.pos 0 0)
-      ~end_:(Ochre.Decoration.pos 0 5) ()
+    get_ok
+      (Ochre.Decoration.make ~class_:"hl" ~start:(Ochre.Decoration.pos 0 0)
+         ~end_:(Ochre.Decoration.pos 0 5) ()
+      )
   in
   let result = Ochre.Decoration.apply ~source:"hello" [ d ] tokens in
   match result with
@@ -434,8 +475,10 @@ let test_decoration_whole_token () =
 let test_decoration_token_splitting () =
   let tokens = [ [ make_tok "console.log" ] ] in
   let d =
-    Ochre.Decoration.make ~class_:"target" ~start:(Ochre.Decoration.pos 0 0)
-      ~end_:(Ochre.Decoration.pos 0 7) ()
+    get_ok
+      (Ochre.Decoration.make ~class_:"target" ~start:(Ochre.Decoration.pos 0 0)
+         ~end_:(Ochre.Decoration.pos 0 7) ()
+      )
   in
   let result = Ochre.Decoration.apply ~source:"console.log" [ d ] tokens in
   match result with
@@ -455,9 +498,7 @@ let test_decoration_token_splitting () =
         (Printf.sprintf "expected 2 tokens, got %d: [%s]" (List.length toks)
            (String.concat ", "
               (List.map
-                 (fun (t : Ochre.Token.styled_token) ->
-                   Printf.sprintf "%S" t.text
-                 )
+                 (fun (t : Ochre.Token.t) -> Printf.sprintf "%S" t.text)
                  toks
               )
            )
@@ -468,8 +509,10 @@ let test_decoration_token_splitting () =
 let test_decoration_mid_token_split () =
   let tokens = [ [ make_tok "abcdef" ] ] in
   let d =
-    Ochre.Decoration.make ~class_:"mid" ~start:(Ochre.Decoration.pos 0 2)
-      ~end_:(Ochre.Decoration.pos 0 4) ()
+    get_ok
+      (Ochre.Decoration.make ~class_:"mid" ~start:(Ochre.Decoration.pos 0 2)
+         ~end_:(Ochre.Decoration.pos 0 4) ()
+      )
   in
   let result = Ochre.Decoration.apply ~source:"abcdef" [ d ] tokens in
   match result with
@@ -493,10 +536,12 @@ let test_decoration_mid_token_split () =
       Alcotest.fail "expected 1 line"
 
 let test_decoration_multi_token () =
-  let tokens = [ [ make_tok "let"; make_tok " x" ] ] in
+  let tokens = lines_of [ [ "let"; " x" ] ] in
   let d =
-    Ochre.Decoration.make ~class_:"all" ~start:(Ochre.Decoration.pos 0 0)
-      ~end_:(Ochre.Decoration.pos 0 5) ()
+    get_ok
+      (Ochre.Decoration.make ~class_:"all" ~start:(Ochre.Decoration.pos 0 0)
+         ~end_:(Ochre.Decoration.pos 0 5) ()
+      )
   in
   let result = Ochre.Decoration.apply ~source:"let x" [ d ] tokens in
   match result with
@@ -514,13 +559,13 @@ let test_decoration_multi_token () =
       Alcotest.fail "expected 1 line with 2 tokens"
 
 let test_decoration_negative_character () =
-  let tokens =
-    [ [ make_tok "hello"; make_tok "\n" ]; [ make_tok "world"; make_tok "\n" ] ]
-  in
+  let tokens = lines_of [ [ "hello"; "\n" ]; [ "world"; "\n" ] ] in
   let d =
-    Ochre.Decoration.make ~class_:"line0" ~start:(Ochre.Decoration.pos 0 0)
-      ~end_:(Ochre.Decoration.pos 0 (-1))
-      ()
+    get_ok
+      (Ochre.Decoration.make ~class_:"line0" ~start:(Ochre.Decoration.pos 0 0)
+         ~end_:(Ochre.Decoration.pos 0 (-1))
+         ()
+      )
   in
   let result = Ochre.Decoration.apply ~source:"hello\nworld" [ d ] tokens in
   match result with
@@ -538,7 +583,7 @@ let test_decoration_negative_character () =
         "newline not decorated" true
         (newline.decoration = None);
       List.iter
-        (fun (tok : Ochre.Token.styled_token) ->
+        (fun (tok : Ochre.Token.t) ->
           Alcotest.(check bool)
             "line1 not decorated" true (tok.decoration = None)
         )
@@ -550,8 +595,10 @@ let test_decoration_unicode_scalar_positions () =
   let source = "a\195\169\240\159\153\130z" in
   let tokens = [ [ make_tok source ] ] in
   let decoration =
-    Ochre.Decoration.make ~class_:"unicode" ~start:(Ochre.Decoration.pos 0 1)
-      ~end_:(Ochre.Decoration.pos 0 3) ()
+    get_ok
+      (Ochre.Decoration.make ~class_:"unicode" ~start:(Ochre.Decoration.pos 0 1)
+         ~end_:(Ochre.Decoration.pos 0 3) ()
+      )
   in
   let result = Ochre.Decoration.apply ~source [ decoration ] tokens in
   match result with
@@ -577,10 +624,12 @@ let test_decoration_unicode_negative_character () =
   let source = "\195\169\240\159\153\130" in
   let tokens = [ [ make_tok source ] ] in
   let decoration =
-    Ochre.Decoration.make ~class_:"last-scalar"
-      ~start:(Ochre.Decoration.pos 0 (-2))
-      ~end_:(Ochre.Decoration.pos 0 (-1))
-      ()
+    get_ok
+      (Ochre.Decoration.make ~class_:"last-scalar"
+         ~start:(Ochre.Decoration.pos 0 (-2))
+         ~end_:(Ochre.Decoration.pos 0 (-1))
+         ()
+      )
   in
   let result = Ochre.Decoration.apply ~source [ decoration ] tokens in
   match result with
@@ -608,48 +657,53 @@ let test_decoration_invalid_utf8_scalars () =
   let source = "a\255b\n" in
   let tokens = [ [ make_tok "a\255b\n" ] ] in
   let decoration =
-    Ochre.Decoration.make ~class_:"hl" ~start:(Ochre.Decoration.pos 0 1)
-      ~end_:(Ochre.Decoration.pos 0 2) ()
+    get_ok
+      (Ochre.Decoration.make ~class_:"hl" ~start:(Ochre.Decoration.pos 0 1)
+         ~end_:(Ochre.Decoration.pos 0 2) ()
+      )
   in
   let texts =
     Ochre.Decoration.apply ~source [ decoration ] tokens
     |> List.concat
-    |> List.filter_map (fun (tok : Ochre.Token.styled_token) ->
+    |> List.filter_map (fun (tok : Ochre.Token.t) ->
         Option.map (fun _ -> tok.text) tok.decoration
     )
   in
   Alcotest.(check (list string))
     "invalid byte is one character" [ "\255" ] texts
 
-let test_decoration_invalid_data_key () =
-  try
-    ignore
-      (Ochre.Decoration.make
-         ~data:[ ({|note"onmouseover="x|}, "value") ]
-         ~start:(Ochre.Decoration.pos 0 0) ~end_:(Ochre.Decoration.pos 0 1) ()
-      );
-    Alcotest.fail "invalid data key should raise Invalid_argument"
-  with Invalid_argument _ -> ()
+let check_invalid_data_key key =
+  match
+    Ochre.Decoration.make
+      ~data:[ ("ok", "value"); (key, "value") ]
+      ~start:(Ochre.Decoration.pos 0 0) ~end_:(Ochre.Decoration.pos 0 1) ()
+  with
+  | Ok _ ->
+      Alcotest.failf "data key %S should be rejected" key
+  | Error error ->
+      Alcotest.(check string)
+        "error names the key"
+        (Ochre.Error.to_string (Ochre.Error.Invalid_data_key key))
+        (Ochre.Error.to_string error)
 
-let test_decoration_empty_data_key () =
-  try
-    ignore
-      (Ochre.Decoration.make
-         ~data:[ ("", "value") ]
-         ~start:(Ochre.Decoration.pos 0 0) ~end_:(Ochre.Decoration.pos 0 1) ()
-      );
-    Alcotest.fail "empty data key should raise Invalid_argument"
-  with Invalid_argument _ -> ()
+let test_decoration_invalid_data_key () =
+  check_invalid_data_key {|note"onmouseover="x|}
+
+let test_decoration_empty_data_key () = check_invalid_data_key ""
 
 let test_decoration_overlapping () =
   let tokens = [ [ make_tok "abcd" ] ] in
   let d1 =
-    Ochre.Decoration.make ~class_:"first" ~start:(Ochre.Decoration.pos 0 0)
-      ~end_:(Ochre.Decoration.pos 0 3) ()
+    get_ok
+      (Ochre.Decoration.make ~class_:"first" ~start:(Ochre.Decoration.pos 0 0)
+         ~end_:(Ochre.Decoration.pos 0 3) ()
+      )
   in
   let d2 =
-    Ochre.Decoration.make ~class_:"second" ~start:(Ochre.Decoration.pos 0 1)
-      ~end_:(Ochre.Decoration.pos 0 4) ()
+    get_ok
+      (Ochre.Decoration.make ~class_:"second" ~start:(Ochre.Decoration.pos 0 1)
+         ~end_:(Ochre.Decoration.pos 0 4) ()
+      )
   in
   let result = Ochre.Decoration.apply ~source:"abcd" [ d1; d2 ] tokens in
   match result with
@@ -684,19 +738,17 @@ let test_decoration_overlapping () =
       Alcotest.fail "expected 1 line"
 
 let test_decoration_multiline () =
-  let tokens =
-    [ [ make_tok "ab"; make_tok "\n" ]; [ make_tok "cd"; make_tok "\n" ] ]
-  in
+  let tokens = lines_of [ [ "ab"; "\n" ]; [ "cd"; "\n" ] ] in
   let d =
-    Ochre.Decoration.make ~class_:"span" ~start:(Ochre.Decoration.pos 0 1)
-      ~end_:(Ochre.Decoration.pos 1 1) ()
+    get_ok
+      (Ochre.Decoration.make ~class_:"span" ~start:(Ochre.Decoration.pos 0 1)
+         ~end_:(Ochre.Decoration.pos 1 1) ()
+      )
   in
   let result = Ochre.Decoration.apply ~source:"ab\ncd" [ d ] tokens in
   match result with
   | [ line0; line1 ] ->
-      let l0_texts =
-        List.map (fun (t : Ochre.Token.styled_token) -> t.text) line0
-      in
+      let l0_texts = List.map (fun (t : Ochre.Token.t) -> t.text) line0 in
       Alcotest.(check (list string)) "line0 texts" [ "a"; "b"; "\n" ] l0_texts;
       let a = List.nth line0 0 in
       let b = List.nth line0 1 in
@@ -708,9 +760,7 @@ let test_decoration_multiline () =
       | None ->
           Alcotest.fail "b should be decorated"
       );
-      let l1_texts =
-        List.map (fun (t : Ochre.Token.styled_token) -> t.text) line1
-      in
+      let l1_texts = List.map (fun (t : Ochre.Token.t) -> t.text) line1 in
       Alcotest.(check (list string)) "line1 texts" [ "c"; "d"; "\n" ] l1_texts;
       let c = List.nth line1 0 in
       let d_tok = List.nth line1 1 in
@@ -728,24 +778,34 @@ let test_decoration_multiline () =
 let test_decoration_with_highlighter () =
   let hl = highlight () in
   let theme =
-    Ochre.Theme.load_exn
-      {|{
+    fst
+      (get_ok
+         (Ochre.Theme.load
+            {|{
       "name": "test",
       "colors": { "editor.foreground": "#d4d4d4", "editor.background": "#1e1e1e" },
       "tokenColors": [
         { "scope": "keyword", "settings": { "foreground": "#ff0000" } }
       ]
     }|}
+         )
+      )
   in
   let source = "let x = 42" in
   let decorations =
     [
-      Ochre.Decoration.make ~class_:"hl" ~start:(Ochre.Decoration.pos 0 0)
-        ~end_:(Ochre.Decoration.pos 0 3) ();
+      get_ok
+        (Ochre.Decoration.make ~class_:"hl" ~start:(Ochre.Decoration.pos 0 0)
+           ~end_:(Ochre.Decoration.pos 0 3) ()
+        );
     ]
   in
   let tokens =
-    Ochre.to_tokens hl ~decorations ~transforms:[] ~theme ~lang:"test" source
+    (Ochre.highlight ~decorations ~transforms:[] ~theme
+       ~lang:(get_ok (Ochre.lang hl "test"))
+       source
+    )
+      .lines
   in
   match tokens with
   | [ first :: _ ] -> (
@@ -776,7 +836,7 @@ let min_time_of trials f =
 let tokens_text tokens =
   tokens
   |> List.concat_map (fun line ->
-      List.map (fun (tok : Ochre.Token.styled_token) -> tok.text) line
+      List.map (fun (tok : Ochre.Token.t) -> tok.text) line
   )
   |> String.concat ""
 
@@ -801,19 +861,21 @@ let invalid_utf8_cases =
 
 let invalid_utf8_highlighter =
   lazy
-    (Ochre.load_exn
-       [
-         ("go", Tm_grammars.go);
-         ("shellscript", Tm_grammars.shellscript);
-         ("bibtex", Tm_grammars.bibtex);
-         ("perl", Tm_grammars.perl);
-         ("ruby", Tm_grammars.ruby);
-         ("php", Tm_grammars.php);
-         ("reason", Tm_grammars.reason);
-         ("cpp", Tm_grammars.cpp);
-         ("ocaml", Tm_grammars.ocaml);
-         ("json", Tm_grammars.json);
-       ]
+    (get_ok
+       (Ochre.load
+          [
+            ("go", Tm_grammars.go);
+            ("shellscript", Tm_grammars.shellscript);
+            ("bibtex", Tm_grammars.bibtex);
+            ("perl", Tm_grammars.perl);
+            ("ruby", Tm_grammars.ruby);
+            ("php", Tm_grammars.php);
+            ("reason", Tm_grammars.reason);
+            ("cpp", Tm_grammars.cpp);
+            ("ocaml", Tm_grammars.ocaml);
+            ("json", Tm_grammars.json);
+          ]
+       )
     )
 
 let test_invalid_utf8_keeps_bytes () =
@@ -824,26 +886,50 @@ let test_invalid_utf8_keeps_bytes () =
       let label = Printf.sprintf "%s %S" lang source in
       Alcotest.(check string)
         (label ^ " token text") source
-        (tokens_text (Ochre.to_tokens hl ~theme ~lang source));
+        (tokens_text
+           (Ochre.highlight ~theme ~lang:(get_ok (Ochre.lang hl lang)) source)
+             .lines
+        );
       let decoration =
-        Ochre.Decoration.make ~class_:"hl" ~start:(Ochre.Decoration.pos 0 0)
-          ~end_:(Ochre.Decoration.pos 0 (-1))
-          ()
+        get_ok
+          (Ochre.Decoration.make ~class_:"hl" ~start:(Ochre.Decoration.pos 0 0)
+             ~end_:(Ochre.Decoration.pos 0 (-1))
+             ()
+          )
       in
       Alcotest.(check string)
         (label ^ " decorated token text")
         source
         (tokens_text
-           (Ochre.to_tokens hl ~decorations:[ decoration ] ~theme ~lang source)
+           (Ochre.highlight ~decorations:[ decoration ] ~theme
+              ~lang:(get_ok (Ochre.lang hl lang))
+              source
+           )
+             .lines
         );
       List.iter
         (fun render -> ignore (render hl ~theme ~lang source : string))
         [
-          (fun hl ~theme ~lang s -> Ochre.to_html hl ~theme ~lang s);
-          (fun hl ~theme ~lang s -> Ochre.to_ansi hl ~theme ~lang s);
-          (fun hl ~theme ~lang s -> Ochre.to_latex hl ~theme ~lang s);
-          (fun hl ~theme ~lang s -> Ochre.to_svg hl ~theme ~lang s);
-          (fun hl ~theme ~lang s -> Ochre.to_debug_tokens hl ~theme ~lang s);
+          (fun hl ~theme ~lang s ->
+            Ochre.to_html
+              (Ochre.highlight ~theme ~lang:(get_ok (Ochre.lang hl lang)) s)
+          );
+          (fun hl ~theme ~lang s ->
+            Ochre.to_ansi
+              (Ochre.highlight ~theme ~lang:(get_ok (Ochre.lang hl lang)) s)
+          );
+          (fun hl ~theme ~lang s ->
+            Ochre.to_latex
+              (Ochre.highlight ~theme ~lang:(get_ok (Ochre.lang hl lang)) s)
+          );
+          (fun hl ~theme ~lang s ->
+            Ochre.to_svg
+              (Ochre.highlight ~theme ~lang:(get_ok (Ochre.lang hl lang)) s)
+          );
+          (fun hl ~theme ~lang s ->
+            Ochre.to_debug_tokens
+              (Ochre.highlight ~theme ~lang:(get_ok (Ochre.lang hl lang)) s)
+          );
         ]
     )
     invalid_utf8_cases
@@ -851,12 +937,14 @@ let test_invalid_utf8_keeps_bytes () =
 let test_invalid_utf8_does_not_split_valid_text () =
   let hl = Lazy.force invalid_utf8_highlighter in
   let tokens =
-    Ochre.to_tokens hl ~theme:dark_plus ~lang:"json"
-      "{\"a\": \"\xff\", \"b\": 12}\n"
+    (Ochre.highlight ~theme:dark_plus
+       ~lang:(get_ok (Ochre.lang hl "json"))
+       "{\"a\": \"\xff\", \"b\": 12}\n"
+    )
+      .lines
   in
   let texts =
-    List.concat tokens
-    |> List.map (fun (tok : Ochre.Token.styled_token) -> tok.text)
+    List.concat tokens |> List.map (fun (tok : Ochre.Token.t) -> tok.text)
   in
   Alcotest.(check bool)
     "string with an invalid byte stays one token" true
@@ -925,14 +1013,21 @@ let sweep_corpus =
   ]
 
 let test_every_bundled_grammar_covers_the_source () =
-  let hl = Ochre.load_exn Tm_grammars.all in
+  let hl = get_ok (Ochre.load Tm_grammars.all) in
   let theme = nord in
   let failures =
     List.concat_map
       (fun (lang, _) ->
         List.filter_map
           (fun source ->
-            match tokens_text (Ochre.to_tokens hl ~theme ~lang source) with
+            match
+              tokens_text
+                (Ochre.highlight ~theme
+                   ~lang:(get_ok (Ochre.lang hl lang))
+                   source
+                )
+                  .lines
+            with
             | text when text = source ->
                 None
             | text ->
@@ -950,10 +1045,10 @@ let test_every_bundled_grammar_covers_the_source () =
 
 let styles_of ~theme ~lang source =
   let hl = Lazy.force invalid_utf8_highlighter in
-  Ochre.to_tokens hl ~theme ~lang source
+  (Ochre.highlight ~theme ~lang:(get_ok (Ochre.lang hl lang)) source).lines
   |> List.concat_map
-       (List.map (fun (tok : Ochre.Token.styled_token) ->
-            (tok.text, tok.foreground, tok.background, tok.font_style)
+       (List.map (fun (tok : Ochre.Token.t) ->
+            (tok.text, fg tok, bg tok, font_styles tok)
         )
        )
 
@@ -962,7 +1057,8 @@ let selector_theme rules =
     ~token_colors:
       (List.map
          (fun (scope, foreground) ->
-           Ochre.Theme.rule ~scope ~foreground ~font_style:[ Ochre.Token.Bold ]
+           Ochre.Theme.rule ~scope ~foreground:(color foreground)
+             ~font_style:{ Ochre.Style.plain with bold = true }
              ()
          )
          rules
@@ -985,65 +1081,70 @@ let scope_grammar =
   ]
 }|}
 
-let scope_highlighter = lazy (Ochre.load_exn [ ("t", scope_grammar) ])
+let scope_highlighter = lazy (get_ok (Ochre.load [ ("t", scope_grammar) ]))
 
 let x_style ~theme source =
   let token =
-    Ochre.to_tokens (Lazy.force scope_highlighter) ~theme ~lang:"t" source
-    |> List.concat
-    |> List.find (fun (tok : Ochre.Token.styled_token) -> tok.text = "x")
+    (Ochre.highlight ~theme
+       ~lang:(get_ok (Ochre.lang (Lazy.force scope_highlighter) "t"))
+       source
+    )
+      .lines |> List.concat
+    |> List.find (fun (tok : Ochre.Token.t) -> tok.text = "x")
   in
-  (token.foreground, token.background, token.font_style)
+  (fg token, bg token, font_styles token)
 
-let style_testable =
-  Alcotest.(
-    triple (option string) (option string)
-      (list
-         (testable
-            (fun fmt s ->
-              Format.pp_print_string fmt
-                ( match s with
-                | Ochre.Token.Bold ->
-                    "bold"
-                | Italic ->
-                    "italic"
-                | Underline ->
-                    "underline"
-                | Strikethrough ->
-                    "strikethrough"
-                )
-            )
-            ( = )
-         )
-      )
-  )
+let style_testable = Alcotest.(triple string (option string) (list string))
+
+let font_style_of names =
+  List.fold_left
+    (fun (style : Ochre.Style.font_style) name ->
+      match name with
+      | "bold" ->
+          { style with bold = true }
+      | "italic" ->
+          { style with italic = true }
+      | "underline" ->
+          { style with underline = true }
+      | _ ->
+          { style with strikethrough = true }
+    )
+    Ochre.Style.plain names
 
 let rules_theme rules =
   Ochre.Theme.make ~name:"rules"
     ~token_colors:
       (List.map
          (fun (scope, foreground, background, font_style) ->
-           Ochre.Theme.rule ~scope ?foreground ?background ?font_style ()
+           Ochre.Theme.rule ~scope
+             ?foreground:(Option.map color foreground)
+             ?background:(Option.map color background)
+             ?font_style:(Option.map font_style_of font_style)
+             ()
          )
          rules
       )
     ()
 
 let json_theme ?(extra = "") token_colors =
-  Ochre.Theme.load_exn
-    (Printf.sprintf {|{ %s "tokenColors": [ %s ] }|} extra token_colors)
+  fst
+    (get_ok
+       (Ochre.Theme.load
+          (Printf.sprintf {|{ %s "tokenColors": [ %s ] }|} extra token_colors)
+       )
+    )
 
 let red = "#ff0000"
 let green = "#00ff00"
 let blue = "#0000ff"
-let default_fg = Some "#000000"
+let default_fg = "#000000"
 
 let check_style label expected theme source =
   Alcotest.check style_testable label expected (x_style ~theme source)
 
 let test_descendant_selector_order () =
   let theme = rules_theme [ ([ "source.t a" ], Some red, None, None) ] in
-  check_style "outer scope first" (Some red, None, []) theme "x\n";
+  check_style "outer scope first" (red, None, []) theme "x\n";
   let theme = rules_theme [ ([ "a source.t" ], Some red, None, None) ] in
   check_style "inner scope first" (default_fg, None, []) theme "x\n"
 
@@ -1051,9 +1152,9 @@ let test_deepest_scope_wins () =
   let rules =
     [ ([ "a a" ], Some red, None, None); ([ "a.b" ], Some green, None, None) ]
   in
-  check_style "more specific scope" (Some green, None, []) (rules_theme rules)
+  check_style "more specific scope" (green, None, []) (rules_theme rules)
     "<x>\n";
-  check_style "rule order does not matter" (Some green, None, [])
+  check_style "rule order does not matter" (green, None, [])
     (rules_theme (List.rev rules))
     "<x>\n"
 
@@ -1062,27 +1163,29 @@ let test_attributes_come_from_one_rule () =
     rules_theme
       [
         ([ "a.b" ], Some red, None, None);
-        ([ "a a" ], None, Some blue, Some [ Ochre.Token.Bold ]);
+        ([ "a a" ], None, Some blue, Some [ "bold" ]);
       ]
   in
-  check_style "weaker rule adds nothing" (Some red, None, []) theme "<x>\n"
+  check_style "weaker rule adds nothing" (red, None, []) theme "<x>\n"
 
 let test_outer_attributes_are_kept () =
   let theme =
     rules_theme
       [
-        ([ "meta.group" ], Some red, Some blue, Some [ Ochre.Token.Italic ]);
+        ([ "meta.group" ], Some red, Some blue, Some [ "italic" ]);
         ([ "a.b" ], Some green, None, None);
       ]
   in
   check_style "unset attributes come from the enclosing scope"
-    (Some green, Some blue, [ Ochre.Token.Italic ])
+    (green, Some blue, [ "italic" ])
     theme "(x)\n"
 
 let test_theme_default_background () =
   let theme =
-    Ochre.Theme.load_exn
-      {|{
+    fst
+      (get_ok
+         (Ochre.Theme.load
+            {|{
       "colors": { "editor.foreground": "#111111", "editor.background": "#10141c" },
       "tokenColors": [
         { "settings": { "foreground": "#bfbdb6", "background": "#0d1017" } },
@@ -1091,57 +1194,54 @@ let test_theme_default_background () =
         { "scope": "meta.inner", "settings": { "background": "#0000ff" } }
       ]
     }|}
+         )
+      )
   in
-  Alcotest.(check string) "theme bg" "#0d1017" theme.bg;
-  Alcotest.(check string) "theme fg" "#bfbdb6" theme.fg;
-  check_style "no background from the scope-less rule" (Some red, None, [])
-    theme "x\n";
-  check_style "background equal to the default is dropped" (Some red, None, [])
-    theme "(x)\n";
-  check_style "background that differs is kept" (Some red, Some blue, []) theme
+  Alcotest.(check string) "theme bg" "#0d1017" (hex theme.bg);
+  Alcotest.(check string) "theme fg" "#bfbdb6" (hex theme.fg);
+  check_style "no background from the scope-less rule" (red, None, []) theme
+    "x\n";
+  check_style "background equal to the default is dropped" (red, None, []) theme
+    "(x)\n";
+  check_style "background that differs is kept" (red, Some blue, []) theme
     "([x])\n"
 
 let test_invalid_colors_are_ignored () =
-  let theme =
-    rules_theme
-      [
-        ([ "a" ], Some green, None, None);
-        ([ "a.b" ], Some "red", Some "notacolor", None);
-      ]
+  let rules value =
+    Printf.sprintf
+      {| { "scope": "a", "settings": { "foreground": "#00ff00" } },
+         { "scope": "a.b", "settings": { "foreground": %S, "background": "notacolor" } } |}
+      value
   in
-  check_style "named colour" (Some green, None, []) theme "x\n";
   List.iter
-    (fun color ->
-      let theme =
-        rules_theme
-          [
-            ([ "a" ], Some green, None, None);
-            ([ "a.b" ], Some color, None, None);
-          ]
-      in
-      check_style color (Some green, None, []) theme "x\n"
+    (fun value ->
+      check_style value (green, None, []) (json_theme (rules value)) "x\n"
     )
-    [ ""; "#12345"; "#12"; "#1234567"; "#ggg"; "ff0000" ];
+    [ "red"; ""; "#12345"; "#12"; "#1234567"; "#ggg"; "ff0000" ];
   List.iter
-    (fun color ->
-      let theme = rules_theme [ ([ "a.b" ], Some color, None, None) ] in
-      check_style color (Some color, None, []) theme "x\n"
+    (fun (value, expected) ->
+      check_style value (expected, None, []) (json_theme (rules value)) "x\n"
     )
-    [ "#f00"; "#f008"; "#ff0000"; "#FF000080" ]
+    [
+      ("#f00", "#ff0000");
+      ("#f008", "#ff000088");
+      ("#ff0000", "#ff0000");
+      ("#FF000080", "#ff000080");
+    ]
 
 let test_child_combinator () =
   let theme = rules_theme [ ([ "meta.group > a" ], Some red, None, None) ] in
-  check_style "direct child" (Some red, None, []) theme "(x)\n";
+  check_style "direct child" (red, None, []) theme "(x)\n";
   check_style "not a direct child" (default_fg, None, []) theme "([x])\n";
   let theme = rules_theme [ ([ "meta.group a" ], Some red, None, None) ] in
-  check_style "descendant" (Some red, None, []) theme "([x])\n"
+  check_style "descendant" (red, None, []) theme "([x])\n"
 
 let test_empty_scope_is_global () =
   let theme =
     json_theme {| { "scope": "", "settings": { "foreground": "#ff0000" } } |}
   in
-  check_style "empty string" (Some red, None, []) theme "x\n";
-  Alcotest.(check string) "theme fg" red theme.fg;
+  check_style "empty string" (red, None, []) theme "x\n";
+  Alcotest.(check string) "theme fg" red (hex theme.fg);
   let theme =
     json_theme {| { "scope": [], "settings": { "foreground": "#ff0000" } } |}
   in
@@ -1149,7 +1249,7 @@ let test_empty_scope_is_global () =
 
 let test_selector_edge_parsing () =
   let theme = rules_theme [ ([ "a." ], Some red, None, None) ] in
-  check_style "trailing dot" (Some red, None, []) theme "x\n";
+  check_style "trailing dot" (red, None, []) theme "x\n";
   let theme =
     json_theme
       {| { "scope": ["zz, a.b"], "settings": { "foreground": "#ff0000" } } |}
@@ -1160,7 +1260,7 @@ let test_selector_edge_parsing () =
     json_theme
       {| { "scope": "zz, a.b", "settings": { "foreground": "#ff0000" } } |}
   in
-  check_style "string is split on commas" (Some red, None, []) theme "x\n";
+  check_style "string is split on commas" (red, None, []) theme "x\n";
   let theme =
     json_theme
       {| { "scope": "source.t  a", "settings": { "foreground": "#ff0000" } } |}
@@ -1179,9 +1279,7 @@ let test_unset_font_style () =
              font_style
           )
       in
-      check_style font_style
-        (Some green, None, [ Ochre.Token.Bold ])
-        theme "x\n"
+      check_style font_style (green, None, [ "bold" ]) theme "x\n"
     )
     [ "null"; "5"; "true" ];
   let theme =
@@ -1189,24 +1287,35 @@ let test_unset_font_style () =
       {| { "scope": "a", "settings": { "fontStyle": "bold" } },
          { "scope": "a.b", "settings": { "foreground": "#00ff00", "fontStyle": "" } } |}
   in
-  check_style "empty string resets" (Some green, None, []) theme "x\n"
+  check_style "empty string resets" (green, None, []) theme "x\n"
 
 let test_theme_type_picks_default_colors () =
   let load kind =
-    Ochre.Theme.load_exn
-      (Printf.sprintf {|{ "type": %S, "tokenColors": [] }|} kind)
+    fst
+      (get_ok
+         (Ochre.Theme.load
+            (Printf.sprintf {|{ "type": %S, "tokenColors": [] }|} kind)
+         )
+      )
   in
   let dark = load "dark" and light = load "light" in
   Alcotest.(check (pair string string))
-    "dark" ("#bbbbbb", "#1e1e1e") (dark.fg, dark.bg);
+    "dark" ("#bbbbbb", "#1e1e1e")
+    (hex dark.fg, hex dark.bg);
   Alcotest.(check (pair string string))
-    "light" ("#333333", "#fffffe") (light.fg, light.bg);
+    "light" ("#333333", "#fffffe")
+    (hex light.fg, hex light.bg);
   let colored =
-    Ochre.Theme.load_exn
-      {|{ "type": "dark", "colors": { "editor.foreground": "#123456", "editor.background": "#654321" } }|}
+    fst
+      (get_ok
+         (Ochre.Theme.load
+            {|{ "type": "dark", "colors": { "editor.foreground": "#123456", "editor.background": "#654321" } }|}
+         )
+      )
   in
   Alcotest.(check (pair string string))
-    "editor colours win" ("#123456", "#654321") (colored.fg, colored.bg)
+    "editor colours win" ("#123456", "#654321")
+    (hex colored.fg, hex colored.bg)
 
 let test_include_needs_base_dir () =
   match
@@ -1217,47 +1326,57 @@ let test_include_needs_base_dir () =
   | Error message ->
       Alcotest.(check bool)
         "message names the include" true
-        (String.length message > 0)
+        (String.length (Ochre.Error.to_string message) > 0)
 
 let test_falsy_settings_use_token_colors () =
   List.iter
     (fun settings ->
       let theme =
-        Ochre.Theme.load_exn
-          (Printf.sprintf
-             {|{ "settings": %s,
+        fst
+          (get_ok
+             (Ochre.Theme.load
+                (Printf.sprintf
+                   {|{ "settings": %s,
                  "tokenColors": [ { "scope": "a", "settings": { "foreground": "#00ff00" } },
                                   { "scope": "zz", "settings": 0 },
                                   { "scope": "zz", "settings": "" } ] }|}
-             settings
+                   settings
+                )
+             )
           )
       in
       Alcotest.(check int) settings 1 (List.length theme.token_colors);
-      check_style settings (Some green, None, []) theme "x\n"
+      check_style settings (green, None, []) theme "x\n"
     )
     [ "null"; {|""|}; "0"; "false" ]
 
 let test_foreground_falls_back_to_theme () =
   let theme =
-    Ochre.Theme.load_exn
-      {|{ "colors": { "editor.foreground": "#aabbcc" },
+    fst
+      (get_ok
+         (Ochre.Theme.load
+            {|{ "colors": { "editor.foreground": "#aabbcc" },
           "tokenColors": [ { "scope": "a", "settings": { "fontStyle": "italic" } } ] }|}
+         )
+      )
   in
-  check_style "font style only"
-    (Some "#aabbcc", None, [ Ochre.Token.Italic ])
-    theme "x\n"
+  check_style "font style only" ("#aabbcc", None, [ "italic" ]) theme "x\n"
 
 let test_settings_win_over_token_colors () =
   let theme =
-    Ochre.Theme.load_exn
-      {|{
+    fst
+      (get_ok
+         (Ochre.Theme.load
+            {|{
       "tokenColors": [ { "scope": "a", "settings": { "foreground": "#00ff00" } },
                        { "scope": "zz", "settings": { "foreground": "#0000ff" } } ],
       "settings": [ { "scope": "a", "settings": { "foreground": "#ff0000" } } ]
     }|}
+         )
+      )
   in
   Alcotest.(check int) "only settings" 1 (List.length theme.token_colors);
-  check_style "settings rule" (Some red, None, []) theme "x\n"
+  check_style "settings rule" (red, None, []) theme "x\n"
 
 let deep_json_objects n =
   String.concat "" (List.init n (fun _ -> "{\"a\":"))
@@ -1275,22 +1394,31 @@ let test_deep_nesting_theme_matching () =
   let hl = Lazy.force invalid_utf8_highlighter in
   check_under ~seconds:30.0 "json 1600 deep" (fun () ->
       ignore
-        ( Ochre.to_tokens hl ~theme:nord ~lang:"json" (deep_json_objects 1600)
-          : Ochre.Token.highlighted_code
+        ( (Ochre.highlight ~theme:nord
+             ~lang:(get_ok (Ochre.lang hl "json"))
+             (deep_json_objects 1600)
+          )
+            .lines
+          : Ochre.Token.line list
           )
   )
 
 let test_long_nested_line_theme () =
   let hl =
-    Ochre.load_exn [ ("yaml", Tm_grammars.yaml); ("json", Tm_grammars.json) ]
+    get_ok
+      (Ochre.load [ ("yaml", Tm_grammars.yaml); ("json", Tm_grammars.json) ])
   in
   let source = String.make 9_999 '[' ^ "\n" in
   List.iter
     (fun lang ->
       check_under ~seconds:2.0 (lang ^ " 9999 brackets") (fun () ->
           ignore
-            ( Ochre.to_tokens hl ~theme:dark_plus ~lang source
-              : Ochre.Token.highlighted_code
+            ( (Ochre.highlight ~theme:dark_plus
+                 ~lang:(get_ok (Ochre.lang hl lang))
+                 source
+              )
+                .lines
+              : Ochre.Token.line list
               )
       )
     )
@@ -1305,8 +1433,12 @@ let test_many_part_selector () =
   let theme = selector_theme [ ([ selector ], "#ffffff") ] in
   check_under ~seconds:10.0 "12-part selector on 40 deep arrays" (fun () ->
       ignore
-        ( Ochre.to_tokens hl ~theme ~lang:"json" (nested 40)
-          : Ochre.Token.highlighted_code
+        ( (Ochre.highlight ~theme
+             ~lang:(get_ok (Ochre.lang hl "json"))
+             (nested 40)
+          )
+            .lines
+          : Ochre.Token.line list
           )
   )
 
@@ -1318,64 +1450,40 @@ let test_decorations_scale () =
   in
   let decorations =
     List.init count (fun i ->
-        Ochre.Decoration.make ~class_:"hl"
-          ~start:(Ochre.Decoration.pos (i * 10) 0)
-          ~end_:(Ochre.Decoration.pos (i * 10) 1)
-          ()
+        get_ok
+          (Ochre.Decoration.make ~class_:"hl"
+             ~start:(Ochre.Decoration.pos (i * 10) 0)
+             ~end_:(Ochre.Decoration.pos (i * 10) 1)
+             ()
+          )
     )
   in
   check_under ~seconds:10.0 "40k lines x 4k decorations" (fun () ->
       let tokens =
-        Ochre.to_tokens hl ~decorations ~theme:nord ~lang:"plaintext" source
+        (Ochre.highlight ~decorations ~theme:nord
+           ~lang:(get_ok (Ochre.lang hl "plaintext"))
+           source
+        )
+          .lines
       in
       let decorated =
         List.concat tokens
-        |> List.filter (fun (tok : Ochre.Token.styled_token) ->
-            tok.decoration <> None
-        )
+        |> List.filter (fun (tok : Ochre.Token.t) -> tok.decoration <> None)
       in
       Alcotest.(check int) "decorated tokens" count (List.length decorated)
   )
 
-let test_multi_theme_transform_shape_mismatch () =
-  let hl = Lazy.force invalid_utf8_highlighter in
-  let split_light =
-    Ochre.Transform.make "split-by-colour"
-      ~after_line:(fun ~line_index:_ line ->
-        List.concat_map
-          (fun (tok : Ochre.Token.styled_token) ->
-            if tok.foreground <> Some dark_plus.fg && String.length tok.text > 1
-            then
-              [
-                { tok with text = String.sub tok.text 0 1 };
-                {
-                  tok with
-                  text = String.sub tok.text 1 (String.length tok.text - 1);
-                };
-              ]
-            else
-              [ tok ]
-          )
-          line
-    )
-  in
-  match
-    Ochre.to_html hl ~transforms:[ split_light ] ~theme:dark_plus
-      ~extra_themes:[ ("nord", nord) ]
-      ~lang:"plaintext" "hello\n"
-  with
-  | _ ->
-      Alcotest.fail "expected Invalid_argument for differing token structure"
-  | exception Invalid_argument _ ->
-      ()
-
 let test_long_line_is_not_quadratic () =
-  let hl = Ochre.load_exn [ ("ocaml", Tm_grammars.ocaml) ] in
+  let hl = get_ok (Ochre.load [ ("ocaml", Tm_grammars.ocaml) ]) in
   let time_for n =
     let source = long_arithmetic_line n in
     min_time_of 3 (fun () ->
         let (_ : string) =
-          Ochre.to_html hl ~theme:dark_plus ~lang:"ocaml" source
+          Ochre.to_html
+            (Ochre.highlight ~theme:dark_plus
+               ~lang:(get_ok (Ochre.lang hl "ocaml"))
+               source
+            )
         in
         ()
     )
@@ -1411,11 +1519,17 @@ let js_like_source lines =
   String.concat "\n" (List.init lines line) ^ "\n"
 
 let test_budget_js_file_to_html () =
-  let hl = Ochre.load_exn [ ("javascript", Tm_grammars.javascript) ] in
-  let theme = Ochre.Theme.load_exn Tm_themes.dark_plus in
+  let hl = get_ok (Ochre.load [ ("javascript", Tm_grammars.javascript) ]) in
   let source = js_like_source 10_000 in
   check_under ~seconds:10.0 "10,000-line JS to_html" (fun () ->
-      ignore (Ochre.to_html hl ~theme ~lang:"javascript" source : string)
+      ignore
+        ( Ochre.to_html
+            (Ochre.highlight ~theme:dark_plus
+               ~lang:(get_ok (Ochre.lang hl "javascript"))
+               source
+            )
+          : string
+          )
   )
 
 let test_budget_long_line_without_limits () =
@@ -1434,8 +1548,7 @@ let test_budget_long_line_without_limits () =
   )
 
 let test_budget_minified_line () =
-  let hl = Ochre.load_exn [ ("javascript", Tm_grammars.javascript) ] in
-  let theme = Ochre.Theme.load_exn Tm_themes.dark_plus in
+  let hl = get_ok (Ochre.load [ ("javascript", Tm_grammars.javascript) ]) in
   let chunk = "var a=function(b,c){return b+c*2},d=\"s\",e=/x+/g;" in
   let minified bytes =
     let chunks =
@@ -1448,8 +1561,12 @@ let test_budget_minified_line () =
       check_under ~seconds:2.0 (Printf.sprintf "%d-byte minified JS line" bytes)
         (fun () ->
           ignore
-            ( Ochre.to_tokens hl ~theme ~lang:"javascript" (minified bytes)
-              : Ochre.Token.highlighted_code
+            ( (Ochre.highlight ~theme:dark_plus
+                 ~lang:(get_ok (Ochre.lang hl "javascript"))
+                 (minified bytes)
+              )
+                .lines
+              : Ochre.Token.line list
               )
       )
     )
@@ -1457,21 +1574,27 @@ let test_budget_minified_line () =
 
 let make_comment text =
   {
-    Ochre.Token.text;
-    foreground = Some "#888888";
-    background = None;
-    font_style = [ Ochre.Token.Italic ];
+    (with_style
+       (fun s ->
+         {
+           s with
+           Ochre.Style.foreground = color "#888888";
+           font_style = { Ochre.Style.plain with italic = true };
+         }
+       )
+       (make_tok text)
+    )
+    with
     scopes = [ "comment.line.test"; "source.test" ];
-    decoration = None;
   }
 
 let test_notation_highlight_basic () =
   let doc =
     [
       [
-        { (make_tok "let") with foreground = Some "#ff0000" };
+        with_fg "#ff0000" (make_tok "let");
         make_tok " x = ";
-        { (make_tok "42") with foreground = Some "#0000ff" };
+        with_fg "#0000ff" (make_tok "42");
         make_tok " ";
         make_comment "# [!code highlight]";
         make_tok "\n";
@@ -1484,24 +1607,21 @@ let test_notation_highlight_basic () =
   match result with
   | [ line0; line1 ] ->
       List.iter
-        (fun (tok : Ochre.Token.styled_token) ->
+        (fun (tok : Ochre.Token.t) ->
           if String.trim tok.text <> "" && tok.text <> "\n" then
             Alcotest.(check (option string))
               (Printf.sprintf "line0 token %S highlighted" tok.text)
-              (Some "#8888883a") tok.background
+              (Some "#8888883a") (bg tok)
         )
         line0;
-      let texts =
-        List.map (fun (t : Ochre.Token.styled_token) -> t.text) line0
-      in
+      let texts = List.map (fun (t : Ochre.Token.t) -> t.text) line0 in
       Alcotest.(check bool)
         "comment removed"
         (not (List.exists (fun t -> String.length t > 0 && t.[0] = '#') texts))
         true;
       List.iter
-        (fun (tok : Ochre.Token.styled_token) ->
-          Alcotest.(check (option string))
-            "line1 not highlighted" None tok.background
+        (fun (tok : Ochre.Token.t) ->
+          Alcotest.(check (option string)) "line1 not highlighted" None (bg tok)
         )
         line1
   | _ ->
@@ -1515,7 +1635,7 @@ let test_notation_highlight_no_match () =
   | [ [ tok; nl ] ] ->
       Alcotest.(check string) "text unchanged" "let x = 42" tok.text;
       Alcotest.(check string) "newline kept" "\n" nl.text;
-      Alcotest.(check (option string)) "no background" None tok.background
+      Alcotest.(check (option string)) "no background" None (bg tok)
   | _ ->
       Alcotest.fail "expected 1 line with 2 tokens"
 
@@ -1535,16 +1655,14 @@ let test_notation_diff_add () =
   match result with
   | [ line ] ->
       List.iter
-        (fun (tok : Ochre.Token.styled_token) ->
+        (fun (tok : Ochre.Token.t) ->
           if String.trim tok.text <> "" && tok.text <> "\n" then
             Alcotest.(check (option string))
               (Printf.sprintf "token %S has add bg" tok.text)
-              (Some "#22883322") tok.background
+              (Some "#22883322") (bg tok)
         )
         line;
-      let texts =
-        List.map (fun (t : Ochre.Token.styled_token) -> t.text) line
-      in
+      let texts = List.map (fun (t : Ochre.Token.t) -> t.text) line in
       Alcotest.(check bool)
         "notation removed"
         (not (List.exists (fun t -> String.length t > 0 && t.[0] = '#') texts))
@@ -1568,11 +1686,11 @@ let test_notation_diff_remove () =
   match result with
   | [ line ] ->
       List.iter
-        (fun (tok : Ochre.Token.styled_token) ->
+        (fun (tok : Ochre.Token.t) ->
           if String.trim tok.text <> "" && tok.text <> "\n" then
             Alcotest.(check (option string))
               (Printf.sprintf "token %S has remove bg" tok.text)
-              (Some "#88222222") tok.background
+              (Some "#88222222") (bg tok)
         )
         line
   | _ ->
@@ -1584,7 +1702,7 @@ let test_notation_diff_no_match () =
   let result = Ochre.Transform.run transforms doc in
   match result with
   | [ [ tok; _ ] ] ->
-      Alcotest.(check (option string)) "no background" None tok.background
+      Alcotest.(check (option string)) "no background" None (bg tok)
   | _ ->
       Alcotest.fail "expected 1 line"
 
@@ -1606,21 +1724,18 @@ let test_notation_word_highlight_basic () =
   match result with
   | [ line ] ->
       let x_tokens =
-        List.filter (fun (t : Ochre.Token.styled_token) -> t.text = "x") line
+        List.filter (fun (t : Ochre.Token.t) -> t.text = "x") line
       in
       Alcotest.(check bool) "found x token" true (List.length x_tokens > 0);
       List.iter
-        (fun (tok : Ochre.Token.styled_token) ->
-          Alcotest.(check (option string))
-            "x foreground" (Some "#ffff00") tok.foreground;
-          Alcotest.(check bool)
-            "x bold" true
-            (List.mem Ochre.Token.Bold tok.font_style)
+        (fun (tok : Ochre.Token.t) ->
+          Alcotest.(check string) "x foreground" "#ffff00" (fg tok);
+          Alcotest.(check bool) "x bold" true (List.mem "bold" (font_styles tok))
         )
         x_tokens;
       let has_comment =
         List.exists
-          (fun (t : Ochre.Token.styled_token) ->
+          (fun (t : Ochre.Token.t) ->
             String.length t.text > 0 && t.text.[0] = '#'
           )
           line
@@ -1636,15 +1751,17 @@ let test_notation_word_highlight_no_match () =
   match result with
   | [ [ tok; _ ] ] ->
       Alcotest.(check string) "unchanged" "let x = 42" tok.text;
-      Alcotest.(check (option string)) "no fg change" None tok.foreground
+      Alcotest.(check string) "no fg change" (hex dark_plus.fg) (fg tok)
   | _ ->
       Alcotest.fail "expected 1 line"
 
 let test_notation_highlight_with_highlighter () =
   let hl = highlight () in
   let theme =
-    Ochre.Theme.load_exn
-      {|{
+    fst
+      (get_ok
+         (Ochre.Theme.load
+            {|{
       "name": "test",
       "colors": { "editor.foreground": "#d4d4d4", "editor.background": "#1e1e1e" },
       "tokenColors": [
@@ -1653,29 +1770,33 @@ let test_notation_highlight_with_highlighter () =
         { "scope": "constant.numeric", "settings": { "foreground": "#0000ff" } }
       ]
     }|}
+         )
+      )
   in
   let source = "let x = 42 # [!code highlight]\nlet y = 10" in
   let transforms = [ Ochre.Transform_builtin.notation_highlight () ] in
-  let tokens = Ochre.to_tokens hl ~transforms ~theme ~lang:"test" source in
+  let tokens =
+    (Ochre.highlight ~transforms ~theme
+       ~lang:(get_ok (Ochre.lang hl "test"))
+       source
+    )
+      .lines
+  in
   match tokens with
   | [ line0; line1 ] ->
       let visible0 =
         List.filter
-          (fun (t : Ochre.Token.styled_token) ->
-            String.trim t.text <> "" && t.text <> "\n"
-          )
+          (fun (t : Ochre.Token.t) -> String.trim t.text <> "" && t.text <> "\n")
           line0
       in
       List.iter
-        (fun (tok : Ochre.Token.styled_token) ->
+        (fun (tok : Ochre.Token.t) ->
           Alcotest.(check (option string))
             (Printf.sprintf "%S bg" tok.text)
-            (Some "#8888883a") tok.background
+            (Some "#8888883a") (bg tok)
         )
         visible0;
-      let all_texts =
-        List.map (fun (t : Ochre.Token.styled_token) -> t.text) line0
-      in
+      let all_texts = List.map (fun (t : Ochre.Token.t) -> t.text) line0 in
       Alcotest.(check bool)
         "no comment in line0"
         (not
@@ -1689,40 +1810,41 @@ let test_notation_highlight_with_highlighter () =
         )
         true;
       List.iter
-        (fun (tok : Ochre.Token.styled_token) ->
+        (fun (tok : Ochre.Token.t) ->
           if String.trim tok.text <> "" && tok.text <> "\n" then
             Alcotest.(check (option string))
               (Printf.sprintf "%S no bg" tok.text)
-              None tok.background
+              None (bg tok)
         )
         line1
   | _ ->
       Alcotest.fail "expected 2 lines"
 
 let test_plaintext_langs () =
-  let hl = Ochre.load_exn [] in
+  let hl = get_ok (Ochre.load []) in
   let theme = dark_plus in
   List.iter
     (fun lang ->
-      match Ochre.to_tokens hl ~theme ~lang "hello\nworld" with
+      match
+        (Ochre.highlight ~theme
+           ~lang:(get_ok (Ochre.lang hl lang))
+           "hello\nworld"
+        )
+          .lines
+      with
       | [ [ first ]; [ second ] ] ->
           Alcotest.(check string)
             (lang ^ " first line") "hello\n" first.Ochre.Token.text;
           Alcotest.(check string)
             (lang ^ " second line") "world" second.Ochre.Token.text;
-          Alcotest.(check (option string))
-            (lang ^ " default fg") (Some theme.Ochre.Theme.fg)
-            first.Ochre.Token.foreground;
+          Alcotest.(check string)
+            (lang ^ " default fg") (hex theme.Ochre.Theme.fg) (fg first);
           Alcotest.(check (list string))
             (lang ^ " no scopes") [] first.Ochre.Token.scopes
       | _ ->
           Alcotest.fail (lang ^ ": expected two lines of one token")
     )
-    [ "plaintext"; "text"; "txt" ];
-  Alcotest.check_raises "unknown lang still raises"
-    (Failure "Grammar not found for language: nope") (fun () ->
-      ignore (Ochre.to_tokens hl ~theme ~lang:"nope" "x")
-  )
+    [ "plaintext"; "text"; "txt" ]
 
 let has_sub s sub =
   let sub_len = String.length sub in
@@ -1732,45 +1854,16 @@ let has_sub s sub =
   in
   max_start >= 0 && scan 0
 
-let assert_raises_failure name f =
-  match f () with
-  | _ ->
-      Alcotest.fail (name ^ ": expected a Failure exception, raised none")
-  | exception Failure msg ->
-      msg
-  | exception exn ->
-      Alcotest.fail
-        (Printf.sprintf "%s: expected Failure, got %s" name
-           (Printexc.to_string exn)
-        )
-
-let test_load_exn_wraps_malformed_json () =
-  ignore
-    (assert_raises_failure "Ochre.load_exn with malformed grammar JSON"
-       (fun () -> ignore (Ochre.load_exn [ ("bad", "{not valid json") ])
-     )
-    )
-
-let test_theme_load_exn_wraps_malformed_json () =
-  ignore
-    (assert_raises_failure "Ochre.Theme.load_exn with malformed theme JSON"
-       (fun () -> ignore (Ochre.Theme.load_exn "{not valid json")
-     )
-    )
-
-let test_load_exn_rejects_duplicate_ids () =
-  ignore
-    (assert_raises_failure "Ochre.load_exn with a duplicate language id"
-       (fun () ->
-         ignore (Ochre.load_exn [ ("dup", grammar_json); ("dup", grammar_json) ])
-     )
-    )
+let error_message name = function
+  | Ok _ ->
+      Alcotest.fail (name ^ ": expected an error")
+  | Error error ->
+      Ochre.Error.to_string error
 
 let test_malformed_json_message_is_readable () =
   let msg =
-    assert_raises_failure "Ochre.load_exn with malformed grammar JSON"
-      (fun () -> ignore (Ochre.load_exn [ ("bad", "{not valid json") ])
-    )
+    error_message "Ochre.load with malformed grammar JSON"
+      (Ochre.load [ ("bad", "{not valid json") ])
   in
   Alcotest.(check bool)
     "names the lang id, no OCaml exception constructor name" true
@@ -1779,9 +1872,8 @@ let test_malformed_json_message_is_readable () =
     && not (has_sub msg "Json_error")
     );
   let theme_msg =
-    assert_raises_failure "Ochre.Theme.load_exn with malformed theme JSON"
-      (fun () -> ignore (Ochre.Theme.load_exn "{not valid json")
-    )
+    error_message "Ochre.Theme.load with malformed theme JSON"
+      (Ochre.Theme.load "{not valid json")
   in
   Alcotest.(check bool)
     "no OCaml exception constructor name" true
@@ -1794,9 +1886,8 @@ let test_malformed_json_message_is_readable () =
   output_string oc "{not valid json";
   close_out oc;
   let file_msg =
-    assert_raises_failure "Ochre.Theme.load_from_file_exn with malformed JSON"
-      (fun () -> ignore (Ochre.Theme.load_from_file_exn path)
-    )
+    error_message "Ochre.Theme.load_from_file with malformed JSON"
+      (Ochre.Theme.load_from_file path)
   in
   Sys.remove path;
   Alcotest.(check bool)
@@ -1811,9 +1902,8 @@ let test_malformed_json_message_is_readable () =
   output_string oc "{not valid json";
   close_out oc;
   let grammar_file_msg =
-    assert_raises_failure "Ochre.load_from_files_exn with malformed JSON"
-      (fun () -> ignore (Ochre.load_from_files_exn [ grammar_path ])
-    )
+    error_message "Ochre.load_from_files with malformed JSON"
+      (Ochre.load_from_files [ grammar_path ])
   in
   Sys.remove grammar_path;
   Alcotest.(check bool)
@@ -1827,18 +1917,16 @@ let test_malformed_json_message_is_readable () =
 let test_missing_file_message_hides_sys_error () =
   let missing_theme = "does-not-exist-theme.json" in
   let theme_msg =
-    assert_raises_failure "Ochre.Theme.load_from_file_exn with a missing file"
-      (fun () -> ignore (Ochre.Theme.load_from_file_exn missing_theme)
-    )
+    error_message "Ochre.Theme.load_from_file with a missing file"
+      (Ochre.Theme.load_from_file missing_theme)
   in
   Alcotest.(check bool)
     "names the path, no Sys_error constructor name" true
     (has_sub theme_msg missing_theme && not (has_sub theme_msg "Sys_error"));
   let missing_grammar = "does-not-exist-grammar.tmLanguage.json" in
   let grammar_msg =
-    assert_raises_failure "Ochre.load_from_files_exn with a missing file"
-      (fun () -> ignore (Ochre.load_from_files_exn [ missing_grammar ])
-    )
+    error_message "Ochre.load_from_files with a missing file"
+      (Ochre.load_from_files [ missing_grammar ])
   in
   Alcotest.(check bool)
     "names the path, no Sys_error constructor name" true
@@ -1850,7 +1938,8 @@ let test_load_rejects_duplicate_ids () =
   match Ochre.load [ ("dup", grammar_json); ("dup", grammar_json) ] with
   | Error msg ->
       Alcotest.(check bool)
-        "error names the duplicate id" true (has_sub msg "dup")
+        "error names the duplicate id" true
+        (has_sub (Ochre.Error.to_string msg) "dup")
   | Ok _ ->
       Alcotest.fail "expected duplicate language id to be rejected"
 
@@ -1860,12 +1949,13 @@ let test_bundled_grammars_that_used_to_fail_to_load () =
     (fun (lang, json, sample) ->
       match Ochre.load [ (lang, json) ] with
       | Error msg ->
-          Alcotest.failf "%s: failed to load: %s" lang msg
+          Alcotest.failf "%s: failed to load: %s" lang
+            (Ochre.Error.to_string msg)
       | Ok hl ->
           let text =
-            Ochre.to_tokens hl ~theme ~lang sample
-            |> List.concat
-            |> List.map (fun (tok : Ochre.Token.styled_token) -> tok.text)
+            (Ochre.highlight ~theme ~lang:(get_ok (Ochre.lang hl lang)) sample)
+              .lines |> List.concat
+            |> List.map (fun (tok : Ochre.Token.t) -> tok.text)
             |> String.concat ""
           in
           Alcotest.(check string)
@@ -1890,13 +1980,15 @@ let test_to_string_html_options_extra_themes () =
   let extra_themes = [ ("dark", nord) ] in
   let theme = light_plus in
   let source = "let x = 42" in
-  let via_to_string =
-    Ochre.to_string hl ~format:Ochre.Html ~options ~extra_themes ~theme
-      ~lang:"test" source
+  let themed =
+    get_ok
+      (Ochre.highlight_themes ~extra_themes ~theme
+         ~lang:(get_ok (Ochre.lang hl "test"))
+         source
+      )
   in
-  let via_to_html =
-    Ochre.to_html hl ~options ~extra_themes ~theme ~lang:"test" source
-  in
+  let via_to_string = Ochre.to_string ~format:Ochre.Html ~options themed in
+  let via_to_html = Ochre.to_html ~options themed in
   let contains ~sub s =
     let sub_len = String.length sub in
     let max_start = String.length s - sub_len in
@@ -1922,8 +2014,6 @@ let () =
         [
           test_case "Load theme from string" `Quick test_theme_loading;
           test_case "Make raw theme" `Quick test_theme_make_raw;
-          test_case "Default theme when none is given" `Quick
-            test_default_theme_without_theme;
         ]
       );
       ( "source",
@@ -1953,12 +2043,6 @@ let () =
       );
       ( "errors",
         [
-          test_case "load_exn wraps malformed grammar JSON as Failure" `Quick
-            test_load_exn_wraps_malformed_json;
-          test_case "Theme.load_exn wraps malformed theme JSON as Failure"
-            `Quick test_theme_load_exn_wraps_malformed_json;
-          test_case "load_exn rejects a duplicate language id" `Quick
-            test_load_exn_rejects_duplicate_ids;
           test_case "load returns Error for a duplicate language id" `Quick
             test_load_rejects_duplicate_ids;
           test_case
@@ -2091,8 +2175,6 @@ let () =
             test_foreground_falls_back_to_theme;
           test_case "settings wins over tokenColors" `Quick
             test_settings_win_over_token_colors;
-          test_case "Multi-theme shape mismatch raises Invalid_argument" `Quick
-            test_multi_theme_transform_shape_mismatch;
         ]
       );
     ]

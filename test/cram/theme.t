@@ -54,15 +54,15 @@ Alternative fg/bg keys
 Load dark-plus from tm-themes
   $ ./test_theme.exe dark-plus
   name: dark-plus
-  fg: #D4D4D4
-  bg: #1E1E1E
+  fg: #d4d4d4
+  bg: #1e1e1e
   rules: 65
 
 Load light-plus from tm-themes
   $ ./test_theme.exe light-plus
   name: light-plus
   fg: #000000
-  bg: #FFFFFF
+  bg: #ffffff
   rules: 64
 
 Load tokyo-night from tm-themes

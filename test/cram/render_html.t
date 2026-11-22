@@ -32,10 +32,6 @@ Multi-theme HTML with explicit light+dark labels uses variables consistently
   $ ./test_render_html.exe themes-light-dark-vars
   <pre class="ochre ochre-themes test-light test-theme" style="background-color:var(--ochre-bg,#ffffff);color:var(--ochre,#24292e);--ochre-light-bg:#ffffff;--ochre-light:#24292e;--ochre-dark-bg:#1e1e1e;--ochre-dark:#d4d4d4" tabindex="0"><code><span class="line"><span style="font-weight:var(--ochre-font-weight,bold);color:var(--ochre,#d73a49);--ochre-light-font-weight:bold;--ochre-light:#d73a49;--ochre-dark-font-weight:bold;--ochre-dark:#ff0000">let</span><span style="color:var(--ochre,#24292e);--ochre-light:#24292e;--ochre-dark:#d4d4d4"> x = </span><span style="color:var(--ochre,#005cc5);--ochre-light:#005cc5;--ochre-dark:#0000ff">42</span></span></code></pre>
 
-When ~theme is omitted, first entry in ~extra_themes becomes the default
-  $ ./test_render_html.exe themes-no-default
-  <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span style="font-weight:var(--ochre-font-weight,bold);color:var(--ochre,#ff0000)">let</span><span style="color:var(--ochre,#d4d4d4)"> x = </span><span style="color:var(--ochre,#0000ff)">42</span></span></code></pre>
-
 Multi-theme HTML with two extra themes (dark + dim)
   $ ./test_render_html.exe themes-two-extras
   <pre class="ochre ochre-themes test-light test-theme test-dim" style="background-color:var(--ochre-bg,#ffffff);color:var(--ochre,#24292e);--ochre-dark-bg:#1e1e1e;--ochre-dark:#d4d4d4;--ochre-dim-bg:#111111;--ochre-dim:#999999" tabindex="0"><code><span class="line"><span style="font-weight:var(--ochre-font-weight,bold);color:var(--ochre,#d73a49);--ochre-dark-font-weight:bold;--ochre-dark:#ff0000;--ochre-dim-font-weight:bold;--ochre-dim:#aa5555">let</span><span style="color:var(--ochre,#24292e);--ochre-dark:#d4d4d4;--ochre-dim:#999999"> x = </span><span style="color:var(--ochre,#005cc5);--ochre-dark:#0000ff;--ochre-dim:#5555aa">42</span></span></code></pre>
