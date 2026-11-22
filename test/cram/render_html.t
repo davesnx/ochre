@@ -84,3 +84,28 @@ Custom pre class
 Custom code class
   $ ./test_render_html.exe code-class
   <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code class="language-test"><span class="line"><span style="font-weight:var(--ochre-font-weight,bold);color:var(--ochre,#ff0000)">let</span><span style="color:var(--ochre,#d4d4d4)"> x = </span><span style="color:var(--ochre,#0000ff)">42</span></span></code></pre>
+
+Without tokens, the theme stylesheet has a rule for every class that
+CSS-class rendering of real OCaml uses
+  $ ./test_render_html.exe theme-css-covers-ocaml
+  dark: every class has a rule
+  light: every class has a rule
+  tokyonight: every class has a rule
+  everforest: every class has a rule
+  ayu: every class has a rule
+  catppuccin: every class has a rule
+  catppuccin-macchiato: every class has a rule
+  gruvbox: every class has a rule
+  kanagawa: every class has a rule
+  nord: every class has a rule
+  matrix: every class has a rule
+  one-dark: every class has a rule
+
+Without tokens, a style that takes its colour from one rule and its font
+style from another gets a class
+  $ ./test_render_html.exe theme-css-combined-rule
+  <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span class="s-72d0165d983a2819"># c</span></span></code></pre>
+  .ochre { background-color:#1e1e1e; color:#d4d4d4 }
+  .s-b15f3da5ff0399f1 { color:var(--ochre,#112233) }
+  .s-72d0165d983a2819 { font-style:var(--ochre-font-style,italic);color:var(--ochre,#112233) }
+  .s-232033c531ff619a { color:var(--ochre,#d4d4d4) }

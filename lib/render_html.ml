@@ -546,23 +546,27 @@ let collect_classes registry =
     (List.rev registry.order);
   Buffer.contents buf
 
-let render_theme_css ?(css_variable_prefix = "--ochre-") ~class_prefix
-    (theme : Theme.theme) code =
+let render_theme_css ?(css_variable_prefix = "--ochre-") ~class_prefix ?code
+    (theme : Theme.theme) =
   let prefix =
     Escape.css_ident
       (Html_options.normalize_css_variable_prefix css_variable_prefix)
   in
   let reg = create_registry (Escape.css_ident class_prefix) in
-  List.iter
-    (fun line ->
-      List.iter
-        (fun (tok : styled_token) ->
-          let style = token_style_to_css ~emit_default:true ~prefix theme tok in
-          if style <> "" then ignore (class_for_style reg style)
-        )
-        line
-    )
-    code;
+  let register (tok : styled_token) =
+    let style = token_style_to_css ~emit_default:true ~prefix theme tok in
+    if style <> "" then ignore (class_for_style reg style)
+  in
+  ( match code with
+  | Some code ->
+      List.iter (List.iter register) code
+  | None ->
+      Scope.styles theme.token_colors
+      |> List.map (fun settings ->
+          Scope.styled_token theme ~text:"" ~scopes:[] (Some settings)
+      )
+      |> List.sort compare |> List.iter register
+  );
   let buf = Buffer.create 512 in
   let declarations =
     List.filter_map Fun.id

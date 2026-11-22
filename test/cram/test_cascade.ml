@@ -246,7 +246,9 @@ let check ~title ~options ~primary_label (primary : Ochre.Theme.theme) extras =
     match options.style_mode with
     | Css_classes { class_prefix } when default_mode ->
         tokens_with_class_styles html
-          (Ochre.html_render_theme_css ~class_prefix primary primary_tokens)
+          (Ochre.html_render_theme_css ~class_prefix ~code:primary_tokens
+             primary
+          )
     | _ ->
         tokens_of html
   in

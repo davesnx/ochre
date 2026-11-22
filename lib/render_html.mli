@@ -13,6 +13,6 @@ val theme_css : ?css_variable_prefix:string -> string -> string
 val render_theme_css :
   ?css_variable_prefix:string ->
   class_prefix:string ->
+  ?code:Token.highlighted_code ->
   Theme.theme ->
-  Token.highlighted_code ->
   string

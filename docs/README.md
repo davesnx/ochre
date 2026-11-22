@@ -236,16 +236,22 @@ Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
 val html_render_theme_css : 
   ?css_variable_prefix:string ->
   class_prefix:string ->
+  ?code:Token.highlighted_code ->
   Theme.theme ->
-  Token.highlighted_code ->
   string
 ```
-`html_render_theme_css ~class_prefix theme code` generates a complete CSS stylesheet for the given theme and highlighted code when using [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode. Walks all tokens to discover unique styles and maps each to a deterministic class name prefixed with `class_prefix`. Pass the `css_variable_prefix` of the [`Html_options.t`](./Ochre-Html_options.md#type-t) used to render the HTML as `~css_variable_prefix`; the class names depend on it.
+`html_render_theme_css ~class_prefix ?code theme` generates a CSS stylesheet for `theme` when using [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode: a rule for `.ochre` with the theme colours, and one class for each token style. A class name is `class_prefix` followed by a hash of the style. Pass the `css_variable_prefix` of the [`Html_options.t`](./Ochre-Html_options.md#type-t) used to render the HTML as `~css_variable_prefix`; the class names depend on it.
+
+With `~code`, the stylesheet has a class only for the styles of those tokens. Without it, the stylesheet has a class for each style that the theme can give a token, so one stylesheet serves all code highlighted with `theme`.
 
 ```ocaml
 let tokens = Ochre.to_tokens hl ~theme ~lang:"ocaml" code in
-let css = Ochre.html_render_theme_css ~class_prefix:"oc-" theme tokens in
-Printf.printf "<style>%s</style>" css
+let css =
+  Ochre.html_render_theme_css ~class_prefix:"oc-" ~code:tokens theme
+in
+Printf.printf "<style>%s</style>" css;
+let site_css = Ochre.html_render_theme_css ~class_prefix:"oc-" theme in
+print_string site_css
 ```
 
 ### to\_ansi

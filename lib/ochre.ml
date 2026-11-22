@@ -121,41 +121,7 @@ let apply_theme theme tokens_per_line =
     (fun line_tokens ->
       List.map
         (fun (text, scopes) ->
-          let settings = Scope.resolve resolver scopes in
-          let foreground =
-            match settings with
-            | Some { Theme.foreground = Some color; _ } ->
-                Some color
-            | _ ->
-                Some theme.fg
-          in
-          let background =
-            match settings with
-            | Some { Theme.background = Some color; _ }
-              when not
-                     (String.equal
-                        (String.lowercase_ascii color)
-                        (String.lowercase_ascii theme.bg)
-                     ) ->
-                Some color
-            | _ ->
-                None
-          in
-          let font_style =
-            match settings with
-            | Some s ->
-                Option.value s.Theme.font_style ~default:[]
-            | None ->
-                []
-          in
-          {
-            Token.text;
-            foreground;
-            background;
-            font_style;
-            scopes;
-            decoration = None;
-          }
+          Scope.styled_token theme ~text ~scopes (Scope.resolve resolver scopes)
         )
         line_tokens
     )

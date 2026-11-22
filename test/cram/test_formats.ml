@@ -206,7 +206,7 @@ let () =
       let tokens = Ochre.to_tokens hl ~theme ~lang:"test" source in
       let css =
         Ochre.html_render_theme_css ~css_variable_prefix:"--hl-"
-          ~class_prefix:"c-" theme tokens
+          ~class_prefix:"c-" ~code:tokens theme
       in
       let classes =
         let re = Str.regexp "class=\"\\(c-[0-9a-f]+\\)\"" in

@@ -208,7 +208,9 @@ let () =
         print_endline html;
         let tokens = Ochre.to_tokens hl ~theme ~lang:"test" "let x" in
         print_endline
-          (Ochre.html_render_theme_css ~class_prefix:{|a"><b>{}|} theme tokens)
+          (Ochre.html_render_theme_css ~class_prefix:{|a"><b>{}|} ~code:tokens
+             theme
+          )
     | "css-classes-prefix-start" ->
         List.iter
           (fun class_prefix ->
@@ -219,7 +221,9 @@ let () =
             in
             let html = Ochre.to_html hl ~options ~theme ~lang:"test" "let" in
             let tokens = Ochre.to_tokens hl ~theme ~lang:"test" "let" in
-            let css = Ochre.html_render_theme_css ~class_prefix theme tokens in
+            let css =
+              Ochre.html_render_theme_css ~class_prefix ~code:tokens theme
+            in
             Printf.printf "prefix %S\n" class_prefix;
             List.iter
               (fun line ->
@@ -259,7 +263,7 @@ let () =
         let evil = make_theme ~fg:"red;}" ~bg:{|"><b>|} () in
         let tokens = Ochre.to_tokens hl ~theme:evil ~lang:"test" "let x" in
         print_endline
-          (Ochre.html_render_theme_css ~class_prefix:"c-" evil tokens)
+          (Ochre.html_render_theme_css ~class_prefix:"c-" ~code:tokens evil)
     | "svg-colors" ->
         let evil =
           make_theme ~name:"evil" ~bg:{|"><b>|} ~keyword:{|"/><script>|}
@@ -308,7 +312,9 @@ let () =
         let source = {|let "s"|} in
         let html = Ochre.to_html hl ~options ~theme:t ~lang:"test" source in
         let tokens = Ochre.to_tokens hl ~theme:t ~lang:"test" source in
-        let css = Ochre.html_render_theme_css ~class_prefix:"c-" t tokens in
+        let css =
+          Ochre.html_render_theme_css ~class_prefix:"c-" ~code:tokens t
+        in
         let used = class_names ~prefix:"c-" html in
         let defined =
           List.filter_map

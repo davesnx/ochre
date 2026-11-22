@@ -158,6 +158,96 @@ let () =
   | "code-class" ->
       let options = Ochre.Html_options.make ~code_class:"language-test" () in
       print_endline (Ochre.to_html hl ~options ~theme ~lang:"test" "let x = 42")
+  | "theme-css-covers-ocaml" ->
+      let hl =
+        Ochre.load_exn [ ("ocaml", Option.get (Tm_grammars.find "ocaml")) ]
+      in
+      let source =
+        {|(* A module with a (* nested *) comment *)
+module Shape : sig
+  type t = Circle of float | Rect of { w : float; h : float }
+  val area : t -> float
+end = struct
+  type t = Circle of float | Rect of { w : float; h : float }
+
+  (** [area s] is the area of [s]. *)
+  let area = function
+    | Circle r -> Float.pi *. r *. r
+    | Rect { w; h } -> w *. h
+end
+
+let () =
+  let shapes = [ Shape.Circle 1.0; Rect { w = 2.; h = 3. } ] in
+  List.iter (fun s -> Printf.printf "%s: %.2f\n%!" "area" (Shape.area s)) shapes;
+  assert ('a' <> '\n' && 0x1F land 3 >= 1 || not true)
+|}
+      in
+      let options =
+        Ochre.Html_options.make
+          ~style_mode:(Ochre.Html_options.Css_classes { class_prefix = "oc-" })
+          ()
+      in
+      let class_re = Str.regexp "oc-[0-9a-f]+" in
+      let rec classes html start acc =
+        match Str.search_forward class_re html start with
+        | exception Not_found ->
+            List.sort_uniq String.compare acc
+        | _ ->
+            classes html (Str.match_end ()) (Str.matched_string html :: acc)
+      in
+      List.iter
+        (fun (name, theme) ->
+          let html = Ochre.to_html hl ~options ~theme ~lang:"ocaml" source in
+          let css = Ochre.html_render_theme_css ~class_prefix:"oc-" theme in
+          let used = classes html 0 [] in
+          let missing =
+            List.filter
+              (fun cls ->
+                match
+                  Str.search_forward
+                    (Str.regexp_string ("." ^ cls ^ " {"))
+                    css 0
+                with
+                | exception Not_found ->
+                    true
+                | _ ->
+                    false
+              )
+              used
+          in
+          Printf.printf "%s: %s\n" name
+            ( if used = [] then
+                "no classes"
+              else if missing = [] then
+                "every class has a rule"
+              else
+                "missing " ^ String.concat " " missing
+            )
+        )
+        Ochre.Theme.themes
+  | "theme-css-combined-rule" ->
+      let combined =
+        Ochre.Theme.make ~name:"combined"
+          ~colors:
+            [
+              ("editor.foreground", "#d4d4d4"); ("editor.background", "#1e1e1e");
+            ]
+          ~token_colors:
+            [
+              Ochre.Theme.rule ~scope:[ "comment" ] ~foreground:"#112233" ();
+              Ochre.Theme.rule ~scope:[ "comment.line" ] ~font_style:[ Italic ]
+                ();
+            ]
+          ()
+      in
+      let options =
+        Ochre.Html_options.make
+          ~style_mode:(Ochre.Html_options.Css_classes { class_prefix = "s-" })
+          ()
+      in
+      print_endline
+        (Ochre.to_html hl ~options ~theme:combined ~lang:"test" "# c");
+      print_string (Ochre.html_render_theme_css ~class_prefix:"s-" combined)
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1

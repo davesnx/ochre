@@ -493,3 +493,83 @@ let match_selector scopes selector =
           search node.up
   in
   search path_of_stack
+
+let styles rules =
+  let compiled = compiled_for rules in
+  let rec collect element acc =
+    Hashtbl.fold
+      (fun _ child acc -> collect child acc)
+      element.children
+      ((element.main :: element.with_parents) @ acc)
+  in
+  let overrides =
+    List.sort_uniq compare
+      (List.map
+         (fun rule -> (rule.font_style, rule.foreground, rule.background))
+         (collect compiled.trie [])
+      )
+  in
+  let pick value inherited =
+    if value <> None then
+      value
+    else
+      inherited
+  in
+  let seen = Hashtbl.create 64 in
+  let rec close = function
+    | [] ->
+        ()
+    | (settings : Theme.token_color_settings) :: rest ->
+        let fresh =
+          List.filter_map
+            (fun (font_style, foreground, background) ->
+              let next =
+                {
+                  Theme.font_style = pick font_style settings.font_style;
+                  foreground = pick foreground settings.foreground;
+                  background = pick background settings.background;
+                }
+              in
+              if Hashtbl.mem seen next then
+                None
+              else (
+                Hashtbl.add seen next ();
+                Some next
+              )
+            )
+            overrides
+        in
+        close (fresh @ rest)
+  in
+  Hashtbl.add seen compiled.defaults ();
+  close [ compiled.defaults ];
+  Hashtbl.fold (fun settings () acc -> settings :: acc) seen []
+
+let styled_token (theme : Theme.theme) ~text ~scopes settings =
+  let foreground =
+    match settings with
+    | Some { Theme.foreground = Some color; _ } ->
+        Some color
+    | _ ->
+        Some theme.fg
+  in
+  let background =
+    match settings with
+    | Some { Theme.background = Some color; _ }
+      when not
+             (String.equal
+                (String.lowercase_ascii color)
+                (String.lowercase_ascii theme.bg)
+             ) ->
+        Some color
+    | _ ->
+        None
+  in
+  let font_style =
+    match settings with
+    | Some s ->
+        Option.value s.Theme.font_style ~default:[]
+    | None ->
+        []
+  in
+  { Token.text; foreground; background; font_style; scopes; decoration = None }
