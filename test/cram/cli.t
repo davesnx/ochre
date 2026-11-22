@@ -39,8 +39,8 @@ ANSI output
 LaTeX output
 
   $ printf 'let x = 1\n' | ochre ocaml --theme nord --format latex
-  \begin{ochrehighlight}{2e3440}{d8dee9}
-  \textcolor[HTML]{81a1c1}{let}\textcolor[HTML]{d8dee9}{\ }\textcolor[HTML]{88c0d0}{x}\textcolor[HTML]{d8dee9}{\ }\textcolor[HTML]{81a1c1}{=}\textcolor[HTML]{d8dee9}{\ }\textcolor[HTML]{b48ead}{1}\textcolor[HTML]{d8dee9}{}
+  \begin{ochrehighlight}{2E3440}{D8DEE9}
+  \textcolor[HTML]{81A1C1}{let}\textcolor[HTML]{D8DEE9}{\ }\textcolor[HTML]{88C0D0}{x}\textcolor[HTML]{D8DEE9}{\ }\textcolor[HTML]{81A1C1}{=}\textcolor[HTML]{D8DEE9}{\ }\textcolor[HTML]{B48EAD}{1}\textcolor[HTML]{D8DEE9}{}
   \end{ochrehighlight}
 
 SVG output (header only)

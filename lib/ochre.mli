@@ -78,7 +78,8 @@ module Color : sig
 
   val to_hex : t -> string
   (** [to_hex c] is [#rrggbb] in lowercase, or [#rrggbbaa] when [c] is not
-      opaque. Every renderer writes colors in this form. *)
+      opaque. HTML and SVG write colors in this form; LaTeX writes uppercase
+      [RRGGBB] for the xcolor [HTML] model. *)
 
   val equal : t -> t -> bool
 end

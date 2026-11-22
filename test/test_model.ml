@@ -50,6 +50,59 @@ let check_error label expected = function
         (label ^ ": " ^ Ochre.Error.to_string error)
         true (expected error)
 
+let test_invalid_regexes () =
+  let grammar body =
+    Printf.sprintf {|{ "scopeName": "source.r", "patterns": [ %s ] }|} body
+  in
+  List.iter
+    (fun (label, body) ->
+      check_error label
+        (function
+          | Ochre.Error.Grammar_error { lang = "r"; path = None; _ } ->
+              true
+          | _ ->
+              false
+          )
+        (Ochre.load [ ("r", grammar body) ])
+    )
+    [
+      ("malformed match", {|{ "match": "(unclosed", "name": "x" }|});
+      ("malformed begin", {|{ "begin": "[", "end": "x", "name": "x" }|});
+      ("malformed static end", {|{ "begin": "a", "end": "(", "name": "x" }|});
+    ];
+  let hl =
+    get_ok
+      (Ochre.load
+         [
+           ( "r",
+             grammar
+               {|{ "begin": "<(\\w+)>", "end": "</\\1(>", "name": "meta.tag" }|}
+           );
+         ]
+      )
+  in
+  let lang = get_ok (Ochre.lang hl "r") in
+  let source = "<a>x</a>\ny\n" in
+  let lines = (Ochre.highlight ~theme:Ochre.Theme.dark ~lang source).lines in
+  Alcotest.(check string)
+    "tokens keep the source" source
+    (String.concat ""
+       (List.map (fun (tok : Ochre.Token.t) -> tok.text) (List.concat lines))
+    );
+  Alcotest.(check bool)
+    "an end that is not a valid regex leaves the rule open" true
+    (List.for_all
+       (fun (tok : Ochre.Token.t) -> List.mem "meta.tag" tok.scopes)
+       (List.nth lines 1)
+    );
+  ignore
+    (get_ok
+       (Ochre.highlight_themes ~theme:Ochre.Theme.dark
+          ~extra_themes:[ ("n", Ochre.Theme.nord) ]
+          ~lang source
+       )
+    )
+
 let write path contents =
   Out_channel.with_open_bin path (fun oc -> output_string oc contents)
 
@@ -235,6 +288,41 @@ let test_theme_without_invalid_colors_has_no_warnings () =
       )
   in
   Alcotest.(check int) "no warnings" 0 (List.length warnings)
+
+let test_legacy_colors_fall_through () =
+  let theme, warnings =
+    get_ok
+      (Ochre.Theme.load
+         {|{ "fg": "nope", "foreground": "#123456", "bg": "#zz", "background": "#654321" }|}
+      )
+  in
+  Alcotest.check color_testable "foreground" (color "#123456") theme.fg;
+  Alcotest.check color_testable "background" (color "#654321") theme.bg;
+  Alcotest.(check (list string))
+    "the invalid keys are reported"
+    [
+      {|fg: invalid color "nope" dropped|}; {|bg: invalid color "#zz" dropped|};
+    ]
+    (List.map Ochre.Theme.warning_to_string warnings)
+
+let test_unused_workbench_colors () =
+  let theme, warnings =
+    get_ok
+      (Ochre.Theme.load
+         {|{ "colors": {
+               "editor.foreground": "nope",
+               "list.hoverBackground": "transparent",
+               "statusBar.background": "#ABC" } }|}
+      )
+  in
+  Alcotest.(check (list string))
+    "only colors that ochre uses are reported"
+    [ {|colors.editor.foreground: invalid color "nope" dropped|} ]
+    (List.map Ochre.Theme.warning_to_string warnings);
+  Alcotest.(check (list (pair string color_testable)))
+    "valid colors are kept, invalid ones are dropped"
+    [ ("statusBar.background", color "#aabbcc") ]
+    theme.colors
 
 let font_style_testable =
   Alcotest.testable
@@ -596,6 +684,18 @@ let test_select () =
       Alcotest.check error_testable "unknown label"
         (Ochre.Error.Unknown_theme_label "nope") error
 
+let test_latex_uppercase_hex () =
+  let theme = theme_with ~name:"a" ~fg:"#abcdef" ~bg:"#fedcba" in
+  let latex =
+    Ochre.to_latex (Ochre.highlight ~theme ~lang:(test_lang ()) "let")
+  in
+  Alcotest.(check string)
+    "xcolor HTML colors in uppercase"
+    "\\begin{ochrehighlight}{FEDCBA}{ABCDEF}\n\
+     \\textcolor[HTML]{ABCDEF}{let}\n\
+     \\end{ochrehighlight}"
+    latex
+
 let test_foreign_token () =
   let lang = test_lang () in
   let foreign =
@@ -667,6 +767,8 @@ let () =
           Alcotest.test_case "Known and plaintext languages resolve" `Quick
             test_known_languages;
           Alcotest.test_case "Grammar load errors" `Quick test_grammar_errors;
+          Alcotest.test_case "Invalid regexes fail at load, never at highlight"
+            `Quick test_invalid_regexes;
           Alcotest.test_case "Theme load errors" `Quick test_theme_errors;
         ]
       );
@@ -684,6 +786,10 @@ let () =
           Alcotest.test_case "Valid themes have no warnings" `Quick
             test_theme_without_invalid_colors_has_no_warnings;
           Alcotest.test_case "Rule font styles" `Quick test_rule_font_style;
+          Alcotest.test_case "Legacy colors use the first valid key" `Quick
+            test_legacy_colors_fall_through;
+          Alcotest.test_case "Unused workbench colors are not reported" `Quick
+            test_unused_workbench_colors;
           Alcotest.test_case "Built-in themes load without errors or warnings"
             `Quick test_builtin_themes_load;
         ]
@@ -716,6 +822,8 @@ let () =
             test_select;
           Alcotest.test_case "A token from another value is an error" `Quick
             test_foreign_token;
+          Alcotest.test_case "LaTeX writes uppercase hex" `Quick
+            test_latex_uppercase_hex;
         ]
       );
     ]

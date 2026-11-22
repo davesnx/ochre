@@ -191,10 +191,13 @@ let parse_colors parser = function
   | `Assoc fields ->
       List.filter_map
         (function
-          | key, `String value ->
+          | (("editor.foreground" | "editor.background") as key), `String value
+            ->
               Option.map
                 (fun color -> (key, color))
                 (parse_color parser ~location:("colors." ^ key) value)
+          | key, `String value ->
+              Option.map (fun color -> (key, color)) (Color.of_hex value)
           | _ ->
               None
           )
@@ -307,9 +310,15 @@ let parse_theme_fields ?path ?base_dir json =
         []
   in
   let legacy keys =
-    Option.bind (string_field keys) (fun (location, value) ->
-        parse_color parser ~location value
-    )
+    List.find_map
+      (fun key ->
+        match json_field key json with
+        | Some (`String value) ->
+            parse_color parser ~location:key value
+        | _ ->
+            None
+      )
+      keys
   in
   let fg_legacy = legacy [ "fg"; "foreground" ] in
   let bg_legacy = legacy [ "bg"; "background" ] in

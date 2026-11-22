@@ -30,16 +30,16 @@ Diff markers are rectangles in SVG
 
 Line highlight is a colorbox in LaTeX
   $ ./test_formats.exe latex-alpha
-  \begin{ochrehighlight}{1e1e1e}{d4d4d4}
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{363636}{\textcolor[HTML]{ff0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{363636}{\textcolor[HTML]{d4d4d4}{\ x}}}\\
-  \textcolor[HTML]{ff0000}{\textbf{let}}\textcolor[HTML]{d4d4d4}{\ y}
+  \begin{ochrehighlight}{1E1E1E}{D4D4D4}
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{363636}{\textcolor[HTML]{FF0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{363636}{\textcolor[HTML]{D4D4D4}{\ x}}}\\
+  \textcolor[HTML]{FF0000}{\textbf{let}}\textcolor[HTML]{D4D4D4}{\ y}
   \end{ochrehighlight}
 
 Diff markers are colorboxes in LaTeX
   $ ./test_formats.exe latex-diff
-  \begin{ochrehighlight}{1e1e1e}{d4d4d4}
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{1f2c21}{\textcolor[HTML]{ff0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{1f2c21}{\textcolor[HTML]{d4d4d4}{\ x}}}\\
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{2c1f1f}{\textcolor[HTML]{ff0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{2c1f1f}{\textcolor[HTML]{d4d4d4}{\ y}}}
+  \begin{ochrehighlight}{1E1E1E}{D4D4D4}
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{1F2C21}{\textcolor[HTML]{FF0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{1F2C21}{\textcolor[HTML]{D4D4D4}{\ x}}}\\
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{2C1F1F}{\textcolor[HTML]{FF0000}{\textbf{let}}}}{\setlength{\fboxsep}{0pt}\colorbox[HTML]{2C1F1F}{\textcolor[HTML]{D4D4D4}{\ y}}}
   \end{ochrehighlight}
 
 ANSI keeps a carriage return before a line feed, even across two tokens
@@ -60,7 +60,7 @@ HTML writes a lone carriage return as a character reference
 
 LaTeX expands tabs, drops carriage returns and shows control characters in caret notation
   $ ./test_formats.exe latex-controls
-  \begin{ochrehighlight}{1e1e1e}{d4d4d4}\n\textcolor[HTML]{d4d4d4}{a\ \ \ \ \ \ \ b}\\\n\textcolor[HTML]{d4d4d4}{\ \ \ \ \ \ \ \ c\textasciicircum{}A\textasciicircum{}[d\textasciicircum{}?}\n\end{ochrehighlight}
+  \begin{ochrehighlight}{1E1E1E}{D4D4D4}\n\textcolor[HTML]{D4D4D4}{a\ \ \ \ \ \ \ b}\\\n\textcolor[HTML]{D4D4D4}{\ \ \ \ \ \ \ \ c\textasciicircum{}A\textasciicircum{}[d\textasciicircum{}?}\n\end{ochrehighlight}
 
 SVG expands tabs
   $ ./test_formats.exe svg-tabs
@@ -89,17 +89,17 @@ ANSI and LaTeX read every hex form, alpha included
   #ff000080 on #0000ff80: \e[48;2;15;15;143m\e[38;2;135;7;71mx\e[0m
   #ff000000 on #0000ff00: \e[38;2;30;30;30mx\e[0m
   $ ./test_formats.exe colors-latex
-  #f00 on #00f: \begin{ochrehighlight}{1e1e1e}{d4d4d4}
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0000ff}{\textcolor[HTML]{ff0000}{x}}}
+  #f00 on #00f: \begin{ochrehighlight}{1E1E1E}{D4D4D4}
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0000FF}{\textcolor[HTML]{FF0000}{x}}}
   \end{ochrehighlight}
-  #f008 on #00f8: \begin{ochrehighlight}{1e1e1e}{d4d4d4}
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0e0e96}{\textcolor[HTML]{8f0746}{x}}}
+  #f008 on #00f8: \begin{ochrehighlight}{1E1E1E}{D4D4D4}
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0E0E96}{\textcolor[HTML]{8F0746}{x}}}
   \end{ochrehighlight}
-  #ff0000 on #0000ff: \begin{ochrehighlight}{1e1e1e}{d4d4d4}
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0000ff}{\textcolor[HTML]{ff0000}{x}}}
+  #ff0000 on #0000ff: \begin{ochrehighlight}{1E1E1E}{D4D4D4}
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0000FF}{\textcolor[HTML]{FF0000}{x}}}
   \end{ochrehighlight}
-  #ff000080 on #0000ff80: \begin{ochrehighlight}{1e1e1e}{d4d4d4}
-  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0f0f8f}{\textcolor[HTML]{870747}{x}}}
+  #ff000080 on #0000ff80: \begin{ochrehighlight}{1E1E1E}{D4D4D4}
+  {\setlength{\fboxsep}{0pt}\colorbox[HTML]{0F0F8F}{\textcolor[HTML]{870747}{x}}}
   \end{ochrehighlight}
 
 The theme stylesheet uses the configured variable prefix

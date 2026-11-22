@@ -34,7 +34,7 @@ val of_hex : string -> t option
 ```ocaml
 val to_hex : t -> string
 ```
-`to_hex c` is `#rrggbb` in lowercase, or `#rrggbbaa` when `c` is not opaque. Every renderer writes colors in this form.
+`to_hex c` is `#rrggbb` in lowercase, or `#rrggbbaa` when `c` is not opaque. HTML and SVG write colors in this form; LaTeX writes uppercase `RRGGBB` for the xcolor `HTML` model.
 
 ```ocaml
 val equal : t -> t -> bool

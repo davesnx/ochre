@@ -37,7 +37,7 @@ let escape_latex str =
   Buffer.contents buf
 
 let hex (color : Color.t) =
-  Printf.sprintf "%02x%02x%02x" color.r color.g color.b
+  Printf.sprintf "%02X%02X%02X" color.r color.g color.b
 
 let wrap_font_styles (style : Style.font_style) inner =
   List.fold_left
