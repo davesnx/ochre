@@ -6,7 +6,7 @@ description:
   "Parses OCaml source with ppxlib and returns spans for modules, constructors, polymorphic variants, record fields, labels and types, each with a TextMate scope."
 maintainer: ["David Sancho"]
 authors: ["David Sancho"]
-license: "MIT"
+license: "MIT AND BSD-2-Clause"
 homepage: "https://github.com/davesnx/ochre"
 doc: "https://davesnx.github.io/ochre/odoc/"
 bug-reports: "https://github.com/davesnx/ochre/issues"
