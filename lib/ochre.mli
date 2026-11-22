@@ -950,7 +950,11 @@ module Html_options : sig
             for the token colour, one for its background when it has one, and
             one for its [font-weight], [font-style] and [text-decoration] when
             it has any. Each class sets different properties, so their order
-            does not matter. *)
+            does not matter. For two themes labelled [light] and [dark], only
+            the colour and background get a class, with [light-dark()] values;
+            [font-weight], [font-style] and [text-decoration] stay inline as CSS
+            variable reads, for example
+            [style="font-weight:var(--ochre-font-weight,bold)"]. *)
 
   (** {2 default_color} *)
 

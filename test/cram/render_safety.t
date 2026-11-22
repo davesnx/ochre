@@ -66,10 +66,11 @@ A decoration style stays in effect in CSS class mode
   $ ./test_render_safety.exe css-classes-decoration-style
   <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span class="c-0f188c0cf325ded1">let</span><span class="c-232033c531ff619a"> </span><span style="border-bottom:2px solid red" class="focus c-232033c531ff619a">x</span></span></code></pre>
 
-Different styles never share a CSS class
+Every CSS class used in the HTML is defined, and no class has two sets of declarations
   $ ./test_render_safety.exe css-classes-collision
   distinct classes in html: 5
   every class defined in the stylesheet: true
+  each class has one set of declarations: true
 
 HTML escaping replaces invalid UTF-8 and NUL by U+FFFD
   $ ./test_render_safety.exe escape-html-invalid-utf8
