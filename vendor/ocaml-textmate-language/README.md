@@ -10,4 +10,4 @@ A fork of https://github.com/alan-j-hu/ocaml-textmate-language to fit ochre's ne
 - Named capture keys (non-numeric) are ignored, matching vscode-textmate behavior
 - Captures with `patterns` are recursively tokenized using the full engine
 - Nested captures inherit scope from the enclosing capture on the stack
-- A vscode-textmate compatibility test suite under `test/vscode/`
+- A vscode-textmate compatibility test suite, now in ochre's `test/conformance/`

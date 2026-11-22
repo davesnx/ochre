@@ -13,8 +13,3 @@
  (deps
   (glob_files data/*))
  (libraries alcotest ezjsonm plist-xml ochre.textmate_language yojson unix))
-
-(executable
- (name test_vscode_compat)
- (modules test_vscode_compat)
- (libraries alcotest plist-xml ochre.textmate_language yojson unix))

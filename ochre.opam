@@ -25,7 +25,7 @@ depends: [
   "omd" {>= "2.0.0~alpha4" & with-dev-setup}
   "yocaml" {>= "3.0.0" & with-dev-setup}
   "yocaml_unix" {>= "3.0.0" & with-dev-setup}
-  "tm-grammars" {>= "2.0.0" & with-test}
+  "tm-grammars" {= "2.0.0" & with-test}
   "alcotest" {with-test}
   "mlx" {with-test}
   "ocamlmerlin-mlx" {with-dev-setup}

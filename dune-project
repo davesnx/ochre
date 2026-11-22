@@ -61,7 +61,7 @@
     :with-dev-setup))
   (tm-grammars
    (and
-    (>= 2.0.0)
+    (= 2.0.0)
     :with-test))
   (alcotest :with-test)
   (mlx :with-test)

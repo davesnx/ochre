@@ -1,0 +1,14 @@
+(dirs :standard \ node_modules)
+
+(test
+ (name test_conformance)
+ (modules test_conformance)
+ (libraries ochre tm-grammars yojson alcotest unix)
+ (deps
+  (glob_files samples/*.sample)
+  (glob_files golden/*.json)))
+
+(executable
+ (name test_vscode_compat)
+ (modules test_vscode_compat)
+ (libraries alcotest plist-xml ochre.textmate_language yojson unix))
