@@ -82,24 +82,74 @@ let theme_var ~prefix ~label prop =
   | Named name ->
       prefix ^ label ^ "-" ^ name
 
-let token_style_to_css ~emit_default ~prefix style =
-  if not emit_default then
-    ""
-  else
-    String.concat ";"
-      (List.filter_map
-         (fun prop ->
-           Option.map
-             (fun value ->
-               prop.css ^ ":var(" ^ read_var ~prefix prop ^ "," ^ value ^ ")"
-             )
-             (prop.value style)
-         )
-         props
-      )
+type colors = Variables | Light_dark of { light : int; dark : int }
 
-let token_theme_declarations ~prefix ~emit_default ~label (theme, style) extras
-    =
+let colors (themed : Themed.t) =
+  match themed.themes with
+  | ("light", _), [ ("dark", _) ] ->
+      Light_dark { light = 0; dark = 1 }
+  | ("dark", _), [ ("light", _) ] ->
+      Light_dark { light = 1; dark = 0 }
+  | _ ->
+      Variables
+
+let variable_props = function
+  | Variables ->
+      props
+  | Light_dark _ ->
+      List.filter (fun prop -> not (is_colour_prop prop)) props
+
+let light_dark light dark = "light-dark(" ^ light ^ "," ^ dark ^ ")"
+
+let light_dark_declarations ~(light : Style.t) ~(dark : Style.t) =
+  let background (style : Style.t) =
+    Option.fold ~none:"transparent" ~some:Color.to_hex style.background
+  in
+  ( if light.background = None && dark.background = None then
+      []
+    else
+      [ "background-color:" ^ light_dark (background light) (background dark) ]
+  )
+  @ [
+      "color:"
+      ^ light_dark (Color.to_hex light.foreground) (Color.to_hex dark.foreground);
+    ]
+
+let variable_reads ~colors ~prefix token =
+  List.filter_map
+    (fun prop ->
+      Option.map
+        (fun value ->
+          prop.css ^ ":var(" ^ read_var ~prefix prop ^ "," ^ value ^ ")"
+        )
+        (prop.value (Token.style token))
+    )
+    (variable_props colors)
+
+let class_style ~colors ~prefix token =
+  String.concat ";"
+    ( match colors with
+    | Variables ->
+        variable_reads ~colors ~prefix token
+    | Light_dark { light; dark } ->
+        light_dark_declarations
+          ~light:(Token.style_at light token)
+          ~dark:(Token.style_at dark token)
+    )
+
+let token_styles ~colors ~emit_default ~prefix token =
+  match colors with
+  | Variables when not emit_default ->
+      ("", [])
+  | Variables ->
+      (class_style ~colors ~prefix token, [])
+  | Light_dark _ when not emit_default ->
+      (class_style ~colors ~prefix token, [])
+  | Light_dark _ ->
+      (class_style ~colors ~prefix token, variable_reads ~colors ~prefix token)
+
+let token_theme_declarations ~props ~prefix ~emit_default ~label (theme, style)
+    extras =
   let themed = (label, theme, style) :: extras in
   let needed =
     List.filter
@@ -211,39 +261,31 @@ let class_for_style registry style =
 
 let join_styles parts = String.concat ";" (List.filter (( <> ) "") parts)
 
-let render_span_attrs ~options ~registry ~style ~extra_style decoration scopes =
+let render_span_attrs ~options ~registry ~style ~extra_style
+    (decoration : Token.decoration_properties option) scopes =
   let open Html_options in
   let attrs = [] in
   let attrs =
     if options.scopes_as_data_attrs && scopes <> [] then
-      Printf.sprintf "data-scope=\"%s\"" (escape_text (String.concat " " scopes))
-      :: attrs
+      ("data-scope", String.concat " " scopes) :: attrs
     else
       attrs
   in
-  let escaped = Option.map Render_decoration.escape decoration in
-  let escaped_class =
-    Option.bind escaped (fun (e : Render_decoration.escaped) -> e.class_)
+  let decoration_class =
+    Option.bind decoration (fun (d : Token.decoration_properties) -> d.class_)
   in
   let attrs, decoration_style =
-    match escaped with
+    match decoration with
     | None ->
         (attrs, "")
-    | Some (esc : Render_decoration.escaped) ->
-        let a = attrs in
+    | Some d ->
         let a =
-          match esc.class_ with
-          | Some c ->
-              Printf.sprintf "class=\"%s\"" c :: a
-          | None ->
-              a
+          match d.class_ with Some c -> ("class", c) :: attrs | None -> attrs
         in
         let a =
-          List.fold_left
-            (fun acc (k, v) -> Printf.sprintf "data-%s=\"%s\"" k v :: acc)
-            a esc.data
+          List.fold_left (fun acc (k, v) -> ("data-" ^ k, v) :: acc) a d.data
         in
-        (a, Option.value esc.style ~default:"")
+        (a, Option.value d.style ~default:"")
   in
   let class_style, inline_style =
     match (options.style_mode, registry) with
@@ -259,31 +301,68 @@ let render_span_attrs ~options ~registry ~style ~extra_style decoration scopes =
     | None ->
         attrs
     | Some cls ->
-        let existing, others =
-          List.partition (fun a -> String.starts_with ~prefix:"class=" a) attrs
-        in
+        let others = List.filter (fun (name, _) -> name <> "class") attrs in
         let merged =
-          match (escaped_class, existing) with
-          | Some c, _ :: _ ->
-              Printf.sprintf "class=\"%s %s\"" c cls
-          | _ ->
-              Printf.sprintf "class=\"%s\"" cls
+          match decoration_class with Some c -> c ^ " " ^ cls | None -> cls
         in
-        merged :: others
+        ("class", merged) :: others
   in
-  let parts =
-    if inline_style <> "" then
-      Printf.sprintf "style=\"%s\"" inline_style :: attrs
-    else
-      attrs
-  in
-  if parts = [] then
-    None
+  if inline_style <> "" then
+    ("style", inline_style) :: attrs
   else
-    Some (String.concat " " parts)
+    attrs
 
-let render_token ~options ~registry ~label ~theme ~extra_themes ~emit_default
-    (token : Token.t) =
+let is_name_start = function
+  | 'A' .. 'Z' | 'a' .. 'z' | '_' | ':' ->
+      true
+  | _ ->
+      false
+
+let is_name_char = function
+  | '0' .. '9' | '.' | '-' ->
+      true
+  | c ->
+      is_name_start c
+
+let attribute_name name =
+  if name = "" then
+    "_"
+  else
+    String.mapi
+      (fun i c ->
+        if (i = 0 && is_name_start c) || (i > 0 && is_name_char c) then
+          c
+        else
+          '_'
+      )
+      name
+
+let node tag attrs children =
+  JSX.node tag
+    (List.map
+       (function
+         | name, `String value ->
+             ( attribute_name name,
+               `String (Escape.to_string Escape.valid_utf8 value)
+             )
+         | name, value ->
+             (attribute_name name, value)
+         )
+       attrs
+    )
+    children
+
+let string_attrs = List.map (fun (name, value) -> (name, `String value))
+
+let apply_hooks hooks get attrs =
+  List.fold_left
+    (fun attrs hooks ->
+      match get hooks with Some hook -> hook attrs | None -> attrs
+    )
+    attrs hooks
+
+let render_token ~options ~registry ~colors ~label ~theme ~extra_themes
+    ~emit_default ~hooks ~line_index ~column (token : Token.t) =
   let prefix = options.Html_options.css_variable_prefix in
   let primary = Token.style token in
   let extras =
@@ -292,20 +371,29 @@ let render_token ~options ~registry ~label ~theme ~extra_themes ~emit_default
       extra_themes
   in
   let extra_vars =
-    token_theme_declarations ~prefix ~emit_default ~label (theme, primary)
-      extras
+    token_theme_declarations ~props:(variable_props colors) ~prefix
+      ~emit_default ~label (theme, primary) extras
   in
-  let text = escape_token_text token.text in
+  let text = JSX.unsafe (escape_token_text token.text) in
+  let style, reads = token_styles ~colors ~emit_default ~prefix token in
+  let attrs =
+    string_attrs
+      (render_span_attrs ~options ~registry ~style
+         ~extra_style:(String.concat ";" (reads @ extra_vars))
+         token.decoration token.scopes
+      )
+  in
   match
-    render_span_attrs ~options ~registry
-      ~style:(token_style_to_css ~emit_default ~prefix primary)
-      ~extra_style:(String.concat ";" extra_vars)
-      token.decoration token.scopes
+    apply_hooks hooks
+      (fun (h : Transform.attribute_hooks) ->
+        Option.map (fun f -> f ~line_index ~column token) h.span
+      )
+      attrs
   with
-  | None ->
+  | [] ->
       text
-  | Some attrs ->
-      Printf.sprintf "<span %s>%s</span>" attrs text
+  | attrs ->
+      node "span" attrs [ text ]
 
 let dedupe_preserving_order items =
   let rec loop seen acc = function
@@ -318,6 +406,17 @@ let dedupe_preserving_order items =
           loop (x :: seen) (x :: acc) xs
   in
   loop [] [] items
+
+let theme_at (themed : Themed.t) index =
+  let default, extras = themed.themes in
+  snd (List.nth (default :: extras) index)
+
+let page_light_dark ~(light : Theme.theme) ~(dark : Theme.theme) =
+  [
+    "background-color:"
+    ^ light_dark (Color.to_hex light.bg) (Color.to_hex dark.bg);
+    "color:" ^ light_dark (Color.to_hex light.fg) (Color.to_hex dark.fg);
+  ]
 
 let render ?(options = Html_options.default) (themed : Themed.t) =
   let options =
@@ -335,6 +434,7 @@ let render ?(options = Html_options.default) (themed : Themed.t) =
         );
     }
   in
+  let colors = colors themed in
   let (label, theme), extra_themes = themed.themes in
   let extra_themes =
     List.mapi
@@ -362,24 +462,37 @@ let render ?(options = Html_options.default) (themed : Themed.t) =
   let lines =
     List.mapi
       (fun i line ->
-        let content =
-          String.concat ""
-            (List.map
-               (render_token ~options ~registry ~label ~theme ~extra_themes
-                  ~emit_default
-               )
-               (join_crlf line)
+        let _, content =
+          List.fold_left_map
+            (fun column (token : Token.t) ->
+              ( column + String.length token.text,
+                render_token ~options ~registry ~colors ~label ~theme
+                  ~extra_themes ~emit_default ~hooks:themed.hooks ~line_index:i
+                  ~column token
+              )
             )
+            0 (join_crlf line)
         in
-        if options.line_numbers then
-          Printf.sprintf "<span class=\"line\" data-line=\"%d\">%s</span>"
-            (i + 1) content
-        else
-          Printf.sprintf "<span class=\"line\">%s</span>" content
+        let attrs =
+          ("class", `String "line")
+          ::
+          ( if options.line_numbers then
+              [ ("data-line", `Int (i + 1)) ]
+            else
+              []
+          )
+        in
+        node "span"
+          (apply_hooks themed.hooks
+             (fun (h : Transform.attribute_hooks) ->
+               Option.map (fun f -> f ~line_index:i line) h.line
+             )
+             attrs
+          )
+          content
       )
       themed.lines
   in
-  let code_content = String.concat "" lines in
   let pre_classes =
     let classes =
       [ "ochre" ]
@@ -395,7 +508,6 @@ let render ?(options = Html_options.default) (themed : Themed.t) =
     in
     dedupe_preserving_order classes
   in
-  let pre_class_attr = escape_text (String.concat " " pre_classes) in
   let page_variables (label, (theme : Theme.theme), _) =
     [
       prefix ^ label ^ "-bg:" ^ Color.to_hex theme.bg;
@@ -403,37 +515,49 @@ let render ?(options = Html_options.default) (themed : Themed.t) =
     ]
   in
   let pre_style_parts =
-    ( if emit_default then
-        [
-          "background-color:var("
-          ^ css_var_background_name prefix
-          ^ "," ^ Color.to_hex theme.bg ^ ")";
-          "color:var("
-          ^ css_var_foreground_name prefix
-          ^ "," ^ Color.to_hex theme.fg ^ ")";
-        ]
-      else
-        []
-    )
-    @ List.concat_map page_variables
+    match colors with
+    | Light_dark { light; dark } ->
+        let light, dark = (theme_at themed light, theme_at themed dark) in
+        page_light_dark ~light ~dark
+    | Variables ->
         ( if emit_default then
-            extra_themes
+            [
+              "background-color:var("
+              ^ css_var_background_name prefix
+              ^ "," ^ Color.to_hex theme.bg ^ ")";
+              "color:var("
+              ^ css_var_foreground_name prefix
+              ^ "," ^ Color.to_hex theme.fg ^ ")";
+            ]
           else
-            themes
+            []
         )
-  in
-  let pre_style =
-    Printf.sprintf " style=\"%s\"" (String.concat ";" pre_style_parts)
+        @ List.concat_map page_variables
+            ( if emit_default then
+                extra_themes
+              else
+                themes
+            )
   in
   let code_attrs =
     match options.code_class with
     | Some c ->
-        Printf.sprintf " class=\"%s\"" (escape_text c)
+        [ ("class", `String c) ]
     | None ->
-        ""
+        []
   in
-  Printf.sprintf "<pre class=\"%s\"%s tabindex=\"0\"><code%s>%s</code></pre>"
-    pre_class_attr pre_style code_attrs code_content
+  node "pre"
+    (apply_hooks themed.hooks
+       (fun (h : Transform.attribute_hooks) ->
+         Option.map (fun f -> f themed.lines) h.pre
+       )
+       [
+         ("class", `String (String.concat " " pre_classes));
+         ("style", `String (String.concat ";" pre_style_parts));
+         ("tabindex", `Int 0);
+       ]
+    )
+    [ node "code" code_attrs lines ]
 
 let theme_css ?(css_variable_prefix = "--ochre-") label =
   let label = Escape.css_ident label in
@@ -473,6 +597,7 @@ let collect_classes registry =
 let render_theme_css ?(css_variable_prefix = "--ochre-") ~class_prefix
     (themed : Themed.t) =
   let (_, theme), _ = themed.themes in
+  let colors = colors themed in
   let prefix =
     Escape.css_ident
       (Html_options.normalize_css_variable_prefix css_variable_prefix)
@@ -480,12 +605,21 @@ let render_theme_css ?(css_variable_prefix = "--ochre-") ~class_prefix
   let reg = create_registry (Escape.css_ident class_prefix) in
   List.iter
     (List.iter (fun token ->
-         let style =
-           token_style_to_css ~emit_default:true ~prefix (Token.style token)
-         in
+         let style = class_style ~colors ~prefix token in
          if style <> "" then ignore (class_for_style reg style)
      )
     )
     themed.lines;
-  Printf.sprintf ".ochre { background-color:%s; color:%s }\n%s"
-    (Color.to_hex theme.bg) (Color.to_hex theme.fg) (collect_classes reg)
+  let page =
+    match colors with
+    | Light_dark { light; dark } ->
+        page_light_dark ~light:(theme_at themed light)
+          ~dark:(theme_at themed dark)
+    | Variables ->
+        [
+          "background-color:" ^ Color.to_hex theme.bg;
+          "color:" ^ Color.to_hex theme.fg;
+        ]
+  in
+  Printf.sprintf ".ochre { %s }\n%s" (String.concat "; " page)
+    (collect_classes reg)

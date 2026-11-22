@@ -48,12 +48,39 @@ Try every built-in theme with several grammars in the [playground](https://daves
 
 `ochre` can render highlighted code to several output formats (also called backends):
 
-- **HTML** — Self-contained `<pre><code>` blocks with inline styles or CSS classes. Supports multi-theme via CSS custom properties, line numbers, and configurable class prefixes. See [rendered example](https://davesnx.github.io/ochre/examples/html-preview.html).
+- **HTML** — Self-contained `<pre><code>` blocks with inline styles or CSS classes, as a string (`to_html`) or an html\_of\_jsx element (`to_jsx`). Supports light and dark themes with CSS `light-dark()`, more themes via CSS custom properties, line numbers, and configurable class prefixes. See [rendered example](https://davesnx.github.io/ochre/examples/html-preview.html).
 - **SVG** — Standalone `<svg>` elements with monospace `<text>` and per-token `<tspan>` styling. Open preview: [SVG rendered example](https://davesnx.github.io/ochre/examples/svg-preview.svg). Source: [.svg file](test/svg-preview.svg).
 - **ANSI** — 24-bit color escape sequences for terminal display.
 - **LaTeX** — `\textcolor` commands inside an `ochrehighlight` environment. Requires the `xcolor` and `ulem` packages. See [rendered PDF](https://davesnx.github.io/ochre/examples/latex-preview.pdf) (source: [.tex file](test/latex-preview.tex)).
 All backends share the same interface: load a highlighter, look up a language, highlight the code with one or more themes, and call the corresponding `to_*` function.
 
+
+## HTML
+
+`Ochre.to_jsx` returns a `JSX.element`, so highlighted code goes straight into an [html\_of\_jsx](https://github.com/davesnx/html_of_jsx) page:
+
+```ocaml
+let page ~lang code =
+  let themed =
+    Ochre.highlight_themes ~label:"light" ~theme:Ochre.Theme.light
+      ~extra_themes:[ ("dark", Ochre.Theme.dark) ]
+      ~lang code
+  in
+  Result.map
+    (fun themed ->
+      JSX.render (JSX.node "article" [] [ Ochre.to_jsx themed ]))
+    themed
+```
+With two themes labelled `light` and `dark`, colors are written as CSS `light-dark()`. Set the `color-scheme` of the page to choose one, or `:root { color-scheme: light dark; }` to follow the system setting.
+
+The built-in transforms add the class names of the Shiki transformers. Ochre ships no CSS; style them in the page, for example:
+
+```css
+.ochre .line.highlighted { background-color: #8888883a; }
+.ochre .line.diff.add { background-color: #22883322; }
+.ochre .line.diff.remove { background-color: #88222222; }
+.ochre .highlighted-word { outline: 1px solid currentColor; }
+```
 
 ## Documentation
 

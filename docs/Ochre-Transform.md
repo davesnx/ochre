@@ -11,6 +11,26 @@ type line = token list
 type document = line list
 ```
 
+### attribute\_hooks
+
+```ocaml
+type attributes = JSX.attribute list
+```
+```ocaml
+type attribute_hooks = {
+  pre : (document -> attributes -> attributes) option; (* Changes the attributes of the <pre>. It gets the rendered lines. *)
+  line : (line_index:int -> line -> attributes -> attributes) option; (* Changes the attributes of the <span class="line"> of the rendered line line_index (from 0), which holds the tokens of line. *)
+  span : (line_index:int ->
+         column:int ->
+         token ->
+         attributes ->
+         attributes)
+         option; (* Changes the attributes of the <span> of token on the rendered line line_index. column is the byte offset of the token in the text of that line. A token with no attributes after every hook is written as text, with no <span>. *)
+}
+```
+HTML attribute hooks, run by [`to_jsx`](./Ochre.md#val-to_jsx) and [`to_html`](./Ochre.md#val-to_html). Each hook takes the attributes built so far and returns the new list. The HTML backend escapes the values. An attribute name must match `[A-Za-z_:][A-Za-z0-9_.:-]*`; rendering never fails, so the HTML backend replaces each other character of a name with `_`, and an empty name becomes `_`.
+
+
 ### t
 
 ```ocaml
@@ -20,15 +40,18 @@ type t = {
   after_line : (line_index:int -> line -> line) option;
   before_render : (document -> document) option;
   after_render : (document -> document) option;
+  attributes : (document -> attribute_hooks) option;
 }
 ```
 A transform with named hooks. Each hook is optional. The pipeline calls them in this order:
 
-1. `before_render` on the full document
+1. `attributes` then `before_render`, on the full document
 2. `before_line` for each line (by index)
 3. `after_line` for each line (by index)
 4. `after_render` on the full document
 When multiple transforms are provided, each hook phase folds over all transforms in list order before moving to the next phase.
+
+`attributes` runs once per highlight, with the document as the transform sees it: after the `before_render` of the transforms before it, and before its own. Its hooks are kept in [`Themed.t.hooks`](./Ochre-Themed.md#type-t.hooks), and the HTML backend calls them in the order of the transforms. The `line_index` of a hook is the index of the rendered line. When a later transform adds or removes lines, the indices that an earlier `attributes` computed no longer match the rendered lines.
 
 
 ### make
@@ -39,6 +62,7 @@ val make :
   ?after_line:(line_index:int -> line -> line) ->
   ?before_render:(document -> document) ->
   ?after_render:(document -> document) ->
+  ?attributes:(document -> attribute_hooks) ->
   string ->
   t
 ```
@@ -63,6 +87,22 @@ let bold_keywords =
             tok
         )
         line
+  )
+```
+A transform that adds a `data-line-count` attribute to the `<pre>`:
+
+```ocaml
+let line_count =
+  Ochre.Transform.make "line-count" ~attributes:(fun _ ->
+      {
+        pre =
+          Some
+            (fun doc attrs ->
+              attrs @ [ ("data-line-count", `Int (List.length doc)) ]
+            );
+        line = None;
+        span = None;
+      }
   )
 ```
 

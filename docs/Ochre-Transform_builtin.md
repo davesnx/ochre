@@ -7,7 +7,7 @@
 ```ocaml
 val line_highlight : ?background:Color.t -> int list -> Transform.t
 ```
-Highlights the given line indices (0-based) by setting every token's background color, under every theme.
+Highlights the given line indices (0-based) by setting every token's background color, under every theme. In HTML, each highlighted line gets the class `highlighted` and the `<pre>` gets `has-highlighted`.
 
 Default background: `"#8888883a"`.
 
@@ -26,7 +26,7 @@ val word_highlight :
   string list ->
   Transform.t
 ```
-Highlights tokens whose text matches one of the given words, under every theme.
+Highlights tokens whose text matches one of the given words, under every theme. In HTML, each highlighted token gets the class `highlighted-word`.
 
 Default foreground: `"#ffff00"`. Default font style: bold.
 
@@ -41,7 +41,7 @@ Ochre.highlight
 ```ocaml
 val diff_markers : Transform.t
 ```
-Strips leading `+` or `-` from the first token of each line and applies a green or red background to the entire line, under every theme.
+Strips leading `+` or `-` from the first token of each line and applies a green or red background to the entire line, under every theme. In HTML, those lines get the classes `diff add` or `diff remove`, and the `<pre>` gets `has-diff`.
 
 
 ### scope\_marker
@@ -49,7 +49,7 @@ Strips leading `+` or `-` from the first token of each line and applies a green 
 ```ocaml
 val scope_marker : ?background:Color.t -> string -> Transform.t
 ```
-Highlights tokens that have at least one scope starting with `prefix`.
+Highlights tokens that have at least one scope starting with `prefix`. In HTML, each highlighted token gets the class `highlighted-scope`.
 
 Default background: `"#ffff0033"`.
 
@@ -64,6 +64,8 @@ Notation-based line highlight. Finds a `[!code highlight]` or `[!code hl]` marke
 The marker must be inside the last comment of the line: a `//`, `#`, `;`, `%` or `--` comment that runs to the end of the line, or a `/* */`, `<!-- -->`, `(* *)`, `{- -}` or `--[[ ]]` comment that closes at the end of the line. A comment is found from its comment scope when the grammar gives one, and from its opener otherwise, so plain text and Markdown work too. A marker in a string, or in a block comment that code follows, is left alone. The whole comment goes, with the blanks before it, when the marker was all it held; other text in the comment stays. The newline stays.
 
 `[!code highlight:3]` applies to three lines. When the comment is alone on its line, the line is removed and the marker applies to the lines below it.
+
+In HTML, each highlighted line gets the class `highlighted` and the `<pre>` gets `has-highlighted`. The notation transforms find the marked lines in the document they receive, so a transform after them that adds or removes lines shifts the classes (see [`Transform.t`](./Ochre-Transform.md#type-t)).
 
 Default background: `"#8888883a"`.
 
@@ -82,7 +84,7 @@ val notation_diff :
   unit ->
   Transform.t
 ```
-Notation-based diff markers. Finds `[!code ++]` and `[!code --]` markers in comments, removes them, and applies green or red backgrounds to the entire line. Mirrors Shiki's `transformerNotationDiff`; see [`notation_highlight`](./#val-notation_highlight) for where a marker may sit and what is removed.
+Notation-based diff markers. Finds `[!code ++]` and `[!code --]` markers in comments, removes them, and applies green or red backgrounds to the entire line. In HTML, those lines get the classes `diff add` or `diff remove`, and the `<pre>` gets `has-diff`. Mirrors Shiki's `transformerNotationDiff`; see [`notation_highlight`](./#val-notation_highlight) for where a marker may sit and what is removed.
 
 Default add background: `"#22883322"`. Default remove background: `"#88222222"`.
 
@@ -101,7 +103,7 @@ val notation_word_highlight :
   unit ->
   Transform.t
 ```
-Notation-based word highlight. Finds `[!code word:xxx]` markers in comments, removes them, and highlights all occurrences of `xxx`, across token boundaries. Without a count the highlight runs from the line of the marker to the end of the code; `[!code word:xxx:2]` limits it to two lines. A backslash escapes a character of the word. Mirrors Shiki's `transformerNotationWordHighlight`; see [`notation_highlight`](./#val-notation_highlight) for where a marker may sit and what is removed.
+Notation-based word highlight. Finds `[!code word:xxx]` markers in comments, removes them, and highlights all occurrences of `xxx`, across token boundaries. Without a count the highlight runs from the line of the marker to the end of the code; `[!code word:xxx:2]` limits it to two lines. A backslash escapes a character of the word. In HTML, each highlighted piece gets the class `highlighted-word`. Mirrors Shiki's `transformerNotationWordHighlight`; see [`notation_highlight`](./#val-notation_highlight) for where a marker may sit and what is removed.
 
 Default foreground: `"#ffff00"`. Default font style: bold.
 

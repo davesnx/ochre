@@ -5,6 +5,7 @@
 type t = private {
   themes : (string * Theme.theme) * (string * Theme.theme) list; (* The labelled default theme, then the labelled extra themes. The default label is the ?label given to highlight or highlight_themes, or the theme name. *)
   lines : Token.line list;
+  hooks : Transform.attribute_hooks list; (* The attribute hooks of the transforms that made the value, in the order of the transforms. to_jsx runs them. *)
 }
 ```
 Highlighted code. Each token has one style per theme, in the order of `themes`. Make one with [`highlight`](./Ochre.md#val-highlight) or [`highlight_themes`](./Ochre.md#val-highlight_themes).

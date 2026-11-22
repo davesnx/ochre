@@ -118,14 +118,6 @@ Tokens are the basic unit of highlighted code. Each token is a fragment of the s
 module Token : sig ... end
 ```
 
-## Themed code
-
-Highlighted code is tokenized once and styled under one or more themes.
-
-```ocaml
-module Themed : sig ... end
-```
-
 ## Decorations
 
 Decorations attach format-agnostic properties (CSS class, inline style, data attributes) to ranges of source code identified by line/character position. They are applied after tokenization but before transforms.
@@ -144,10 +136,25 @@ Transforms run after tokenization, theming and decorations, but before rendering
 module Transform : sig ... end
 ```
 
+## Themed code
+
+Highlighted code is tokenized once and styled under one or more themes.
+
+```ocaml
+module Themed : sig ... end
+```
+
 ### Built-in transforms
 
-Ready-to-use transforms for common highlighting patterns.
+Ready-to-use transforms for common highlighting patterns. Each one sets its colours on the tokens, and in HTML also adds the class names of the Shiki transformers, so a page can style the marked code with CSS. Ochre ships no CSS. For example:
 
+```css
+.ochre .line.highlighted { background-color: #8888883a; }
+.ochre .line.diff.add { background-color: #22883322; }
+.ochre .line.diff.remove { background-color: #88222222; }
+.ochre .highlighted-word { outline: 1px solid currentColor; }
+.ochre.has-highlighted .line:not(.highlighted) { opacity: 0.6; }
+```
 ```ocaml
 module Transform_builtin : sig ... end
 ```
@@ -219,6 +226,18 @@ ANSI, LaTeX and SVG show the default theme. Use [`Themed.select`](./Ochre-Themed
 module Html_options : sig ... end
 ```
 
+### to\_jsx
+
+```ocaml
+val to_jsx : ?options:Html_options.t -> Themed.t -> JSX.element
+```
+Render highlighted code to an html\_of\_jsx element: a `<pre>` that holds a `<code>`, with one `<span class="line">` per line. Put it in an html\_of\_jsx page, or render it with `JSX.render`. [`to_html`](./#val-to_html) returns `JSX.render (to_jsx ?options themed)`. Render the page with `JSX.render`, not `JSX.pp`: `JSX.pp` adds whitespace, which shows inside `<pre>`.
+
+```ocaml
+let page code =
+  JSX.node "article" [] [ Ochre.to_jsx (Ochre.highlight ~theme ~lang code) ]
+```
+
 ### to\_html
 
 ```ocaml
@@ -239,6 +258,18 @@ A token follows every theme for its colour, background, `font-weight`, `font-sty
 
 Pair with [`html_theme_css`](./#val-html_theme_css) to activate alternate themes via CSS.
 
+Light and dark themes
+
+When there are exactly two themes, labelled `light` and `dark` (in either order), the colours and backgrounds of the `<pre>` and of each token are written as `light-dark(<light>, <dark>)`, in both style modes and with or without a default colour. The browser picks one from the `color-scheme` of the page; the output sets no `color-scheme` itself. With `:root { color-scheme: light dark; }` in the page stylesheet, the code follows the system setting. `font-weight`, `font-style` and `text-decoration` keep the variables above, inline also in [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode, so a font style that differs between the two themes still needs [`html_theme_css`](./#val-html_theme_css).
+
+```ocaml
+let themed =
+  Ochre.highlight_themes ~label:"light" ~theme:Ochre.Theme.light
+    ~extra_themes:[ ("dark", Ochre.Theme.dark) ]
+    ~lang code
+in
+Result.map Ochre.to_html themed
+```
 
 ### html\_theme\_css
 
@@ -262,7 +293,7 @@ val html_render_theme_css :
   Themed.t ->
   string
 ```
-`html_render_theme_css ~class_prefix themed` generates a complete CSS stylesheet for the default theme of `themed` when using [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode. Walks all tokens to discover unique styles and maps each to a deterministic class name prefixed with `class_prefix`. Pass the `css_variable_prefix` of the [`Html_options.t`](./Ochre-Html_options.md#type-t) used to render the HTML as `~css_variable_prefix`; the class names depend on it.
+`html_render_theme_css ~class_prefix themed` generates a complete CSS stylesheet for the default theme of `themed` when using [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode. Walks all tokens to discover unique styles and maps each to a deterministic class name prefixed with `class_prefix`. Pass the `css_variable_prefix` of the [`Html_options.t`](./Ochre-Html_options.md#type-t) used to render the HTML as `~css_variable_prefix`; the class names depend on it. For light and dark themes (see [`to_html`](./#val-to_html)) the rules use `light-dark()`.
 
 
 ### to\_ansi
