@@ -1,9 +1,9 @@
 (test
  (name test_complexity)
  (modules test_complexity)
- (libraries ochre.textmate_language tm-grammars yojson alcotest unix))
+ (libraries ochre.textmate tm-grammars yojson alcotest unix))
 
 (executable
  (name bench)
  (modules bench)
- (libraries ochre.textmate_language tm-grammars yojson unix))
+ (libraries ochre.textmate tm-grammars yojson unix))

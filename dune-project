@@ -15,7 +15,7 @@
 
 (maintainers "David Sancho")
 
-(license MIT)
+(license "MIT AND BSD-2-Clause")
 
 (package
  (name ochre)

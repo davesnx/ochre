@@ -1,4 +1,11 @@
-A fork of https://github.com/alan-j-hu/ocaml-textmate-language to fit ochre's needs with the following changes:
+A TextMate grammar reader and tokenizer, used by ochre to highlight code.
+
+This code is a fork of ocaml-textmate-language by Alan Hu:
+https://github.com/alan-j-hu/ocaml-textmate-language
+
+It is maintained inside ochre as internal source code, with local changes.
+CHANGES.md lists them. The main ones bring the tokenizer in line with
+vscode-textmate:
 
 - Fix \G-anchored end patterns closing relative to the parent begin anchor
 - Fix zero-width regex loops in the tokenizer
@@ -7,7 +14,10 @@ A fork of https://github.com/alan-j-hu/ocaml-textmate-language to fit ochre's ne
 - While-begin rules continue tokenizing child patterns on the same line
 - While-line continuations preserve the active scope stack across lines
 - Space-separated scope names are split into individual scopes
-- Named capture keys (non-numeric) are ignored, matching vscode-textmate behavior
+- Named capture keys (non-numeric) are ignored, matching vscode-textmate
 - Captures with `patterns` are recursively tokenized using the full engine
 - Nested captures inherit scope from the enclosing capture on the stack
-- A vscode-textmate compatibility test suite, now in ochre's `test/conformance/`
+
+Copyright (c) 2020-2024 Alan Hu
+Licensed under the MIT License. See LICENSE in this directory.
+Third-party test grammars: see third-party-notices.txt.

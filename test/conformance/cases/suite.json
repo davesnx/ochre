@@ -2,7 +2,7 @@
   "cases": [
     {
       "id": "a-basic",
-      "grammar_path": "vendor/ocaml-textmate-language/test/data/a.json",
+      "grammar_path": "test/textmate/data/a.json",
       "grammar_format": "json",
       "scope_name": "source.a",
       "lines": [
@@ -14,7 +14,7 @@
     },
     {
       "id": "while-state",
-      "grammar_path": "vendor/ocaml-textmate-language/test/data/while.json",
+      "grammar_path": "test/textmate/data/while.json",
       "grammar_format": "json",
       "scope_name": "source.while",
       "lines": [
@@ -24,7 +24,7 @@
     },
     {
       "id": "multiwhile-state",
-      "grammar_path": "vendor/ocaml-textmate-language/test/data/multiwhile.json",
+      "grammar_path": "test/textmate/data/multiwhile.json",
       "grammar_format": "json",
       "scope_name": "source.multiwhile",
       "lines": [
@@ -37,7 +37,7 @@
     },
     {
       "id": "groups-single-line",
-      "grammar_path": "vendor/ocaml-textmate-language/test/data/groups.json",
+      "grammar_path": "test/textmate/data/groups.json",
       "grammar_format": "json",
       "scope_name": "source.groups",
       "lines": [
@@ -46,7 +46,7 @@
     },
     {
       "id": "ocaml-simple",
-      "grammar_path": "vendor/ocaml-textmate-language/test/data/ocaml.tmLanguage.json",
+      "grammar_path": "test/textmate/data/ocaml.tmLanguage.json",
       "grammar_format": "json",
       "scope_name": "source.ocaml",
       "lines": [
@@ -55,7 +55,7 @@
     },
     {
       "id": "cpp-simple",
-      "grammar_path": "vendor/ocaml-textmate-language/test/data/cpp.tmLanguage.json",
+      "grammar_path": "test/textmate/data/cpp.tmLanguage.json",
       "grammar_format": "json",
       "scope_name": "source.cpp",
       "lines": [
@@ -64,7 +64,7 @@
     },
     {
       "id": "csharp-simple",
-      "grammar_path": "vendor/ocaml-textmate-language/test/data/csharp.tmLanguage",
+      "grammar_path": "test/textmate/data/csharp.tmLanguage",
       "grammar_format": "plist",
       "scope_name": "source.cs",
       "lines": [
