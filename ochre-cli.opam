@@ -39,5 +39,5 @@ build: [
 dev-repo: "git+https://github.com/davesnx/ochre.git"
 x-maintenance-intent: ["(latest)"]
 pin-depends: [
-  ["tm-themes.dev" "git+https://github.com/davesnx/tm-grammars.git#tm-themes"]
+  ["tm-themes.dev" "git+https://github.com/davesnx/tm-grammars.git#7ca98ea21db12dba339542ea0cd4edc85da07093"]
 ]
