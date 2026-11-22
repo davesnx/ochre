@@ -615,11 +615,16 @@ module Transform : sig
       calls them in the order of the transforms. The [line_index] of a hook is
       the index of the rendered line, and the [column] of a [span] hook is a
       byte offset in its text. An [attributes] that computes lines or columns
-      from its document sees the document before the transforms after it. When a
-      later transform adds or removes lines, or changes the text of a line (for
-      example {!Transform_builtin.diff_markers}, which removes a leading [+]),
-      those lines and columns no longer match the rendered code. Put such a
-      transform first. *)
+      from its document sees only the [before_render] changes of the transforms
+      before it. It does not see the [before_render] changes of the transforms
+      after it, or the changes of any [before_line], [after_line] or
+      [after_render] hook, because those run after every [attributes]. When one
+      of these changes adds or removes lines, or changes the text of a line,
+      those lines and columns no longer match the rendered code. So a transform
+      that changes text must do it in [before_render] and come before the
+      transform whose [attributes] reads the text, as
+      {!Transform_builtin.val-diff_markers} does when it removes a leading [+].
+  *)
 
   (** {2 make} *)
 
@@ -812,8 +817,10 @@ module Transform_builtin : sig
       marker to the end of the code; [[!code word:xxx:2]] limits it to two
       lines. A backslash escapes a character of the word. In HTML, each
       highlighted piece gets the class [highlighted-word]; the pieces are found
-      by line and column, so put transforms that change text before this one
-      (see {!Transform.type-t}). Mirrors Shiki's
+      by line and column from the document after the [before_render] of the
+      transforms before this one, so a transform that changes text must do it in
+      [before_render] and come before this one; text changes made by line hooks
+      or [after_render] are not seen (see {!Transform.type-t}). Mirrors Shiki's
       [transformerNotationWordHighlight]; see {!val-notation_highlight} for
       where a marker may sit and what is removed.
 
