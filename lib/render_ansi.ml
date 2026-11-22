@@ -4,20 +4,26 @@ let italic = "\x1b[3m"
 let underline = "\x1b[4m"
 let strikethrough = "\x1b[9m"
 
-let foreground_color_ansi (r, g, b) = Printf.sprintf "\x1b[38;2;%d;%d;%dm" r g b
+let foreground_color_ansi (c : Color.t) =
+  Printf.sprintf "\x1b[38;2;%d;%d;%dm" c.r c.g c.b
 
-let background_color_ansi (r, g, b) = Printf.sprintf "\x1b[48;2;%d;%d;%dm" r g b
+let background_color_ansi (c : Color.t) =
+  Printf.sprintf "\x1b[48;2;%d;%d;%dm" c.r c.g c.b
 
-let font_style_to_ansi v =
-  match (v : Token.font_style) with
-  | Bold ->
-      bold
-  | Italic ->
-      italic
-  | Underline ->
-      underline
-  | Strikethrough ->
-      strikethrough
+let font_style_codes (style : Style.font_style) =
+  List.filter_map
+    (fun (on, code) ->
+      if on then
+        Some code
+      else
+        None
+    )
+    [
+      (style.bold, bold);
+      (style.italic, italic);
+      (style.underline, underline);
+      (style.strikethrough, strikethrough);
+    ]
 
 let replacement = "\xEF\xBF\xBD"
 
@@ -57,52 +63,29 @@ let neutralise ?(cr_before_lf = false) text =
   loop 0;
   Buffer.contents buf
 
-let render_token ?cr_before_lf ~theme_bg (token : Token.styled_token) =
-  let page = Color.page_background theme_bg in
+let render_token ?cr_before_lf ~(theme : Theme.theme) (style : Style.t) text =
+  let page = Color.opaque theme.bg in
   let background =
-    Option.bind token.background (fun color ->
-        match Color.parse_rgba color with
-        | Some (_, alpha) when alpha = 0. ->
-            None
-        | Some (rgb, alpha) ->
-            Some (Color.blend ~over:page rgb alpha)
-        | None ->
-            None
+    Option.bind style.background (fun (color : Color.t) ->
+        if color.a = 0 then
+          None
+        else
+          Some (Color.blend ~over:page color)
     )
   in
   let behind = Option.value background ~default:page in
-  let codes = [] in
   let codes =
-    match token.foreground with
-    | Some color -> (
-        match Color.resolve ~over:behind color with
-        | Some rgb ->
-            foreground_color_ansi rgb :: codes
-        | None ->
-            foreground_color_ansi (Color.contrast_fallback_fg behind) :: codes
-      )
-    | None ->
-        codes
+    font_style_codes style.font_style
+    @ Option.to_list (Option.map background_color_ansi background)
+    @ [ foreground_color_ansi (Color.blend ~over:behind style.foreground) ]
   in
-  let codes =
-    match background with
-    | Some rgb ->
-        background_color_ansi rgb :: codes
-    | None ->
-        codes
-  in
-  let codes = List.map font_style_to_ansi token.font_style @ codes in
-  let text = neutralise ?cr_before_lf token.text in
-  if codes = [] then
-    text
-  else
-    String.concat "" codes ^ text ^ reset
+  String.concat "" codes ^ neutralise ?cr_before_lf text ^ reset
 
-let render_line ~theme_bg (line : Token.line) =
+let render_line ~theme (line : Token.line) =
   let rec next_starts_with_lf = function
     | [] ->
         false
-    | (token : Token.styled_token) :: rest ->
+    | (token : Token.t) :: rest ->
         if token.text = "" then
           next_starts_with_lf rest
         else
@@ -111,12 +94,11 @@ let render_line ~theme_bg (line : Token.line) =
   let rec render = function
     | [] ->
         []
-    | token :: rest ->
+    | (token : Token.t) :: rest ->
         let cr_before_lf = next_starts_with_lf rest in
-        render_token ~cr_before_lf ~theme_bg token :: render rest
+        render_token ~cr_before_lf ~theme (Token.style token) token.text
+        :: render rest
   in
   String.concat "" (render line)
 
-let render (theme : Theme.theme) (code : Token.highlighted_code) =
-  let lines = List.map (render_line ~theme_bg:theme.bg) code in
-  String.concat "" lines
+let render theme lines = String.concat "" (List.map (render_line ~theme) lines)

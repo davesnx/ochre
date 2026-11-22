@@ -79,6 +79,76 @@ jobs:
           changelog: './CHANGES.md'
           github-token: ${{ secrets.GH_TOKEN }}
 
+  bench:
+    name: Benchmark against the base commit
+    if: github.event_name == 'pull_request'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup OCaml and dependencies
+        uses: ml-in-barcelona/gh-ci-action@v1.2.0
+        with:
+          ocaml-compiler: 5.4.0
+
+      - name: Check out the base commit
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git worktree add --detach "$RUNNER_TEMP/base" "$BASE_SHA"
+
+      - name: Compare base and head
+        run: |
+          shopt -s nullglob
+          goldens=(test/conformance/golden/*.json)
+          if [ ${#goldens[@]} -eq 0 ]; then
+            echo "No golden files in test/conformance/golden, so there is no parity list to benchmark." >&2
+            exit 1
+          fi
+          samples=()
+          for golden in "${goldens[@]}"; do
+            sample="test/conformance/samples/$(basename "$golden" .json).sample"
+            if [ ! -f "$sample" ]; then
+              echo "Missing sample $sample for $golden." >&2
+              exit 1
+            fi
+            samples+=("$sample")
+          done
+          mkdir -p "$RUNNER_TEMP/base/test/bench"
+          cp -R test/bench/. "$RUNNER_TEMP/base/test/bench/"
+          skip() {
+            echo "::warning title=Benchmark skipped::$1"
+            echo "Benchmark skipped: $1" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          }
+          opam exec -- dune build --root . test/bench/bench.exe
+          opam exec -- dune build --root "$RUNNER_TEMP/base" test/bench/bench.exe ||
+            skip "Cannot build the bench on the base commit."
+          mkdir -p "$RUNNER_TEMP/runs/base" "$RUNNER_TEMP/runs/head"
+          run_base() {
+            "$RUNNER_TEMP/base/_build/default/test/bench/bench.exe" 1 "${samples[@]}" > "$RUNNER_TEMP/runs/base/$1.txt" ||
+              skip "Cannot run the bench on the base commit."
+          }
+          run_head() {
+            _build/default/test/bench/bench.exe 1 "${samples[@]}" > "$RUNNER_TEMP/runs/head/$1.txt"
+          }
+          for run in 1 2 3 4 5; do
+            if [ $((run % 2)) -eq 1 ]; then
+              run_base "$run"
+              run_head "$run"
+            else
+              run_head "$run"
+              run_base "$run"
+            fi
+          done
+          test/bench/compare.sh "$RUNNER_TEMP/runs/base" "$RUNNER_TEMP/runs/head"
+
   lower-bound:
     name: Build packages on OCaml 4.14 (lower bound)
 

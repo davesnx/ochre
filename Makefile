@@ -31,6 +31,13 @@ clean: ## Clean artifacts
 test: ## Run the unit tests
 	$(DUNE) build --root . @runtest
 
+.PHONY: fuzz
+fuzz: ## Fuzz the tokenizer with afl-fuzz (needs afl-fuzz and an OCaml switch with ocaml-option-afl)
+	$(DUNE) build --root . test/fuzz/fuzz_tokens.exe
+	mkdir -p .fuzz/input
+	test -f .fuzz/input/seed || head -c 512 /dev/urandom > .fuzz/input/seed
+	AFL_AUTORESUME=1 afl-fuzz -i .fuzz/input -o .fuzz/output -- _build/default/test/fuzz/fuzz_tokens.exe @@
+
 .PHONY: test-browser
 test-browser: ## Serve sample highlighted page on port 5000
 	$(DUNE) exec --root . test/test_html.exe
@@ -57,6 +64,26 @@ test-watch: ## Run the unit tests in watch mode
 .PHONY: test-promote
 test-promote: ## Updates snapshots and promotes it to correct
 	$(DUNE) build --root . @runtest --auto-promote
+
+CONFORMANCE = $(DUNE) exec --root . test/conformance/test_conformance.exe --
+CONFORMANCE_TMP = _build/conformance
+
+.PHONY: conformance-vscode
+conformance-vscode:
+	npm ci --prefix test/conformance
+	rm -rf $(CONFORMANCE_TMP)
+	mkdir -p $(CONFORMANCE_TMP)
+	$(CONFORMANCE) prepare test/conformance/samples $(CONFORMANCE_TMP)
+	node test/conformance/tokenize_vscode_textmate.mjs $(CONFORMANCE_TMP)/request.json > $(CONFORMANCE_TMP)/vscode.json
+
+.PHONY: conformance-golden
+conformance-golden: conformance-vscode ## Regenerate the parity golden files with vscode-textmate (needs Node)
+	mkdir -p test/conformance/golden
+	$(CONFORMANCE) golden $(CONFORMANCE_TMP)/vscode.json test/conformance/golden
+
+.PHONY: conformance-report
+conformance-report: conformance-vscode ## Rewrite test/conformance/REPORT.md with vscode-textmate (needs Node)
+	$(CONFORMANCE) report $(CONFORMANCE_TMP)/vscode.json test/conformance/samples test/conformance/REPORT.md
 
 .PHONY: format
 format: ## Format the codebase with ocamlformat

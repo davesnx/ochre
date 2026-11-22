@@ -2,20 +2,14 @@
 # Module `Ochre.Transform`
 
 ```ocaml
-type token = Token.styled_token
+type token = Token.t
 ```
-Alias for a styled token.
-
 ```ocaml
 type line = token list
 ```
-A line of styled tokens.
-
 ```ocaml
 type document = line list
 ```
-The full highlighted document (list of lines).
-
 
 ### t
 
@@ -55,9 +49,16 @@ let bold_keywords =
   Ochre.Transform.make "bold-keywords"
     ~after_line:(fun ~line_index:_ line ->
       List.map
-        (fun (tok : Ochre.Token.styled_token) ->
+        (fun (tok : Ochre.Token.t) ->
           if tok.text = "let" || tok.text = "in" then
-            { tok with font_style = Bold :: tok.font_style }
+            Ochre.Token.map_style
+              (fun _ style ->
+                {
+                  style with
+                  font_style = { style.font_style with bold = true };
+                }
+              )
+              tok
           else
             tok
         )
@@ -73,7 +74,3 @@ val run : t list -> document -> document
 `run transforms document` applies all transforms to the document.
 
 Transforms are applied in list order. An empty list returns the document unchanged.
-
-```ocaml
-let transformed = Ochre.Transform.run transforms document
-```

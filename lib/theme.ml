@@ -1,10 +1,9 @@
-type color = string
-type font_style = Token.font_style = Bold | Italic | Underline | Strikethrough
+type color = Color.t
 
 type token_color_settings = {
   foreground : color option;
   background : color option;
-  font_style : font_style list option;
+  font_style : Style.font_style option;
 }
 
 type token_color_rule = {
@@ -21,6 +20,13 @@ type theme = {
   token_colors : token_color_rule list;
 }
 
+type warning = { path : string option; location : string; value : string }
+
+let warning_to_string { path; location; value } =
+  Printf.sprintf "%s%s: invalid color %S dropped"
+    (match path with Some path -> path ^ ": " | None -> "")
+    location value
+
 type loaded_theme_data = {
   name_opt : string option;
   kind : string option;
@@ -28,11 +34,10 @@ type loaded_theme_data = {
   fg_legacy : color option;
   bg_legacy : color option;
   token_colors : token_color_rule list;
+  warnings : warning list;
 }
 
 let describe_json_error msg = String.map (function '\n' -> ' ' | c -> c) msg
-
-let empty_settings = { foreground = None; background = None; font_style = None }
 
 let rule ?name ?(scope = []) ?foreground ?background ?font_style () =
   { name; scope; settings = { foreground; background; font_style } }
@@ -43,15 +48,22 @@ let json_field key = function
   | _ ->
       None
 
-let is_valid_color color =
-  let is_hex c =
-    (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
-  in
-  let length = String.length color in
-  length > 0
-  && color.[0] = '#'
-  && List.mem (length - 1) [ 3; 4; 6; 8 ]
-  && String.for_all is_hex (String.sub color 1 (length - 1))
+type parser = { path : string option; mutable warnings : warning list }
+
+let parse_color parser ~location value =
+  match Color.of_hex value with
+  | Some _ as color ->
+      color
+  | None ->
+      parser.warnings <-
+        { path = parser.path; location; value } :: parser.warnings;
+      None
+
+let string_color parser ~location = function
+  | Some (`String value) ->
+      parse_color parser ~location value
+  | _ ->
+      None
 
 let strip_commas text =
   let is_comma c = c = ',' in
@@ -78,58 +90,47 @@ let parse_scope = function
   | _ ->
       Some []
 
-let parse_font_style = function
-  | "bold" ->
-      Some Bold
-  | "italic" ->
-      Some Italic
-  | "underline" ->
-      Some Underline
-  | "strikethrough" ->
-      Some Strikethrough
+let parse_font_style raw =
+  List.fold_left
+    (fun (style : Style.font_style) word ->
+      match word with
+      | "bold" ->
+          { style with bold = true }
+      | "italic" ->
+          { style with italic = true }
+      | "underline" ->
+          { style with underline = true }
+      | "strikethrough" ->
+          { style with strikethrough = true }
+      | _ ->
+          style
+    )
+    Style.plain
+    (String.split_on_char ' ' (String.trim raw))
+
+let parse_settings parser ~location json =
+  let color key =
+    string_color parser ~location:(location ^ "." ^ key) (json_field key json)
+  in
+  let foreground = color "foreground" in
+  let background = color "background" in
+  let font_style =
+    match json_field "fontStyle" json with
+    | Some (`String s) ->
+        Some (parse_font_style s)
+    | _ ->
+        None
+  in
+  { foreground; background; font_style }
+
+let is_falsy = function
+  | None | Some `Null | Some (`Bool false) | Some (`Int 0) | Some (`String "")
+    ->
+      true
   | _ ->
-      None
+      false
 
-let parse_font_style_raw raw =
-  let trimmed = String.trim raw in
-  if trimmed = "" || trimmed = "none" then
-    Some []
-  else
-    Some
-      (String.split_on_char ' ' trimmed
-      |> List.map String.trim
-      |> List.filter (fun s -> s <> "")
-      |> List.filter_map parse_font_style
-      )
-
-let parse_settings = function
-  | `Assoc _ as json ->
-      let foreground =
-        match json_field "foreground" json with
-        | Some (`String s) ->
-            Some s
-        | _ ->
-            None
-      in
-      let background =
-        match json_field "background" json with
-        | Some (`String s) ->
-            Some s
-        | _ ->
-            None
-      in
-      let font_style =
-        match json_field "fontStyle" json with
-        | Some (`String s) ->
-            parse_font_style_raw s
-        | _ ->
-            None
-      in
-      { foreground; background; font_style }
-  | _ ->
-      empty_settings
-
-let parse_token_color_rule = function
+let parse_token_color_rule parser ~location = function
   | `Assoc _ as json -> (
       let name =
         match json_field "name" json with
@@ -147,14 +148,13 @@ let parse_token_color_rule = function
       in
       let settings =
         match json_field "settings" json with
-        | None
-        | Some `Null
-        | Some (`Bool false)
-        | Some (`Int 0)
-        | Some (`String "") ->
+        | settings when is_falsy settings ->
             None
-        | Some s ->
-            Some (parse_settings s)
+        | Some (`Assoc _ as settings) ->
+            Some
+              (parse_settings parser ~location:(location ^ ".settings") settings)
+        | _ ->
+            Some { foreground = None; background = None; font_style = None }
       in
       match (scope, settings) with
       | Some scope, Some settings ->
@@ -165,9 +165,17 @@ let parse_token_color_rule = function
   | _ ->
       None
 
-let parse_rules_json = function
+let parse_rules_json parser ~key = function
   | `List entries ->
-      List.filter_map parse_token_color_rule entries
+      List.filter_map Fun.id
+        (List.mapi
+           (fun i entry ->
+             parse_token_color_rule parser
+               ~location:(Printf.sprintf "%s[%d]" key i)
+               entry
+           )
+           entries
+        )
   | _ ->
       []
 
@@ -179,44 +187,33 @@ let merge_colors base overlay =
     )
     base overlay
 
-let parse_colors = function
+let parse_colors parser = function
   | `Assoc fields ->
       List.filter_map
-        (function key, `String value -> Some (key, value) | _ -> None)
+        (function
+          | (("editor.foreground" | "editor.background") as key), `String value
+            ->
+              Option.map
+                (fun color -> (key, color))
+                (parse_color parser ~location:("colors." ^ key) value)
+          | key, `String value ->
+              Option.map (fun color -> (key, color)) (Color.of_hex value)
+          | _ ->
+              None
+          )
         fields
   | _ ->
       []
-
-let assoc_color key colors =
-  match List.find_opt (fun (k, _) -> k = key) colors with
-  | Some (_, value) ->
-      Some value
-  | None ->
-      None
 
 let is_global_rule rule =
   rule.scope = [] || List.exists (fun s -> String.trim s = "") rule.scope
 
 let resolve_defaults_from_scope_less token_colors =
-  let valid = function Some c when is_valid_color c -> Some c | _ -> None in
   List.fold_left
     (fun (fg, bg) rule ->
       if is_global_rule rule then
-        let fg =
-          match valid rule.settings.foreground with
-          | Some c ->
-              Some c
-          | None ->
-              fg
-        in
-        let bg =
-          match valid rule.settings.background with
-          | Some c ->
-              Some c
-          | None ->
-              bg
-        in
-        (fg, bg)
+        let pick current = function Some _ as c -> c | None -> current in
+        (pick fg rule.settings.foreground, pick bg rule.settings.background)
       else
         (fg, bg)
     )
@@ -224,11 +221,11 @@ let resolve_defaults_from_scope_less token_colors =
 
 let fallback_colors = function
   | Some "dark" ->
-      ("#bbbbbb", "#1e1e1e")
+      (Color.rgb 0xbb 0xbb 0xbb, Color.rgb 0x1e 0x1e 0x1e)
   | Some "light" ->
-      ("#333333", "#fffffe")
+      (Color.rgb 0x33 0x33 0x33, Color.rgb 0xff 0xff 0xfe)
   | _ ->
-      ("#000000", "#ffffff")
+      (Color.rgb 0 0 0, Color.rgb 0xff 0xff 0xff)
 
 let finalize_theme ~name ~kind ~colors ~fg_legacy ~bg_legacy ~token_colors =
   let defaults_fg, defaults_bg =
@@ -240,121 +237,143 @@ let finalize_theme ~name ~kind ~colors ~fg_legacy ~bg_legacy ~token_colors =
   in
   let fg =
     first
-      [ defaults_fg; fg_legacy; assoc_color "editor.foreground" colors ]
+      [ defaults_fg; fg_legacy; List.assoc_opt "editor.foreground" colors ]
       fallback_fg
   in
   let bg =
     first
-      [ defaults_bg; bg_legacy; assoc_color "editor.background" colors ]
+      [ defaults_bg; bg_legacy; List.assoc_opt "editor.background" colors ]
       fallback_bg
   in
   { name; colors; fg; bg; token_colors }
 
-let parse_theme_fields ?base_dir json =
-  let name_opt =
-    match json_field "name" json with Some (`String s) -> Some s | _ -> None
+let read_json_file path =
+  match Yojson.Basic.from_file path with
+  | json ->
+      Ok json
+  | exception Yojson.Json_error msg ->
+      Error
+        (Error.Theme_error
+           {
+             path = Some path;
+             message = "invalid JSON: " ^ describe_json_error msg;
+           }
+        )
+  | exception Sys_error msg ->
+      let prefix = path ^ ": " in
+      let message =
+        if String.starts_with ~prefix msg then
+          String.sub msg (String.length prefix)
+            (String.length msg - String.length prefix)
+        else
+          msg
+      in
+      Error (Error.Theme_error { path = Some path; message })
+
+let ( let* ) = Result.bind
+
+let resolve_path dir path =
+  if Filename.is_relative path then
+    Filename.concat dir path
+  else
+    path
+
+let needs_base_dir ~path ~field file =
+  Error
+    (Error.Theme_error
+       {
+         path;
+         message =
+           Printf.sprintf "%s %S needs a base_dir to be resolved" field file;
+       }
+    )
+
+let parse_theme_fields ?path ?base_dir json =
+  let parser = { path; warnings = [] } in
+  let string_field keys =
+    List.find_map
+      (fun key ->
+        match json_field key json with
+        | Some (`String s) ->
+            Some (key, s)
+        | _ ->
+            None
+      )
+      keys
   in
+  let name_opt = Option.map snd (string_field [ "name" ]) in
   let colors =
-    match json_field "colors" json with Some v -> parse_colors v | None -> []
+    match json_field "colors" json with
+    | Some v ->
+        parse_colors parser v
+    | None ->
+        []
   in
-  let fg_legacy =
-    match json_field "fg" json with
-    | Some (`String s) ->
-        Some s
-    | _ -> (
-        match json_field "foreground" json with
-        | Some (`String s) ->
-            Some s
+  let legacy keys =
+    List.find_map
+      (fun key ->
+        match json_field key json with
+        | Some (`String value) ->
+            parse_color parser ~location:key value
         | _ ->
             None
       )
+      keys
   in
-  let bg_legacy =
-    match json_field "bg" json with
-    | Some (`String s) ->
-        Some s
-    | _ -> (
-        match json_field "background" json with
-        | Some (`String s) ->
-            Some s
-        | _ ->
-            None
-      )
-  in
-  let load_rules_from_ref = function
+  let fg_legacy = legacy [ "fg"; "foreground" ] in
+  let bg_legacy = legacy [ "bg"; "background" ] in
+  let load_rules ~key = function
     | `String rel_path -> (
         match base_dir with
         | Some dir ->
-            let path =
-              if Filename.is_relative rel_path then
-                Filename.concat dir rel_path
-              else
-                rel_path
-            in
-            Yojson.Basic.from_file path |> parse_rules_json
+            let rules_path = resolve_path dir rel_path in
+            let* json = read_json_file rules_path in
+            let rules_parser = { path = Some rules_path; warnings = [] } in
+            let rules = parse_rules_json rules_parser ~key json in
+            parser.warnings <- rules_parser.warnings @ parser.warnings;
+            Ok rules
         | None ->
-            []
+            needs_base_dir ~path ~field:key rel_path
       )
     | json_rules ->
-        parse_rules_json json_rules
+        Ok (parse_rules_json parser ~key json_rules)
   in
-  let token_colors =
-    let falsy = function
-      | None
-      | Some `Null
-      | Some (`Bool false)
-      | Some (`Int 0)
-      | Some (`String "") ->
-          true
-      | _ ->
-          false
-    in
+  let* token_colors =
     match (json_field "settings" json, json_field "tokenColors" json) with
-    | settings, _ when not (falsy settings) ->
-        load_rules_from_ref (Option.get settings)
+    | (Some settings as field), _ when not (is_falsy field) ->
+        load_rules ~key:"settings" settings
     | _, Some value ->
-        load_rules_from_ref value
+        load_rules ~key:"tokenColors" value
     | _, None ->
-        []
+        Ok []
   in
-  let kind =
-    match json_field "type" json with Some (`String s) -> Some s | _ -> None
-  in
-  let include_path =
-    match json_field "include" json with
-    | Some (`String s) ->
-        Some s
-    | _ ->
-        None
-  in
-  ({ name_opt; kind; colors; fg_legacy; bg_legacy; token_colors }, include_path)
+  let kind = Option.map snd (string_field [ "type" ]) in
+  let include_path = Option.map snd (string_field [ "include" ]) in
+  Ok
+    ( {
+        name_opt;
+        kind;
+        colors;
+        fg_legacy;
+        bg_legacy;
+        token_colors;
+        warnings = List.rev parser.warnings;
+      },
+      include_path
+    )
 
 let merge_loaded parent child =
+  let either child parent =
+    match child with Some _ -> child | None -> parent
+  in
   {
-    name_opt =
-      ( match child.name_opt with
-      | Some _ ->
-          child.name_opt
-      | None ->
-          parent.name_opt
-      );
-    kind = (match child.kind with Some _ -> child.kind | None -> parent.kind);
+    name_opt = either child.name_opt parent.name_opt;
+    kind = either child.kind parent.kind;
     colors = merge_colors parent.colors child.colors;
-    fg_legacy =
-      ( match child.fg_legacy with
-      | Some _ ->
-          child.fg_legacy
-      | None ->
-          parent.fg_legacy
-      );
-    bg_legacy =
-      ( match child.bg_legacy with
-      | Some _ ->
-          child.bg_legacy
-      | None ->
-          parent.bg_legacy
-      );
+    fg_legacy = either child.fg_legacy parent.fg_legacy;
+    bg_legacy = either child.bg_legacy parent.bg_legacy;
     token_colors = parent.token_colors @ child.token_colors;
+    warnings = parent.warnings @ child.warnings;
   }
 
 let normalize_path path =
@@ -389,150 +408,126 @@ let normalize_path path =
   else
     body
 
-let rec load_theme_data_from_json ?base_dir ~visited json =
-  let local, include_path = parse_theme_fields ?base_dir json in
+let rec load_theme_data_from_json ?path ?base_dir ~visited json =
+  let* local, include_path = parse_theme_fields ?path ?base_dir json in
   match (include_path, base_dir) with
   | Some include_path, Some dir ->
-      let resolved =
-        normalize_path
-          ( if Filename.is_relative include_path then
-              Filename.concat dir include_path
-            else
-              include_path
-          )
-      in
+      let resolved = normalize_path (resolve_path dir include_path) in
       if List.mem resolved visited then
-        failwith ("Theme include cycle detected at: " ^ resolved)
+        Error (Error.Include_cycle (List.rev (resolved :: visited)))
       else
-        let parent =
+        let* parent =
           load_theme_data_from_path ~visited:(resolved :: visited) resolved
         in
-        merge_loaded parent local
+        Ok (merge_loaded parent local)
   | Some include_path, None ->
-      failwith
-        (Printf.sprintf
-           "theme includes %S but no base_dir was given to resolve it"
-           include_path
-        )
+      needs_base_dir ~path ~field:"include" include_path
   | None, _ ->
-      local
+      Ok local
 
 and load_theme_data_from_path ~visited path =
-  let json =
-    try Yojson.Basic.from_file path
-    with Yojson.Json_error msg ->
-      failwith
-        (Printf.sprintf "%s: invalid JSON: %s" path (describe_json_error msg))
-  in
-  let dir = Filename.dirname path in
-  load_theme_data_from_json ~base_dir:dir ~visited json
+  let* json = read_json_file path in
+  load_theme_data_from_json ~path ~base_dir:(Filename.dirname path) ~visited
+    json
 
 let make ~name ?(colors = []) ~token_colors () =
   finalize_theme ~name ~kind:None ~colors ~fg_legacy:None ~bg_legacy:None
     ~token_colors
 
-let load_from_file_exn path =
-  Exn_utils.wrap_exn (fun () ->
-      let data =
-        load_theme_data_from_path ~visited:[ normalize_path path ] path
-      in
-      let name = Option.value data.name_opt ~default:(Filename.basename path) in
-      finalize_theme ~name ~kind:data.kind ~colors:data.colors
-        ~fg_legacy:data.fg_legacy ~bg_legacy:data.bg_legacy
-        ~token_colors:data.token_colors
+let theme_of_data ~default_name data =
+  let name = Option.value data.name_opt ~default:default_name in
+  ( finalize_theme ~name ~kind:data.kind ~colors:data.colors
+      ~fg_legacy:data.fg_legacy ~bg_legacy:data.bg_legacy
+      ~token_colors:data.token_colors,
+    data.warnings
   )
 
 let load_from_file path =
-  try Ok (load_from_file_exn path) with Failure msg -> Error msg
-
-let load_exn ?base_dir str =
-  Exn_utils.wrap_exn (fun () ->
-      let json =
-        try Yojson.Basic.from_string str
-        with Yojson.Json_error msg ->
-          failwith (Printf.sprintf "invalid JSON: %s" (describe_json_error msg))
-      in
-      let data = load_theme_data_from_json ?base_dir ~visited:[] json in
-      let name = Option.value data.name_opt ~default:"unnamed" in
-      finalize_theme ~name ~kind:data.kind ~colors:data.colors
-        ~fg_legacy:data.fg_legacy ~bg_legacy:data.bg_legacy
-        ~token_colors:data.token_colors
-  )
+  let* data = load_theme_data_from_path ~visited:[ normalize_path path ] path in
+  Ok (theme_of_data ~default_name:(Filename.basename path) data)
 
 let load ?base_dir str =
-  try Ok (load_exn ?base_dir str) with Failure msg -> Error msg
+  let* json =
+    match Yojson.Basic.from_string str with
+    | json ->
+        Ok json
+    | exception Yojson.Json_error msg ->
+        Error
+          (Error.Theme_error
+             {
+               path = None;
+               message = "invalid JSON: " ^ describe_json_error msg;
+             }
+          )
+  in
+  let* data = load_theme_data_from_json ?base_dir ~visited:[] json in
+  Ok (theme_of_data ~default_name:"unnamed" data)
 
 let load_builtin json ~name =
-  let theme = load_exn json in
-  { theme with name }
+  match load json with
+  | Ok (theme, _) ->
+      { theme with name }
+  | Error _ ->
+      make ~name ~token_colors:[] ()
 
-let lazy_builtin json ~name = lazy (load_builtin json ~name)
+let dark = load_builtin Theme_builtin_json.dark_plus ~name:"dark"
+let light = load_builtin Theme_builtin_json.light_plus ~name:"light"
+let tokyonight = load_builtin Theme_builtin_json.tokyo_night ~name:"tokyonight"
+let everforest =
+  load_builtin Theme_builtin_json.everforest_dark ~name:"everforest"
+let ayu = load_builtin Theme_builtin_json.ayu_dark ~name:"ayu"
+let catppuccin =
+  load_builtin Theme_builtin_json.catppuccin_mocha ~name:"catppuccin"
 
-let lazy_themes : (string * theme Lazy.t) list =
+let catppuccin_macchiato =
+  load_builtin Theme_builtin_json.catppuccin_macchiato
+    ~name:"catppuccin-macchiato"
+
+let gruvbox =
+  load_builtin Theme_builtin_json.gruvbox_dark_medium ~name:"gruvbox"
+let kanagawa = load_builtin Theme_builtin_json.kanagawa_wave ~name:"kanagawa"
+let nord = load_builtin Theme_builtin_json.nord ~name:"nord"
+
+let matrix =
+  make ~name:"matrix"
+    ~colors:
+      [
+        ("editor.foreground", Color.rgb 0x00 0xff 0x41);
+        ("editor.background", Color.rgb 0x00 0x00 0x00);
+      ]
+    ~token_colors:
+      [
+        rule ~scope:[ "comment" ] ~foreground:(Color.rgb 0x00 0x8f 0x11)
+          ~font_style:{ Style.plain with italic = true }
+          ();
+        rule ~scope:[ "string" ] ~foreground:(Color.rgb 0x00 0xcc 0x33) ();
+        rule ~scope:[ "constant.numeric" ]
+          ~foreground:(Color.rgb 0x66 0xff 0x66) ();
+        rule ~scope:[ "keyword" ] ~foreground:(Color.rgb 0x39 0xff 0x14) ();
+        rule ~scope:[ "entity.name.function" ]
+          ~foreground:(Color.rgb 0x00 0xff 0x99) ();
+        rule ~scope:[ "entity.name.type" ]
+          ~foreground:(Color.rgb 0x00 0xff 0x66) ();
+      ]
+    ()
+
+let one_dark = load_builtin Theme_builtin_json.one_dark_pro ~name:"one-dark"
+
+let themes =
   [
-    ("dark", lazy_builtin Theme_builtin_json.dark_plus ~name:"dark");
-    ("light", lazy_builtin Theme_builtin_json.light_plus ~name:"light");
-    ( "tokyonight",
-      lazy_builtin Theme_builtin_json.tokyo_night ~name:"tokyonight"
-    );
-    ( "everforest",
-      lazy_builtin Theme_builtin_json.everforest_dark ~name:"everforest"
-    );
-    ("ayu", lazy_builtin Theme_builtin_json.ayu_dark ~name:"ayu");
-    ( "catppuccin",
-      lazy_builtin Theme_builtin_json.catppuccin_mocha ~name:"catppuccin"
-    );
-    ( "catppuccin-macchiato",
-      lazy_builtin Theme_builtin_json.catppuccin_macchiato
-        ~name:"catppuccin-macchiato"
-    );
-    ( "gruvbox",
-      lazy_builtin Theme_builtin_json.gruvbox_dark_medium ~name:"gruvbox"
-    );
-    ("kanagawa", lazy_builtin Theme_builtin_json.kanagawa_wave ~name:"kanagawa");
-    ("nord", lazy_builtin Theme_builtin_json.nord ~name:"nord");
-    ( "matrix",
-      lazy
-        (make ~name:"matrix"
-           ~colors:
-             [
-               ("editor.foreground", "#00ff41"); ("editor.background", "#000000");
-             ]
-           ~token_colors:
-             [
-               rule ~scope:[ "comment" ] ~foreground:"#008f11"
-                 ~font_style:[ Italic ] ();
-               rule ~scope:[ "string" ] ~foreground:"#00cc33" ();
-               rule ~scope:[ "constant.numeric" ] ~foreground:"#66ff66" ();
-               rule ~scope:[ "keyword" ] ~foreground:"#39ff14" ();
-               rule ~scope:[ "entity.name.function" ] ~foreground:"#00ff99" ();
-               rule ~scope:[ "entity.name.type" ] ~foreground:"#00ff66" ();
-             ]
-           ()
-        )
-    );
-    ("one-dark", lazy_builtin Theme_builtin_json.one_dark_pro ~name:"one-dark");
+    ("dark", dark);
+    ("light", light);
+    ("tokyonight", tokyonight);
+    ("everforest", everforest);
+    ("ayu", ayu);
+    ("catppuccin", catppuccin);
+    ("catppuccin-macchiato", catppuccin_macchiato);
+    ("gruvbox", gruvbox);
+    ("kanagawa", kanagawa);
+    ("nord", nord);
+    ("matrix", matrix);
+    ("one-dark", one_dark);
   ]
 
-let find name =
-  match List.assoc_opt name lazy_themes with
-  | Some t ->
-      Some (Lazy.force t)
-  | None ->
-      None
-
-let available_names = List.map fst lazy_themes
-let themes = List.map (fun (name, t) -> (name, Lazy.force t)) lazy_themes
-let dark = Lazy.force (List.assoc "dark" lazy_themes)
-let light = Lazy.force (List.assoc "light" lazy_themes)
-let tokyonight = Lazy.force (List.assoc "tokyonight" lazy_themes)
-let everforest = Lazy.force (List.assoc "everforest" lazy_themes)
-let ayu = Lazy.force (List.assoc "ayu" lazy_themes)
-let catppuccin = Lazy.force (List.assoc "catppuccin" lazy_themes)
-let catppuccin_macchiato =
-  Lazy.force (List.assoc "catppuccin-macchiato" lazy_themes)
-let gruvbox = Lazy.force (List.assoc "gruvbox" lazy_themes)
-let kanagawa = Lazy.force (List.assoc "kanagawa" lazy_themes)
-let nord = Lazy.force (List.assoc "nord" lazy_themes)
-let matrix = Lazy.force (List.assoc "matrix" lazy_themes)
-let one_dark = Lazy.force (List.assoc "one-dark" lazy_themes)
+let available_names = List.map fst themes
+let find name = List.assoc_opt name themes

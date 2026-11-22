@@ -54,22 +54,22 @@ Alternative fg/bg keys
 Load built-in dark theme
   $ ./test_theme.exe builtin-dark
   name: dark
-  fg: #D4D4D4
-  bg: #1E1E1E
+  fg: #d4d4d4
+  bg: #1e1e1e
   rules: 65
 
 Load built-in light theme
   $ ./test_theme.exe builtin-light
   name: light
   fg: #000000
-  bg: #FFFFFF
+  bg: #ffffff
   rules: 64
 
 Load by alias with name-or-path API
   $ ./test_theme.exe load-dark-alias
   name: dark
-  fg: #D4D4D4
-  bg: #1E1E1E
+  fg: #d4d4d4
+  bg: #1e1e1e
   rules: 65
 
 Built-in theme catalog includes all shipped themes

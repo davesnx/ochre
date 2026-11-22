@@ -15,7 +15,7 @@
 
 (test
  (name test_ochre)
- (libraries ochre alcotest unix tm-grammars))
+ (libraries ochre ochre.textmate_language yojson alcotest unix tm-grammars))
 
 (executables
  (names test_html test_html_dual_theme test_svg)
@@ -112,3 +112,7 @@
  (alias runtest)
  (action
   (diff html-dual-theme-preview.html html-dual-theme-preview.html.gen)))
+
+(test
+ (name test_model)
+ (libraries ochre alcotest))

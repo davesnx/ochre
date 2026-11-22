@@ -39,17 +39,17 @@ let find_grammar name =
   | None ->
       failwith (Printf.sprintf "grammar %s not found in tm-grammars" name)
 
-let ocaml_highlighter = Ochre.load_exn [ find_grammar "ocaml" ]
+let ocaml_highlighter = Test_html_common.get_ok (Ochre.load [ find_grammar "ocaml" ])
 
 let html_highlighter =
   let grammars = List.map find_grammar [ "html"; "css"; "javascript" ] in
-  Ochre.load_exn grammars
+  Test_html_common.get_ok (Ochre.load grammars)
 
 let render_theme_block ~highlighter ~lang ~source theme_name =
   match Ochre.Theme.find theme_name with
   | Some theme ->
       let theme_name = JSX.string theme_name in
-      let highlighted = JSX.unsafe (Ochre.to_html highlighter ~theme ~lang source) in
+      let highlighted = JSX.unsafe (Ochre.to_html (Ochre.highlight ~theme ~lang:(Test_html_common.lang highlighter lang) source)) in
       <section style="display:grid;gap:8px">
         <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#1f1f1f">
           theme_name

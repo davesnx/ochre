@@ -75,13 +75,6 @@ SVG width counts display cells
   "ab\r\n" -> width 37
   "\240\159\152\128" -> width 37
 
-SVG text has the theme foreground as fill
-  $ ./test_formats.exe svg-fill
-  <svg xmlns="http://www.w3.org/2000/svg" width="62" height="38" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px">
-   <rect width="100%" height="100%" fill="#1e1e1e"/>
-    <text x="10" y="24.0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px" fill="#d4d4d4" xml:space="preserve"><tspan font-weight="bold">let</tspan> x</text>
-  </svg>
-
 Underline and strikethrough share one text-decoration
   $ ./test_formats.exe html-underline-strike
   <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span style="text-decoration:var(--ochre-text-decoration,underline line-through);color:var(--ochre,#ff0000)">let</span><span style="color:var(--ochre,#d4d4d4)"> x</span></span></code></pre>
@@ -148,6 +141,6 @@ Transform hooks run phase by phase
 
 A label used twice is an error
   $ ./test_formats.exe duplicate-labels
-  primary and extra share a label: Invalid_argument Render_html.render: the theme label "test-theme" is used twice (after replacing characters outside A-Za-z0-9_-); each theme needs its own label, and the default theme is labelled by ?label or its name when default_color is No_default_color
-  default color, same label is fine: rendered
-  two extras: Invalid_argument Render_html.render: the theme label "a_b" is used twice (after replacing characters outside A-Za-z0-9_-); each theme needs its own label, and the default theme is labelled by ?label or its name when default_color is No_default_color
+  primary and extra share a label: the theme label "test-theme" is used twice (after replacing characters outside A-Za-z0-9_-); each theme needs its own label
+  two extras: the theme label "a_b" is used twice (after replacing characters outside A-Za-z0-9_-); each theme needs its own label
+  distinct labels: rendered
