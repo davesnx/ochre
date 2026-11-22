@@ -155,32 +155,82 @@ let sampled_langs ~samples =
     )
     Tm_grammars.all
 
-let line_time_limit = 0.25
+let bundled_collection =
+  lazy
+    (let t = TmLanguage.create () in
+     let grammars =
+       List.map
+         (fun (lang, json) ->
+           let grammar =
+             TmLanguage.of_yojson_exn (Yojson.Basic.from_string json)
+           in
+           TmLanguage.add_grammar t grammar;
+           (lang, grammar)
+         )
+         Tm_grammars.all
+     in
+     (t, grammars)
+    )
 
-let timed f =
-  let start = Unix.gettimeofday () in
-  let result = f () in
-  (result, Unix.gettimeofday () -. start)
+let vendored_tokens ?time_limit lang source =
+  let t, grammars = Lazy.force bundled_collection in
+  let grammar = List.assoc lang grammars in
+  let lines = source_lines source in
+  let last = List.length lines - 1 in
+  let lines =
+    List.mapi
+      (fun i line ->
+        if i < last || String.ends_with ~suffix:"\n" source then
+          line ^ "\n"
+        else
+          line
+      )
+      lines
+  in
+  List.fold_left_map
+    (fun stack line ->
+      let tokens, stack =
+        TmLanguage.tokenize_exn ?time_limit t grammar stack line
+      in
+      ( stack,
+        List.map
+          (fun tok -> (TmLanguage.ending tok, TmLanguage.scopes tok))
+          tokens
+      )
+    )
+    TmLanguage.empty lines
+  |> snd
+
+let first_difference a b =
+  let rec go i a b =
+    match (a, b) with
+    | [], [] ->
+        None
+    | x :: xs, y :: ys when x = y ->
+        go (i + 1) xs ys
+    | _ ->
+        Some i
+  in
+  go 1 a b
 
 let check_sample ~samples lang () =
   let source = read_file (sample_path ~samples lang) in
   let hl = Lazy.force bundled_highlighter in
-  let tokens = ochre_tokens hl ~lang source in
   let text =
-    tokens
+    ochre_tokens hl ~lang source
     |> List.concat_map (List.map (fun tok -> tok.text))
     |> String.concat ""
   in
   Alcotest.(check string) "token texts join back to the sample" source text;
-  let fastest =
-    List.init 3 (fun _ -> snd (timed (fun () -> ochre_tokens hl ~lang source)))
-    |> List.fold_left Float.min Float.infinity
-  in
-  if fastest >= line_time_limit then
-    Alcotest.failf
-      "%s: the fastest of 3 runs took %.3f s, so a line may have hit the %.2f \
-       s time limit"
-      lang fastest line_time_limit
+  match
+    first_difference
+      (vendored_tokens lang source)
+      (vendored_tokens ~time_limit:Float.infinity lang source)
+  with
+  | None ->
+      ()
+  | Some line ->
+      Alcotest.failf "%s: line %d hit the tokenizer time limit" lang line
 
 let parity_failures ~samples ~golden lang =
   let source = read_file (sample_path ~samples lang) in
@@ -282,7 +332,7 @@ let prepare ~samples ~out =
       out
   in
   let grammars_dir = Filename.concat out "grammars" in
-  Sys.mkdir grammars_dir 0o755;
+  if not (Sys.file_exists grammars_dir) then Sys.mkdir grammars_dir 0o755;
   let bundled =
     List.map
       (fun (lang, json) ->
@@ -329,8 +379,13 @@ let prepare ~samples ~out =
 
 let read_vscode path =
   let member key = function
-    | `Assoc fields ->
-        List.assoc key fields
+    | `Assoc fields -> (
+        match List.assoc_opt key fields with
+        | Some value ->
+            value
+        | None ->
+            failwith ("vscode output: missing key " ^ key)
+      )
     | _ ->
         failwith ("vscode output: expected an object with " ^ key)
   in
@@ -419,5 +474,12 @@ let () =
       write_golden ~vscode ~golden
   | [ _; "report"; vscode; samples; report ] ->
       write_report ~vscode ~samples ~report
-  | _ ->
+  | [ _ ] ->
       run_tests ()
+  | _ ->
+      prerr_endline
+        "Usage: test_conformance.exe\n\
+        \       test_conformance.exe prepare SAMPLES OUT\n\
+        \       test_conformance.exe golden VSCODE_JSON GOLDEN_DIR\n\
+        \       test_conformance.exe report VSCODE_JSON SAMPLES REPORT";
+      exit 2

@@ -104,7 +104,8 @@ async function checkBundledGrammarsMatchNpm(bundled) {
     fail(
       `npm tm-grammars ${npmVersion} is not the version opam tm-grammars was built from: ` +
         `${differing.join(", ")} differ. Pin the matching version in test/conformance/package.json ` +
-        `and refresh test/conformance/samples/ from the same commit.`
+        `and refresh test/conformance/samples/ from the same commit. If a listed grammar does not ` +
+        `come from shikijs/textmate-grammars-themes, add it to notFromNpm.`
     );
   }
 }

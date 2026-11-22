@@ -7,14 +7,13 @@ This directory compares ochre's tokens with the tokens of `vscode-textmate`
 
 `test_conformance.ml` runs with `make test` and needs no Node. It tokenizes
 `samples/<lang>.sample` with every bundled grammar of the opam `tm-grammars`
-package, through the public `Ochre` API.
+package, through the public `Ochre` API except where noted.
 
 - Every grammar with a sample: no exception, the token texts join back to the
-  sample, and the sample tokenizes in less than 0.25 s. The 0.25 s is the
-  tokenizer's time limit for one line; ochre's API does not report a hit, so a
-  sample that takes less than the limit in total proves that no line hit it.
-  The first run compiles the grammar's regexes and is not timed; the check
-  uses the fastest of the 3 runs after it.
+  sample, and no line hits the tokenizer's time limit. Ochre's API does not
+  report a hit, so this check uses the vendored tokenizer directly: it
+  tokenizes the sample with the default limits and again with no time limit,
+  and fails at the first line where the two differ.
 - Every grammar on the `parity` list: each line's token texts and scope stacks
   equal `golden/<lang>.json`, which `vscode-textmate` wrote. A grammar in
   `expected_failures` must still differ; when it starts to match, the test
