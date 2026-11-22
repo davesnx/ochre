@@ -300,8 +300,52 @@ let lang_of_label label =
   | _ ->
       None
 
-let code_figure ~label ~code () =
+let merlin_load_path =
+  let site_dir = Filename.dirname Sys.executable_name in
+  List.map
+    (fun cmi ->
+      let dir = Filename.dirname cmi in
+      if Filename.is_relative dir then
+        Filename.concat site_dir dir
+      else
+        dir
+    )
+    [ Load_path.ochre; Load_path.tm_grammars; Load_path.tm_grammar_ocaml ]
+
+let first_line text =
+  match String.index_opt text '\n' with
+  | Some i ->
+      String.sub text 0 i
+  | None ->
+      text
+
+let ocaml_decorations ~source code =
+  let { Ochre_merlin.decorations; diagnostics } =
+    Ochre_merlin.analyze ~load_path:merlin_load_path code
+  in
+  ( match diagnostics with
+  | [] ->
+      ()
+  | first :: _ ->
+      Printf.eprintf
+        "warning: %s: OCaml block %S has %d diagnostic(s), first at line %d: \
+         %s\n\
+         %!"
+        source (first_line code) (List.length diagnostics)
+        (first.start.line + 1) (first_line first.message)
+  );
+  decorations
+
+let code_figure ~source ~section ~label ~code () =
   let lang = lang_of_label label in
+  let code = trim_trailing_newlines code in
+  let decorations =
+    match lang with
+    | Some "ocaml" when section = Guide ->
+        ocaml_decorations ~source code
+    | _ ->
+        []
+  in
   let options =
     Ochre.Html_options.make ~pre_class:"doc-code__pre"
       ~code_class:"doc-code__code" ()
@@ -309,9 +353,10 @@ let code_figure ~label ~code () =
   let highlighted =
     Ochre.to_html ~options
       (get_ok
-         (Ochre.highlight_themes ~theme:doc_light ~extra_themes:[ doc_dark ]
+         (Ochre.highlight_themes ~decorations ~theme:doc_light
+            ~extra_themes:[ doc_dark ]
             ~lang:(Option.fold ~none:Ochre.Lang.plaintext ~some:find_lang lang)
-            (trim_trailing_newlines code)
+            code
          )
       )
   in
@@ -376,7 +421,10 @@ let markdown_body ~pages ~current markdown =
     | Omd.Html_block (_, html) when String.starts_with ~prefix:"<!--" html ->
         None
     | Omd.Code_block (_, label, code) ->
-        Some (code_figure ~label ~code ())
+        Some
+          (code_figure ~source:current.source_name ~section:current.section
+             ~label ~code ()
+          )
     | block ->
         Some (JSX.unsafe (Omd.to_html [ block ]))
     )
@@ -600,6 +648,7 @@ let page ~pages ~current () =
       <script>(JSX.unsafe theme_init_script)</script>
       <link rel="stylesheet" href="assets/fonts.css" />
       <style>(JSX.unsafe doc_theme_css)</style>
+      <style>(JSX.unsafe Ochre_merlin.css)</style>
       <link rel="stylesheet" href="assets/index.css" />
       <script src="assets/index.js" defer=true />
     </head>
