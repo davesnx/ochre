@@ -87,6 +87,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Drop packages that need OCaml 5.4
+        run: rm ochre-merlin.opam
+
       - name: Setup OCaml and dependencies
         uses: ml-in-barcelona/gh-ci-action@v1.2.0
         with:
