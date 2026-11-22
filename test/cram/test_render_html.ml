@@ -224,7 +224,10 @@ let () =
                 "missing " ^ String.concat " " missing
             )
         )
-        Ochre.Theme.themes
+        (List.map
+           (fun (name, json) -> (name, Ochre.Theme.load_exn json))
+           Tm_themes.all
+        )
   | "theme-css-combined-rule" ->
       let combined =
         Ochre.Theme.make ~name:"combined"

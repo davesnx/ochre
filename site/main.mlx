@@ -234,9 +234,21 @@ let highlighter =
   Ochre.load_exn (List.map (fun (lang, json, _) -> (lang, json)) languages)
 
 let themes =
-  List.filter_map
-    (fun name -> Option.map (fun t -> (name, t)) (Ochre.Theme.find name))
-    Ochre.Theme.available_names
+  List.map
+    (fun (name, json) -> (name, Ochre.Theme.load_exn json))
+    [
+      ("dark-plus", Tm_themes.dark_plus);
+      ("light-plus", Tm_themes.light_plus);
+      ("tokyo-night", Tm_themes.tokyo_night);
+      ("everforest-dark", Tm_themes.everforest_dark);
+      ("ayu-dark", Tm_themes.ayu_dark);
+      ("catppuccin-mocha", Tm_themes.catppuccin_mocha);
+      ("catppuccin-macchiato", Tm_themes.catppuccin_macchiato);
+      ("gruvbox-dark-medium", Tm_themes.gruvbox_dark_medium);
+      ("kanagawa-wave", Tm_themes.kanagawa_wave);
+      ("nord", Tm_themes.nord);
+      ("one-dark-pro", Tm_themes.one_dark_pro);
+    ]
 
 let ocaml_ident name = String.map (function '-' -> '_' | c -> c) name
 
@@ -273,8 +285,8 @@ let trim_trailing_newlines text =
   in
   String.sub text 0 (last (String.length text - 1) + 1)
 
-let doc_light = Ochre.Theme.light
-let doc_dark = ("doc-dark", Ochre.Theme.gruvbox)
+let doc_light = Ochre.Theme.load_exn Tm_themes.light_plus
+let doc_dark = ("doc-dark", Ochre.Theme.load_exn Tm_themes.gruvbox_dark_medium)
 
 let doc_theme_css =
   Printf.sprintf ":root[data-doc-theme=\"dark\"] {\n%s\n}"
@@ -401,7 +413,7 @@ let playground_html =
           highlight ~lang:"ocaml"
             (Printf.sprintf
                "let hl = Ochre.load_exn [ (%S, Tm_grammars.%s) ] in\n\
-                Ochre.to_html hl ~theme:Ochre.Theme.%s ~lang:%S source"
+                Ochre.to_html hl ~theme:(Ochre.Theme.load_exn Tm_themes.%s) ~lang:%S source"
                lang (ocaml_ident lang) placeholder lang
             )
         in
@@ -431,7 +443,7 @@ let playground_html =
 %s
 </style>
 <h1>Playground</h1>
-<p>Every built-in theme of <code>Ochre.Theme</code> with grammars from <a href="https://github.com/davesnx/tm-grammars">tm-grammars</a>. Pick a theme and a language; the code below produces the block above.</p>
+<p>Themes from <a href="https://github.com/davesnx/tm-grammars">tm-themes</a> with grammars from <a href="https://github.com/davesnx/tm-grammars">tm-grammars</a>. Pick a theme and a language; the code below produces the block above.</p>
 <div class="playground" id="playground">
 <div class="playground__toolbar">
 <label>Theme <select id="playground-theme">%s</select></label>

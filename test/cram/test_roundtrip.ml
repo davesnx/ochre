@@ -11,7 +11,7 @@ let grammar_json =
 }|}
 
 let hl = Ochre.load_exn [ ("test", grammar_json) ]
-let theme = Ochre.Theme.dark
+let theme = Ochre.Theme.load_exn Tm_themes.dark_plus
 
 let alphabet =
   [|

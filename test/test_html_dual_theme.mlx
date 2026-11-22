@@ -1,8 +1,8 @@
 let render_page ~highlighter ~source =
   let highlighted =
     JSX.unsafe
-      (Ochre.to_html highlighter ~theme:Ochre.Theme.light
-         ~extra_themes:[ ("dark", Ochre.Theme.dark) ]
+      (Ochre.to_html highlighter ~theme:(Ochre.Theme.load_exn Tm_themes.light_plus)
+         ~extra_themes:[ ("dark", Ochre.Theme.load_exn Tm_themes.dark_plus) ]
          ~lang:"ocaml" source
       )
   in

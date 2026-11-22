@@ -154,7 +154,7 @@ let resolve_themes ?theme ?label ?(extra_themes = []) () =
   | None, (first_label, first_theme) :: rest ->
       (Some (Option.value label ~default:first_label), first_theme, rest)
   | None, [] ->
-      (label, Theme.dark, [])
+      (label, Theme.default, [])
 
 let to_html t ?(decorations = []) ?(transforms = []) ?options ?theme ?label
     ?extra_themes ~lang source =

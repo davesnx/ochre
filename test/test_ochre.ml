@@ -10,6 +10,10 @@ let grammar_json =
   ]
 }|}
 
+let dark_plus = Ochre.Theme.load_exn Tm_themes.dark_plus
+let light_plus = Ochre.Theme.load_exn Tm_themes.light_plus
+let nord = Ochre.Theme.load_exn Tm_themes.nord
+
 let highlight () =
   let path = "test.tmLanguage.json" in
   let oc = open_out path in
@@ -46,10 +50,18 @@ let test_theme_loading () =
   Alcotest.(check string) "theme bg" "#ffffff" theme.bg;
   Alcotest.(check int) "token_colors length" 1 (List.length theme.token_colors)
 
+let test_default_theme_without_theme () =
+  let highlighter = highlight () in
+  let source = "let x = 1 # note" in
+  Alcotest.(check string)
+    "to_html without ~theme uses Theme.default"
+    (Ochre.to_html highlighter ~theme:Ochre.Theme.default ~lang:"test" source)
+    (Ochre.to_html highlighter ~lang:"test" source)
+
 let test_source_text_is_preserved () =
   let highlighter = highlight () in
   let rendered_source source =
-    Ochre.to_tokens highlighter ~theme:Ochre.Theme.dark ~lang:"test" source
+    Ochre.to_tokens highlighter ~theme:dark_plus ~lang:"test" source
     |> List.concat
     |> List.map (fun (token : Ochre.Token.styled_token) -> token.text)
     |> String.concat ""
@@ -336,7 +348,7 @@ let test_default_highlight_shows_on_light_and_dark () =
       let lit = Ochre.to_ansi highlighter ~transforms ~theme ~lang:"test" "x" in
       Alcotest.(check bool) (name ^ ": highlight is visible") true (plain <> lit)
     )
-    [ ("dark", Ochre.Theme.dark); ("light", Ochre.Theme.light) ]
+    [ ("dark", dark_plus); ("light", light_plus) ]
 
 let test_transform_before_render_then_line () =
   let doc : Ochre.Token.highlighted_code =
@@ -806,7 +818,7 @@ let invalid_utf8_highlighter =
 
 let test_invalid_utf8_keeps_bytes () =
   let hl = Lazy.force invalid_utf8_highlighter in
-  let theme = Ochre.Theme.dark in
+  let theme = dark_plus in
   List.iter
     (fun (lang, source) ->
       let label = Printf.sprintf "%s %S" lang source in
@@ -839,7 +851,7 @@ let test_invalid_utf8_keeps_bytes () =
 let test_invalid_utf8_does_not_split_valid_text () =
   let hl = Lazy.force invalid_utf8_highlighter in
   let tokens =
-    Ochre.to_tokens hl ~theme:Ochre.Theme.dark ~lang:"json"
+    Ochre.to_tokens hl ~theme:dark_plus ~lang:"json"
       "{\"a\": \"\xff\", \"b\": 12}\n"
   in
   let texts =
@@ -914,7 +926,7 @@ let sweep_corpus =
 
 let test_every_bundled_grammar_covers_the_source () =
   let hl = Ochre.load_exn Tm_grammars.all in
-  let theme = Ochre.Theme.nord in
+  let theme = nord in
   let failures =
     List.concat_map
       (fun (lang, _) ->
@@ -1263,8 +1275,7 @@ let test_deep_nesting_theme_matching () =
   let hl = Lazy.force invalid_utf8_highlighter in
   check_under ~seconds:30.0 "json 1600 deep" (fun () ->
       ignore
-        ( Ochre.to_tokens hl ~theme:Ochre.Theme.nord ~lang:"json"
-            (deep_json_objects 1600)
+        ( Ochre.to_tokens hl ~theme:nord ~lang:"json" (deep_json_objects 1600)
           : Ochre.Token.highlighted_code
           )
   )
@@ -1278,7 +1289,7 @@ let test_long_nested_line_theme () =
     (fun lang ->
       check_under ~seconds:2.0 (lang ^ " 9999 brackets") (fun () ->
           ignore
-            ( Ochre.to_tokens hl ~theme:Ochre.Theme.dark ~lang source
+            ( Ochre.to_tokens hl ~theme:dark_plus ~lang source
               : Ochre.Token.highlighted_code
               )
       )
@@ -1315,8 +1326,7 @@ let test_decorations_scale () =
   in
   check_under ~seconds:10.0 "40k lines x 4k decorations" (fun () ->
       let tokens =
-        Ochre.to_tokens hl ~decorations ~theme:Ochre.Theme.nord
-          ~lang:"plaintext" source
+        Ochre.to_tokens hl ~decorations ~theme:nord ~lang:"plaintext" source
       in
       let decorated =
         List.concat tokens
@@ -1334,9 +1344,7 @@ let test_multi_theme_transform_shape_mismatch () =
       ~after_line:(fun ~line_index:_ line ->
         List.concat_map
           (fun (tok : Ochre.Token.styled_token) ->
-            if
-              tok.foreground <> Some Ochre.Theme.dark.fg
-              && String.length tok.text > 1
+            if tok.foreground <> Some dark_plus.fg && String.length tok.text > 1
             then
               [
                 { tok with text = String.sub tok.text 0 1 };
@@ -1352,8 +1360,8 @@ let test_multi_theme_transform_shape_mismatch () =
     )
   in
   match
-    Ochre.to_html hl ~transforms:[ split_light ] ~theme:Ochre.Theme.dark
-      ~extra_themes:[ ("nord", Ochre.Theme.nord) ]
+    Ochre.to_html hl ~transforms:[ split_light ] ~theme:dark_plus
+      ~extra_themes:[ ("nord", nord) ]
       ~lang:"plaintext" "hello\n"
   with
   | _ ->
@@ -1367,7 +1375,7 @@ let test_long_line_is_not_quadratic () =
     let source = long_arithmetic_line n in
     min_time_of 3 (fun () ->
         let (_ : string) =
-          Ochre.to_html hl ~theme:Ochre.Theme.dark ~lang:"ocaml" source
+          Ochre.to_html hl ~theme:dark_plus ~lang:"ocaml" source
         in
         ()
     )
@@ -1628,7 +1636,7 @@ let test_notation_highlight_with_highlighter () =
 
 let test_plaintext_langs () =
   let hl = Ochre.load_exn [] in
-  let theme = Ochre.Theme.dark in
+  let theme = dark_plus in
   List.iter
     (fun lang ->
       match Ochre.to_tokens hl ~theme ~lang "hello\nworld" with
@@ -1782,7 +1790,7 @@ let test_load_rejects_duplicate_ids () =
       Alcotest.fail "expected duplicate language id to be rejected"
 
 let test_bundled_grammars_that_used_to_fail_to_load () =
-  let theme = Ochre.Theme.dark in
+  let theme = dark_plus in
   List.iter
     (fun (lang, json, sample) ->
       match Ochre.load [ (lang, json) ] with
@@ -1814,8 +1822,8 @@ let test_bundled_grammars_that_used_to_fail_to_load () =
 let test_to_string_html_options_extra_themes () =
   let hl = highlight () in
   let options = Ochre.Html_options.make ~line_numbers:true () in
-  let extra_themes = [ ("dark", Ochre.Theme.nord) ] in
-  let theme = Ochre.Theme.light in
+  let extra_themes = [ ("dark", nord) ] in
+  let theme = light_plus in
   let source = "let x = 42" in
   let via_to_string =
     Ochre.to_string hl ~format:Ochre.Html ~options ~extra_themes ~theme
@@ -1849,6 +1857,8 @@ let () =
         [
           test_case "Load theme from string" `Quick test_theme_loading;
           test_case "Make raw theme" `Quick test_theme_make_raw;
+          test_case "Default theme when none is given" `Quick
+            test_default_theme_without_theme;
         ]
       );
       ( "source",

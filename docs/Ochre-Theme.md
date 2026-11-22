@@ -163,68 +163,13 @@ val rule :
 Construct a token color rule.
 
 
-### available\_names
+### default
 
 ```ocaml
-val available_names : string list
+val default : theme
 ```
-Names of all built-in themes.
-
-
-### find
+A small dark theme with the colours of `dark-plus`, used when no theme is given. Load full themes from the `tm-themes` package:
 
 ```ocaml
-val find : string -> theme option
-```
-Look up a built-in theme by name. Returns `None` when the name is not recognised.
-
-```ocaml
-let theme = Ochre.Theme.find "nord"
-```
-
-### themes
-
-```ocaml
-val themes : (string * theme) list
-```
-All built-in themes as `(name, theme)` pairs.
-
-
-### Built-in themes
-
-```ocaml
-val dark : theme
-```
-```ocaml
-val light : theme
-```
-```ocaml
-val tokyonight : theme
-```
-```ocaml
-val everforest : theme
-```
-```ocaml
-val ayu : theme
-```
-```ocaml
-val catppuccin : theme
-```
-```ocaml
-val catppuccin_macchiato : theme
-```
-```ocaml
-val gruvbox : theme
-```
-```ocaml
-val kanagawa : theme
-```
-```ocaml
-val nord : theme
-```
-```ocaml
-val matrix : theme
-```
-```ocaml
-val one_dark : theme
+let theme = Ochre.Theme.load_exn Tm_themes.nord
 ```

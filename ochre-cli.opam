@@ -15,6 +15,7 @@ depends: [
   "ocaml" {>= "4.14.0"}
   "ochre"
   "tm-grammars" {>= "2.0.0"}
+  "tm-themes"
   "cmdliner" {>= "1.1.0"}
   "dune-build-info"
   "ezjsonm" {with-test}
@@ -37,3 +38,6 @@ build: [
 ]
 dev-repo: "git+https://github.com/davesnx/ochre.git"
 x-maintenance-intent: ["(latest)"]
+pin-depends: [
+  ["tm-themes.dev" "git+https://github.com/davesnx/tm-grammars.git#tm-themes"]
+]

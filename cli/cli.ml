@@ -90,22 +90,21 @@ let detect_theme_mode () =
           Option.value (from_colorfgbg ()) ~default:Dark
     )
 
-let builtin_theme name = Ochre.Theme.find name
+let named_theme name = Option.map Ochre.Theme.load (Tm_themes.find name)
 
-let default_theme =
-  let fallback =
-    match detect_theme_mode () with Dark -> "dark" | Light -> "light"
-  in
-  match builtin_theme fallback with
-  | Some theme ->
-      theme
-  | None ->
-      failwith ("Missing built-in theme: " ^ fallback)
+let default_theme () =
+  Ochre.Theme.load
+    ( match detect_theme_mode () with
+    | Dark ->
+        Tm_themes.dark_plus
+    | Light ->
+        Tm_themes.light_plus
+    )
 
 let resolve_theme_name_or_path name_or_path =
-  match builtin_theme name_or_path with
-  | Some theme ->
-      Ok theme
+  match named_theme name_or_path with
+  | Some result ->
+      result
   | None ->
       if Sys.file_exists name_or_path then
         match Ochre.Theme.load_from_file name_or_path with
@@ -118,10 +117,10 @@ let resolve_theme_name_or_path name_or_path =
       else
         Error
           (Printf.sprintf
-             "Unknown theme '%s': not a built-in name and not a file. \
-              Available: %s"
+             "Unknown theme '%s': not a theme name and not a file. Available: \
+              %s"
              name_or_path
-             (String.concat ", " Ochre.Theme.available_names)
+             (String.concat ", " Tm_themes.available)
           )
 
 let error msg = `Error (false, msg)
@@ -164,7 +163,7 @@ let resolve_theme ~theme_path ~theme_dark ~theme_light =
           | Some name_or_path ->
               resolve_theme_name_or_path name_or_path
           | None ->
-              Ok default_theme
+              default_theme ()
         )
     )
 
@@ -339,10 +338,10 @@ let lang =
   Arg.(required & pos 0 (some string) None & info [] ~docv:"LANG" ~doc)
 
 let theme_path =
-  let names = String.concat ", " Ochre.Theme.available_names in
+  let names = String.concat ", " Tm_themes.available in
   let doc =
-    Printf.sprintf
-      "Theme name or path to a TextMate theme JSON file. Built-ins: %s" names
+    Printf.sprintf "Theme name or path to a TextMate theme JSON file. Names: %s"
+      names
   in
   Arg.(
     value

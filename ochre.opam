@@ -26,6 +26,7 @@ depends: [
   "yocaml" {>= "3.0.0" & with-dev-setup}
   "yocaml_unix" {>= "3.0.0" & with-dev-setup}
   "tm-grammars" {>= "2.0.0" & with-test}
+  "tm-themes" {with-test}
   "alcotest" {with-test}
   "mlx" {with-test}
   "ocamlmerlin-mlx" {with-dev-setup}
@@ -48,3 +49,6 @@ build: [
 ]
 dev-repo: "git+https://github.com/davesnx/ochre.git"
 x-maintenance-intent: ["(latest)"]
+pin-depends: [
+  ["tm-themes.dev" "git+https://github.com/davesnx/tm-grammars.git#tm-themes"]
+]

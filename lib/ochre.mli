@@ -7,7 +7,7 @@
     {@ocaml[
       let highlighter = Ochre.load_exn [ ("ocaml", ocaml_grammar_json) ] in
       let html =
-        Ochre.to_html highlighter ~theme:Ochre.Theme.nord ~lang:"ocaml"
+        Ochre.to_html highlighter ~theme:(Ochre.Theme.load_exn Tm_themes.nord) ~lang:"ocaml"
           "let x = 42"
     ]} *)
 
@@ -47,7 +47,9 @@ val load : (string * string) list -> (t, string) result
     {@ocaml[
     match Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ] with
     | Ok hl ->
-        Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+        Ochre.to_html hl
+          ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+          ~lang:"ocaml" code
     | Error msg ->
         failwith msg
     ]} *)
@@ -79,7 +81,9 @@ val load_from_files : string list -> (t, string) result
       Ochre.load_from_files [ "/usr/share/grammars/ocaml.tmLanguage.json" ]
     with
     | Ok hl ->
-        Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+        Ochre.to_html hl
+          ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+          ~lang:"ocaml" code
     | Error msg ->
         failwith msg
     ]} *)
@@ -155,9 +159,10 @@ end
 
 (** {1 Themes}
 
-    A theme maps TextMate scopes to colors and font styles. Ochre ships with
-    several built-in themes and can load any VS Code / TextMate theme from JSON.
-*)
+    A theme maps TextMate scopes to colors and font styles. Ochre loads any VS
+    Code / TextMate theme from JSON. The [tm-themes] package has the Shiki
+    themes as OCaml strings, and {!Theme.default} is a small theme for when none
+    is given. *)
 
 module Theme : sig
   (** {2 color} *)
@@ -303,40 +308,15 @@ module Theme : sig
     token_color_rule
   (** Construct a token color rule. *)
 
-  (** {2 available_names} *)
+  (** {2 default} *)
 
-  val available_names : string list
-  (** Names of all built-in themes. *)
-
-  (** {2 find} *)
-
-  val find : string -> theme option
-  (** Look up a built-in theme by name. Returns [None] when the name is not
-      recognised.
+  val default : theme
+  (** A small dark theme with the colours of [dark-plus], used when no theme is
+      given. Load full themes from the [tm-themes] package:
 
       {@ocaml[
-      let theme = Ochre.Theme.find "nord"
+      let theme = Ochre.Theme.load_exn Tm_themes.nord
       ]} *)
-
-  (** {2 themes} *)
-
-  val themes : (string * theme) list
-  (** All built-in themes as [(name, theme)] pairs. *)
-
-  (** {2 Built-in themes} *)
-
-  val dark : theme
-  val light : theme
-  val tokyonight : theme
-  val everforest : theme
-  val ayu : theme
-  val catppuccin : theme
-  val catppuccin_macchiato : theme
-  val gruvbox : theme
-  val kanagawa : theme
-  val nord : theme
-  val matrix : theme
-  val one_dark : theme
 end
 
 (** {1 Backends}
@@ -487,7 +467,9 @@ val to_html :
     Pass [~theme] for a self-contained block with inline styles:
 
     {@ocaml[
-    Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" "let x = 42"
+    Ochre.to_html hl
+      ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+      ~lang:"ocaml" "let x = 42"
     ]}
 
     {3 Multiple themes}
@@ -513,8 +495,9 @@ val to_html :
     [~theme] is omitted.
 
     {@ocaml[
-    Ochre.to_html hl ~theme:Ochre.Theme.light
-      ~extra_themes:[ ("dark", Ochre.Theme.nord) ]
+    Ochre.to_html hl
+      ~theme:(Ochre.Theme.load_exn Tm_themes.light_plus)
+      ~extra_themes:[ ("dark", Ochre.Theme.load_exn Tm_themes.nord) ]
       ~lang:"ocaml" "let x = 42"
     ]}
 
@@ -532,7 +515,7 @@ val to_html :
 
     When [~theme] is omitted but [~extra_themes] is provided, the first entry
     becomes the default. When neither [~theme] nor [~extra_themes] is provided,
-    {!Theme.dark} is used as the default.
+    {!Theme.default} is used.
 
     Pair with {!val-html_theme_css} to activate alternate themes via CSS. *)
 
@@ -601,7 +584,11 @@ val to_ansi :
     left out. Raises [Failure] if the grammar for [lang] cannot be found.
 
     {@ocaml[
-    let ansi = Ochre.to_ansi hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code in
+    let ansi =
+      Ochre.to_ansi hl
+        ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+        ~lang:"ocaml" code
+    in
     print_string ansi
     ]} *)
 
@@ -632,7 +619,11 @@ val to_latex :
     like [cat -v]. The output was not compiled with TeX.
 
     {@ocaml[
-    let latex = Ochre.to_latex hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code in
+    let latex =
+      Ochre.to_latex hl
+        ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+        ~lang:"ocaml" code
+    in
     Printf.printf "\\begin{document}\n%s\n\\end{document}" latex
     ]} *)
 
@@ -661,7 +652,10 @@ val to_svg :
     for [lang] cannot be found.
 
     {@ocaml[
-    let svg = Ochre.to_svg hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+    let svg =
+      Ochre.to_svg hl
+        ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+        ~lang:"ocaml" code
     ]} *)
 
 (** {2 to_debug_tokens} *)
@@ -682,7 +676,9 @@ val to_debug_tokens :
 
     {@ocaml[
     let debug =
-      Ochre.to_debug_tokens hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+      Ochre.to_debug_tokens hl
+        ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+        ~lang:"ocaml" code
     in
     print_string debug
     ]} *)

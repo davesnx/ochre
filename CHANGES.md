@@ -46,7 +46,10 @@
 - Breaking: change the default background of `line_highlight` and `notation_highlight` from `#ffffff22` to `#8888883a`, which shows on light themes.
 - Breaking: return a line over 10,000 bytes as one token, and stop tokenizing a line after 0.25 s.
 - Breaking: exit the CLI with `1` on input errors, `3` when the output cannot be written, and `124` on a malformed option value.
-- Add `Ochre.is_plaintext_lang` and `Ochre.Theme.themes`.
+- Breaking: remove the built-in themes (`Ochre.Theme.find`, `available_names`, `themes`, `dark`, `light`, `nord` and the others, and `matrix`). Load themes from the new `tm-themes` package with Shiki names, such as `Ochre.Theme.load_exn Tm_themes.nord`. Without a theme, `Ochre.to_html` uses the small `Ochre.Theme.default`. The CLI takes Shiki names in `--theme` (`dark-plus`, `light-plus`, `tokyo-night`, ...) and defaults to `dark-plus` or `light-plus`.
+- Breaking: make the tokens of `Ochre.html_render_theme_css` the optional `?code` argument, before the theme. Change `html_render_theme_css ~class_prefix theme tokens` to `html_render_theme_css ~class_prefix ~code:tokens theme`.
+- Add `Ochre.is_plaintext_lang`.
+- Add a whole-theme stylesheet: `Ochre.html_render_theme_css` without `~code` emits a class for every style the theme can give a token.
 - Add `?label` to `Ochre.to_html`, and `?css_variable_prefix` to `Ochre.html_theme_css` and `Ochre.html_render_theme_css`.
 - Highlight source that is not valid UTF-8 instead of raising.
 - Load 9 bundled grammars that failed before: `blade`, `codeql`, `d`, `move`, `racket`, `stata`, `swift`, `wikitext`, `xml`.

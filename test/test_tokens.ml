@@ -13,6 +13,7 @@ let source =
 let () =
   let highlighter = Ochre.load_exn [ ("ocaml", Tm_grammars.ocaml) ] in
   print_string
-    (Ochre.to_debug_tokens highlighter ~theme:Ochre.Theme.nord ~lang:"ocaml"
-       source
+    (Ochre.to_debug_tokens highlighter
+       ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+       ~lang:"ocaml" source
     )

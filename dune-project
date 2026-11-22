@@ -63,6 +63,7 @@
    (and
     (>= 2.0.0)
     :with-test))
+  (tm-themes :with-test)
   (alcotest :with-test)
   (mlx :with-test)
   (ocamlmerlin-mlx :with-dev-setup)
@@ -83,6 +84,7 @@
   ochre
   (tm-grammars
    (>= 2.0.0))
+  tm-themes
   (cmdliner
    (>= 1.1.0))
   dune-build-info

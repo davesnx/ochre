@@ -15,7 +15,7 @@ opam install ochre -y
 ## Quick start
 
 ```ocaml
-let theme = Ochre.Theme.nord in
+let theme = Ochre.Theme.default in
 let highlighter = Ochre.load_from_files_exn ["path/to/ocaml.tmLanguage.json"] in
 let source_code = "..." in
 let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" source_code
@@ -25,19 +25,19 @@ let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" source_code
 
 [tm-grammars](https://github.com/davesnx/tm-grammars) packages a collection of TextMate grammars for OCaml, so you can load grammars in `ochre` without managing JSON files on disk.
 
-Install the bundled grammar package:
+Install the grammar package, and `tm-themes` for the [Shiki themes](https://shiki.style/themes):
 
 ```
-opam install tm-grammars -y
+opam install tm-grammars tm-themes -y
 ```
 Then load a grammar from OCaml and create a highlighter:
 
 ```ocaml
-let theme = Ochre.Theme.nord in
+let theme = Ochre.Theme.load_exn Tm_themes.nord in
 let highlighter = Ochre.load_exn [ ("ocaml", Tm_grammars.ocaml) ] in
 let html = Ochre.to_html highlighter ~theme ~lang:"ocaml" "let x = 42"
 ```
-Try every built-in theme with several grammars in the [playground](https://davesnx.github.io/ochre/playground.html).
+Try several themes with several grammars in the [playground](https://davesnx.github.io/ochre/playground.html).
 
 
 ## Output formats

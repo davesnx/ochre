@@ -462,77 +462,19 @@ let load_exn ?base_dir str =
 let load ?base_dir str =
   try Ok (load_exn ?base_dir str) with Failure msg -> Error msg
 
-let load_builtin json ~name =
-  let theme = load_exn json in
-  { theme with name }
-
-let lazy_builtin json ~name = lazy (load_builtin json ~name)
-
-let lazy_themes : (string * theme Lazy.t) list =
-  [
-    ("dark", lazy_builtin Theme_builtin_json.dark_plus ~name:"dark");
-    ("light", lazy_builtin Theme_builtin_json.light_plus ~name:"light");
-    ( "tokyonight",
-      lazy_builtin Theme_builtin_json.tokyo_night ~name:"tokyonight"
-    );
-    ( "everforest",
-      lazy_builtin Theme_builtin_json.everforest_dark ~name:"everforest"
-    );
-    ("ayu", lazy_builtin Theme_builtin_json.ayu_dark ~name:"ayu");
-    ( "catppuccin",
-      lazy_builtin Theme_builtin_json.catppuccin_mocha ~name:"catppuccin"
-    );
-    ( "catppuccin-macchiato",
-      lazy_builtin Theme_builtin_json.catppuccin_macchiato
-        ~name:"catppuccin-macchiato"
-    );
-    ( "gruvbox",
-      lazy_builtin Theme_builtin_json.gruvbox_dark_medium ~name:"gruvbox"
-    );
-    ("kanagawa", lazy_builtin Theme_builtin_json.kanagawa_wave ~name:"kanagawa");
-    ("nord", lazy_builtin Theme_builtin_json.nord ~name:"nord");
-    ( "matrix",
-      lazy
-        (make ~name:"matrix"
-           ~colors:
-             [
-               ("editor.foreground", "#00ff41"); ("editor.background", "#000000");
-             ]
-           ~token_colors:
-             [
-               rule ~scope:[ "comment" ] ~foreground:"#008f11"
-                 ~font_style:[ Italic ] ();
-               rule ~scope:[ "string" ] ~foreground:"#00cc33" ();
-               rule ~scope:[ "constant.numeric" ] ~foreground:"#66ff66" ();
-               rule ~scope:[ "keyword" ] ~foreground:"#39ff14" ();
-               rule ~scope:[ "entity.name.function" ] ~foreground:"#00ff99" ();
-               rule ~scope:[ "entity.name.type" ] ~foreground:"#00ff66" ();
-             ]
-           ()
-        )
-    );
-    ("one-dark", lazy_builtin Theme_builtin_json.one_dark_pro ~name:"one-dark");
-  ]
-
-let find name =
-  match List.assoc_opt name lazy_themes with
-  | Some t ->
-      Some (Lazy.force t)
-  | None ->
-      None
-
-let available_names = List.map fst lazy_themes
-let themes = List.map (fun (name, t) -> (name, Lazy.force t)) lazy_themes
-let dark = Lazy.force (List.assoc "dark" lazy_themes)
-let light = Lazy.force (List.assoc "light" lazy_themes)
-let tokyonight = Lazy.force (List.assoc "tokyonight" lazy_themes)
-let everforest = Lazy.force (List.assoc "everforest" lazy_themes)
-let ayu = Lazy.force (List.assoc "ayu" lazy_themes)
-let catppuccin = Lazy.force (List.assoc "catppuccin" lazy_themes)
-let catppuccin_macchiato =
-  Lazy.force (List.assoc "catppuccin-macchiato" lazy_themes)
-let gruvbox = Lazy.force (List.assoc "gruvbox" lazy_themes)
-let kanagawa = Lazy.force (List.assoc "kanagawa" lazy_themes)
-let nord = Lazy.force (List.assoc "nord" lazy_themes)
-let matrix = Lazy.force (List.assoc "matrix" lazy_themes)
-let one_dark = Lazy.force (List.assoc "one-dark" lazy_themes)
+let default =
+  make ~name:"default"
+    ~colors:
+      [ ("editor.foreground", "#D4D4D4"); ("editor.background", "#1E1E1E") ]
+    ~token_colors:
+      [
+        rule ~scope:[ "comment" ] ~foreground:"#6A9955" ();
+        rule ~scope:[ "string" ] ~foreground:"#CE9178" ();
+        rule ~scope:[ "constant.numeric" ] ~foreground:"#B5CEA8" ();
+        rule ~scope:[ "keyword"; "storage.type" ] ~foreground:"#569CD6" ();
+        rule ~scope:[ "keyword.control" ] ~foreground:"#C586C0" ();
+        rule ~scope:[ "entity.name.function" ] ~foreground:"#DCDCAA" ();
+        rule ~scope:[ "entity.name.type" ] ~foreground:"#4EC9B0" ();
+        rule ~scope:[ "variable" ] ~foreground:"#9CDCFE" ();
+      ]
+    ()

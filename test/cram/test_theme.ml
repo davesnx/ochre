@@ -114,23 +114,13 @@ let test_alt_keys () =
   }|}
   |> print_theme
 
-let test_builtin_name name =
-  match Ochre.Theme.find name with
-  | Some theme ->
-      print_theme_summary theme
+let test_named name =
+  match Tm_themes.find name with
+  | Some json ->
+      print_theme_summary (Ochre.Theme.load_exn json)
   | None ->
-      Printf.eprintf "unknown built-in theme: %s\n" name;
+      Printf.eprintf "unknown theme: %s\n" name;
       exit 1
-
-let test_builtin_alias name =
-  match Ochre.Theme.find name with
-  | Some theme ->
-      print_theme_summary theme
-  | None ->
-      Printf.eprintf "unknown built-in theme: %s\n" name;
-      exit 1
-
-let test_available () = List.iter print_endline Ochre.Theme.available_names
 
 let test_load_file path =
   match Ochre.Theme.load_from_file path with
@@ -154,16 +144,12 @@ let () =
       test_array_scope ()
   | "alt-keys" ->
       test_alt_keys ()
-  | "builtin-dark" ->
-      test_builtin_name "dark"
-  | "builtin-light" ->
-      test_builtin_name "light"
-  | "tokyonight" ->
-      test_builtin_name "tokyonight"
-  | "load-dark-alias" ->
-      test_builtin_alias "dark"
-  | "available" ->
-      test_available ()
+  | "dark-plus" ->
+      test_named "dark-plus"
+  | "light-plus" ->
+      test_named "light-plus"
+  | "tokyo-night" ->
+      test_named "tokyo-night"
   | "load-file" ->
       test_load_file Sys.argv.(2)
   | s ->

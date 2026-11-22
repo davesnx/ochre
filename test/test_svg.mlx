@@ -1,15 +1,14 @@
 let preview_themes =
   [
-    "tokyonight";
-    "everforest";
-    "ayu";
-    "catppuccin";
-    "catppuccin-macchiato";
-    "gruvbox";
-    "kanagawa";
-    "nord";
-    "matrix";
-    "one-dark";
+    ("tokyo-night", Tm_themes.tokyo_night);
+    ("everforest-dark", Tm_themes.everforest_dark);
+    ("ayu-dark", Tm_themes.ayu_dark);
+    ("catppuccin-mocha", Tm_themes.catppuccin_mocha);
+    ("catppuccin-macchiato", Tm_themes.catppuccin_macchiato);
+    ("gruvbox-dark-medium", Tm_themes.gruvbox_dark_medium);
+    ("kanagawa-wave", Tm_themes.kanagawa_wave);
+    ("nord", Tm_themes.nord);
+    ("one-dark-pro", Tm_themes.one_dark_pro);
   ]
 
 let font_family =
@@ -89,13 +88,8 @@ let with_full_width_svg svg =
   else
     svg
 
-let render_svg ~highlighter ~lang ~source name =
-  match Ochre.Theme.find name with
-  | Some theme ->
-      Ochre.to_svg highlighter ~theme ~lang source
-  | None ->
-      Printf.eprintf "Missing built-in theme: %s\n" name;
-      exit 1
+let render_svg ~highlighter ~lang ~source json =
+  Ochre.to_svg highlighter ~theme:(Ochre.Theme.load_exn json) ~lang source
 
 let find_substring haystack needle =
   let haystack_len = String.length haystack in
@@ -146,16 +140,16 @@ let svg_body svg =
 
 type preview_card = { body : string; height : float }
 
-let render_preview_card ~highlighter ~lang ~source name =
-  let svg = render_svg ~highlighter ~lang ~source name in
+let render_preview_card ~highlighter ~lang ~source json =
+  let svg = render_svg ~highlighter ~lang ~source json in
   { body = svg_body svg; height = svg_height svg }
 
 let render_theme_blocks ~x ~y ~width ~highlighter ~lang ~source themes =
   let rec loop current_y acc = function
     | [] ->
         (List.rev acc, current_y)
-    | name :: rest ->
-        let card = render_preview_card ~highlighter ~lang ~source name in
+    | (name, json) :: rest ->
+        let card = render_preview_card ~highlighter ~lang ~source json in
         let label = String.uppercase_ascii name in
         let body = JSX.unsafe card.body in
         let card_x = fmt0 x in
@@ -250,10 +244,10 @@ let () =
   if Array.length Sys.argv > 1 && Sys.argv.(1) = "--github-preview" then
     print_endline (render_theme_gallery_svg ())
   else
-    let render_theme name =
+    let render_theme (name, json) =
       let svg =
         render_svg ~highlighter:ocaml_highlighter ~lang:"ocaml"
-          ~source:ocaml_source name
+          ~source:ocaml_source json
       in
       let name = JSX.string name in
       let svg = JSX.unsafe (with_full_width_svg svg) in

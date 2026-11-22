@@ -8,7 +8,7 @@ Ochre turns source code into highlighted output using TextMate grammars (the sam
 ```ocaml
   let highlighter = Ochre.load_exn [ ("ocaml", ocaml_grammar_json) ] in
   let html =
-    Ochre.to_html highlighter ~theme:Ochre.Theme.nord ~lang:"ocaml"
+    Ochre.to_html highlighter ~theme:(Ochre.Theme.load_exn Tm_themes.nord) ~lang:"ocaml"
       "let x = 42"
 ```
 
@@ -45,7 +45,9 @@ The first call to [`load`](./#val-load), [`load_exn`](./#val-load_exn), [`load_f
 ```ocaml
 match Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ] with
 | Ok hl ->
-    Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+    Ochre.to_html hl
+      ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+      ~lang:"ocaml" code
 | Error msg ->
     failwith msg
 ```
@@ -77,7 +79,9 @@ match
   Ochre.load_from_files [ "/usr/share/grammars/ocaml.tmLanguage.json" ]
 with
 | Ok hl ->
-    Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+    Ochre.to_html hl
+      ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+      ~lang:"ocaml" code
 | Error msg ->
     failwith msg
 ```
@@ -104,7 +108,7 @@ module Token : sig ... end
 
 ## Themes
 
-A theme maps TextMate scopes to colors and font styles. Ochre ships with several built-in themes and can load any VS Code / TextMate theme from JSON.
+A theme maps TextMate scopes to colors and font styles. Ochre loads any VS Code / TextMate theme from JSON. The `tm-themes` package has the Shiki themes as OCaml strings, and [default](./Ochre-Theme.md#default) is a small theme for when none is given.
 
 ```ocaml
 module Theme : sig ... end
@@ -186,7 +190,9 @@ Single theme
 Pass `~theme` for a self-contained block with inline styles:
 
 ```ocaml
-Ochre.to_html hl ~theme:Ochre.Theme.nord ~lang:"ocaml" "let x = 42"
+Ochre.to_html hl
+  ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+  ~lang:"ocaml" "let x = 42"
 ```
 Multiple themes
 
@@ -197,8 +203,9 @@ A token follows every theme for its colour, background, `font-weight`, `font-sty
 `~label` names the default theme for `Html_options.No_default_color`, where it is emitted as `--ochre-<label>` like an extra theme. It defaults to the theme name, or to the label of the first entry of `~extra_themes` when `~theme` is omitted.
 
 ```ocaml
-Ochre.to_html hl ~theme:Ochre.Theme.light
-  ~extra_themes:[ ("dark", Ochre.Theme.nord) ]
+Ochre.to_html hl
+  ~theme:(Ochre.Theme.load_exn Tm_themes.light_plus)
+  ~extra_themes:[ ("dark", Ochre.Theme.load_exn Tm_themes.nord) ]
   ~lang:"ocaml" "let x = 42"
 ```
 Options
@@ -212,7 +219,7 @@ let opts =
 in
 Ochre.to_html hl ~options:opts ~theme ~lang:"ocaml" code
 ```
-When `~theme` is omitted but `~extra_themes` is provided, the first entry becomes the default. When neither `~theme` nor `~extra_themes` is provided, [`Theme.dark`](./Ochre-Theme.md#val-dark) is used as the default.
+When `~theme` is omitted but `~extra_themes` is provided, the first entry becomes the default. When neither `~theme` nor `~extra_themes` is provided, [default](./Ochre-Theme.md#default) is used.
 
 Pair with [`html_theme_css`](./#val-html_theme_css) to activate alternate themes via CSS.
 
@@ -271,7 +278,11 @@ Highlight source code to ANSI terminal escape sequences.
 Produces text with embedded 24-bit ANSI color codes for terminal display. A terminal has no alpha channel: a translucent background, such as the one of the line-highlight transforms, is blended over the theme background, and a translucent foreground over the background behind it. Colours must be `#rgb`, `#rgba`, `#rrggbb` or `#rrggbbaa`; a background in any other form is left out. Raises `Failure` if the grammar for `lang` cannot be found.
 
 ```ocaml
-let ansi = Ochre.to_ansi hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code in
+let ansi =
+  Ochre.to_ansi hl
+    ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+    ~lang:"ocaml" code
+in
 print_string ansi
 ```
 
@@ -294,7 +305,11 @@ Produces a block wrapped in an `ochrehighlight` environment. Requires the `xcolo
 A token background, such as the one of the line-highlight transforms, is drawn with `\colorbox` in a group that sets `\fboxsep` to `0pt`. LaTeX has no alpha channel, so a translucent background is blended over the theme background, and a background equal to the theme background is not drawn. Colours must be `#rgb`, `#rgba`, `#rrggbb` or `#rrggbbaa`. A tab becomes spaces up to the next multiple of 8 columns, a carriage return is dropped, and every other C0 control character and DEL is written in caret notation, like `cat -v`. The output was not compiled with TeX.
 
 ```ocaml
-let latex = Ochre.to_latex hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code in
+let latex =
+  Ochre.to_latex hl
+    ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+    ~lang:"ocaml" code
+in
 Printf.printf "\\begin{document}\n%s\n\\end{document}" latex
 ```
 
@@ -317,7 +332,10 @@ Produces an `<svg>` with monospace `<text>` elements and per-token `<tspan>` sty
 The width counts display cells: a Unicode scalar value is one cell, an East Asian wide or fullwidth character two, a combining mark none, and a carriage return none. A tab becomes spaces up to the next multiple of 8 cells, so the indentation survives `xml:space="preserve"`. Raises `Failure` if the grammar for `lang` cannot be found.
 
 ```ocaml
-let svg = Ochre.to_svg hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+let svg =
+  Ochre.to_svg hl
+    ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+    ~lang:"ocaml" code
 ```
 
 ### to\_debug\_tokens
@@ -338,7 +356,9 @@ Useful for debugging grammar and scope matching. Colours and backgrounds are not
 
 ```ocaml
 let debug =
-  Ochre.to_debug_tokens hl ~theme:Ochre.Theme.nord ~lang:"ocaml" code
+  Ochre.to_debug_tokens hl
+    ~theme:(Ochre.Theme.load_exn Tm_themes.nord)
+    ~lang:"ocaml" code
 in
 print_string debug
 ```

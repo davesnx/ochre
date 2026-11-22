@@ -15,17 +15,17 @@
 
 (test
  (name test_ochre)
- (libraries ochre alcotest unix tm-grammars))
+ (libraries ochre alcotest unix tm-grammars tm-themes))
 
 (executables
  (names test_html test_html_dual_theme test_svg)
- (libraries ochre unix tm-grammars html_of_jsx tiny_httpd)
+ (libraries ochre unix tm-grammars tm-themes html_of_jsx tiny_httpd)
  (preprocess
   (pps html_of_jsx.ppx)))
 
 (executables
  (names test_latex test_ansi test_tokens)
- (libraries ochre unix tm-grammars))
+ (libraries ochre unix tm-grammars tm-themes))
 
 (rule
  (target test_latex.tex)
