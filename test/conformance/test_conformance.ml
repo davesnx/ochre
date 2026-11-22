@@ -172,7 +172,7 @@ let bundled_collection =
      (t, grammars)
     )
 
-let vendored_tokens ?time_limit lang source =
+let tm_language_tokens ?time_limit lang source =
   let t, grammars = Lazy.force bundled_collection in
   let grammar = List.assoc lang grammars in
   let lines = source_lines source in
@@ -224,8 +224,8 @@ let check_sample ~samples lang () =
   Alcotest.(check string) "token texts join back to the sample" source text;
   match
     first_difference
-      (vendored_tokens lang source)
-      (vendored_tokens ~time_limit:Float.infinity lang source)
+      (tm_language_tokens lang source)
+      (tm_language_tokens ~time_limit:Float.infinity lang source)
   with
   | None ->
       ()
