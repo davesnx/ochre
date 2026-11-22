@@ -368,10 +368,20 @@ let attribute_text = function
 
 let words text = List.filter (( <> ) "") (String.split_on_char ' ' text)
 
+let dedupe_preserving_order items =
+  let rec loop seen acc = function
+    | [] ->
+        List.rev acc
+    | x :: xs ->
+        if List.mem x seen then
+          loop seen acc xs
+        else
+          loop (x :: seen) (x :: acc) xs
+  in
+  loop [] [] items
+
 let merge_class first second =
-  let present = words first in
-  String.concat " "
-    (present @ List.filter (fun w -> not (List.mem w present)) (words second))
+  String.concat " " (dedupe_preserving_order (words first @ words second))
 
 let merge_style first second =
   String.concat ";" (List.filter (( <> ) "") [ first; second ])
@@ -474,18 +484,6 @@ let render_token ~options ~registry ~colors ~label ~theme ~extra_themes
       text
   | attrs ->
       node "span" attrs [ text ]
-
-let dedupe_preserving_order items =
-  let rec loop seen acc = function
-    | [] ->
-        List.rev acc
-    | x :: xs ->
-        if List.mem x seen then
-          loop seen acc xs
-        else
-          loop (x :: seen) (x :: acc) xs
-  in
-  loop [] [] items
 
 let theme_at (themed : Themed.t) index =
   let default, extras = themed.themes in

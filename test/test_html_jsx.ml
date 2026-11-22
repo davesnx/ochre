@@ -798,6 +798,28 @@ let test_classes_keep_colors () =
     )
     [ Ochre.Html_options.Default_color; No_default_color ]
 
+let test_class_merge_drops_repeated_names () =
+  let repeat =
+    Ochre.Transform.make "repeat" ~attributes:(fun _ ->
+        {
+          pre = None;
+          line =
+            Some
+              (fun ~line_index:_ _ attrs ->
+                attrs @ [ ("class", `String "hl hl") ]
+              );
+          span =
+            Some
+              (fun ~line_index:_ ~column:_ _ attrs ->
+                [ ("class", `String "x x"); ("class", `String "y") ] @ attrs
+              );
+        }
+    )
+  in
+  let html = render [ repeat ] "let" in
+  check_contains "line class" html ~sub:{|<span class="line hl"><span|};
+  check_contains "span class" html ~sub:{|<span class="x y" style=|}
+
 let word_spans html =
   let marker = {|class="highlighted-word">|} in
   let n = String.length marker in
@@ -883,6 +905,8 @@ let () =
             test_span_hook_gets_source_tokens;
           Alcotest.test_case "Duplicate class and style merge" `Quick
             test_duplicate_class_and_style_merge;
+          Alcotest.test_case "Class merge drops repeated names" `Quick
+            test_class_merge_drops_repeated_names;
           Alcotest.test_case "Bad attribute names are replaced" `Quick
             test_bad_attribute_name;
         ]
