@@ -567,19 +567,26 @@ module Transform : sig
     span :
       (line_index:int -> column:int -> token -> attributes -> attributes) option;
         (** Changes the attributes of the [<span>] of [token] on the rendered
-            line [line_index]. [column] is the byte offset of the token in the
-            text of that line. A token with no attributes after every hook is
-            written as text, with no [<span>]. *)
+            line [line_index]. [token] is the token of [line], as the [line]
+            hook gets it, and [column] is its byte offset in the text of that
+            line. The [<span>] can hold a different text: the HTML backend moves
+            the ["\r"] that ends a token into the next token when that one
+            starts with ["\n"], so that the pair stays together. A token that
+            holds only that ["\r"] has no [<span>] and no [span] call. A token
+            with no attributes after every hook is written as text, with no
+            [<span>]. *)
   }
   (** HTML attribute hooks, run by {!val-to_jsx} and {!val-to_html}. Each hook
       takes the attributes built so far and returns the new list. The HTML
       backend escapes the values. An attribute name must match
       [[A-Za-z_:][A-Za-z0-9_.:-]*]; rendering never fails, so the HTML backend
       replaces each other character of a name with [_], and an empty name
-      becomes [_]. When the list has several [class] attributes, they become one
-      [class] with each name once, in order; several [style] attributes become
-      one [style], joined with [;]. So a hook can add a class or a style with
-      [attrs @ [ ("class", `String "name") ]]. *)
+      becomes [_]. Names are compared without case. When the list has several
+      [class] attributes, they become one [class] with each name once, in order;
+      several [style] attributes become one [style], joined with [;]. For any
+      other name, the last value wins, at the place of the first. So a hook can
+      add a class or a style with [attrs @ [ ("class", `String "name") ]], and
+      replace a value with [attrs @ [ ("tabindex", `Int (-1)) ]]. *)
 
   (** {2 t} *)
 
@@ -606,9 +613,13 @@ module Transform : sig
       sees it: after the [before_render] of the transforms before it, and before
       its own. Its hooks are kept in {!Themed.t.hooks}, and the HTML backend
       calls them in the order of the transforms. The [line_index] of a hook is
-      the index of the rendered line. When a later transform adds or removes
-      lines, the indices that an earlier [attributes] computed no longer match
-      the rendered lines. *)
+      the index of the rendered line, and the [column] of a [span] hook is a
+      byte offset in its text. An [attributes] that computes lines or columns
+      from its document sees the document before the transforms after it. When a
+      later transform adds or removes lines, or changes the text of a line (for
+      example {!Transform_builtin.diff_markers}, which removes a leading [+]),
+      those lines and columns no longer match the rendered code. Put such a
+      transform first. *)
 
   (** {2 make} *)
 
@@ -668,39 +679,6 @@ module Transform : sig
 
       Transforms are applied in list order. An empty list returns the document
       unchanged. *)
-end
-
-(** {1 Themed code}
-
-    Highlighted code is tokenized once and styled under one or more themes. *)
-
-module Themed : sig
-  type t = Themed.t = private {
-    themes : (string * Theme.theme) * (string * Theme.theme) list;
-        (** The labelled default theme, then the labelled extra themes. The
-            default label is the [?label] given to {!val-highlight} or
-            {!val-highlight_themes}, or the theme name. *)
-    lines : Token.line list;
-    hooks : Transform.attribute_hooks list;
-        (** The attribute hooks of the transforms that made the value, in the
-            order of the transforms. {!val-to_jsx} runs them. *)
-  }
-  (** Highlighted code. Each token has one style per theme, in the order of
-      [themes]. Make one with {!val-highlight} or {!val-highlight_themes}. *)
-
-  val select : string -> t -> (t, Error.t) result
-  (** [select label themed] makes the theme labelled [label] the default theme,
-      and keeps the others as extra themes in their order. Renderers that show
-      one theme, such as {!val-to_ansi}, show the default theme. Returns
-      {!Error.Unknown_theme_label} when no theme has [label].
-
-      {@ocaml[
-      match Ochre.Themed.select "dark" themed with
-      | Ok dark ->
-          print_string (Ochre.to_ansi dark)
-      | Error e ->
-          prerr_endline (Ochre.Error.to_string e)
-      ]} *)
 end
 
 (** {2 Built-in transforms}
@@ -833,7 +811,9 @@ module Transform_builtin : sig
       token boundaries. Without a count the highlight runs from the line of the
       marker to the end of the code; [[!code word:xxx:2]] limits it to two
       lines. A backslash escapes a character of the word. In HTML, each
-      highlighted piece gets the class [highlighted-word]. Mirrors Shiki's
+      highlighted piece gets the class [highlighted-word]; the pieces are found
+      by line and column, so put transforms that change text before this one
+      (see {!Transform.type-t}). Mirrors Shiki's
       [transformerNotationWordHighlight]; see {!val-notation_highlight} for
       where a marker may sit and what is removed.
 
@@ -843,6 +823,42 @@ module Transform_builtin : sig
       let code = "let x = 42 // [!code word:x]" in
       let transforms = [ Ochre.Transform_builtin.notation_word_highlight () ] in
       Ochre.highlight ~transforms ~theme ~lang code
+      ]} *)
+end
+
+(** {1 Themed code}
+
+    Highlighted code is tokenized once and styled under one or more themes. *)
+
+module Themed : sig
+  type t = Themed.t = private {
+    themes : (string * Theme.theme) * (string * Theme.theme) list;
+        (** The labelled default theme, then the labelled extra themes. The
+            default label is the [?label] given to {!val-highlight} or
+            {!val-highlight_themes}, or the theme name. *)
+    lines : Token.line list;
+    hooks : Transform.attribute_hooks list;
+        (** The attribute hooks of the transforms that made the value, in the
+            order of the transforms. {!val-to_jsx} runs them. *)
+  }
+  (** Highlighted code. Each token has one style per theme, in the order of
+      [themes]. Make one with {!val-highlight} or {!val-highlight_themes}. A
+      value made with transforms that have [attributes] holds functions in
+      [hooks], so [=], [compare] and [Marshal] raise [Invalid_argument] on it,
+      and it cannot be a key of a generic [Hashtbl]. *)
+
+  val select : string -> t -> (t, Error.t) result
+  (** [select label themed] makes the theme labelled [label] the default theme,
+      and keeps the others as extra themes in their order. Renderers that show
+      one theme, such as {!val-to_ansi}, show the default theme. Returns
+      {!Error.Unknown_theme_label} when no theme has [label].
+
+      {@ocaml[
+      match Ochre.Themed.select "dark" themed with
+      | Ok dark ->
+          print_string (Ochre.to_ansi dark)
+      | Error e ->
+          prerr_endline (Ochre.Error.to_string e)
       ]} *)
 end
 

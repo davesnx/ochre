@@ -217,20 +217,34 @@ let escape_token_text text =
   Buffer.contents buf
 
 let rec join_crlf = function
-  | (first : Token.t) :: (second : Token.t) :: rest
+  | ((first : Token.t), first_source, first_column)
+    :: ((second : Token.t), second_source, second_column)
+    :: rest
     when String.ends_with ~suffix:"\r" first.text
          && String.starts_with ~prefix:"\n" second.text ->
       let length = String.length first.text in
       let kept = String.sub first.text 0 (length - 1) in
-      let second = { second with text = "\r" ^ second.text } in
+      let second =
+        ({ second with text = "\r" ^ second.text }, second_source, second_column)
+      in
       if kept = "" then
         join_crlf (second :: rest)
       else
-        { first with text = kept } :: join_crlf (second :: rest)
+        ({ first with text = kept }, first_source, first_column)
+        :: join_crlf (second :: rest)
   | token :: rest ->
       token :: join_crlf rest
   | [] ->
       []
+
+let with_columns line =
+  snd
+    (List.fold_left_map
+       (fun column (token : Token.t) ->
+         (column + String.length token.text, (token, token, column))
+       )
+       0 line
+    )
 
 let style_hash s = String.sub (Digest.to_hex (Digest.string s)) 0 16
 
@@ -363,8 +377,9 @@ let merge_style first second =
   String.concat ";" (List.filter (( <> ) "") [ first; second ])
 
 let merge_duplicates attrs =
+  let key name = String.lowercase_ascii name in
   let merge name =
-    match name with
+    match key name with
     | "class" ->
         Some merge_class
     | "style" ->
@@ -375,21 +390,26 @@ let merge_duplicates attrs =
   List.rev
     (List.fold_left
        (fun acc (name, value) ->
-         match (merge name, List.assoc_opt name acc) with
-         | Some combine, Some first ->
+         match List.find_opt (fun (n, _) -> key n = key name) acc with
+         | None ->
+             (name, value) :: acc
+         | Some (_, first) ->
+             let merged =
+               match merge name with
+               | Some combine ->
+                   `String
+                     (combine (attribute_text first) (attribute_text value))
+               | None ->
+                   value
+             in
              List.map
                (fun (n, v) ->
-                 if n = name then
-                   ( n,
-                     `String
-                       (combine (attribute_text first) (attribute_text value))
-                   )
+                 if key n = key name then
+                   (n, merged)
                  else
                    (n, v)
                )
                acc
-         | _ ->
-             (name, value) :: acc
        )
        [] attrs
     )
@@ -421,7 +441,7 @@ let apply_hooks hooks get attrs =
     attrs hooks
 
 let render_token ~options ~registry ~colors ~label ~theme ~extra_themes
-    ~emit_default ~hooks ~line_index ~column (token : Token.t) =
+    ~emit_default ~hooks ~line_index (token, source, column) =
   let prefix = options.Html_options.css_variable_prefix in
   let primary = Token.style token in
   let extras =
@@ -446,7 +466,7 @@ let render_token ~options ~registry ~colors ~label ~theme ~extra_themes
   match
     apply_hooks hooks
       (fun (h : Transform.attribute_hooks) ->
-        Option.map (fun f -> f ~line_index ~column token) h.span
+        Option.map (fun f -> f ~line_index ~column source) h.span
       )
       attrs
   with
@@ -522,16 +542,12 @@ let render ?(options = Html_options.default) (themed : Themed.t) =
   let lines =
     List.mapi
       (fun i line ->
-        let _, content =
-          List.fold_left_map
-            (fun column (token : Token.t) ->
-              ( column + String.length token.text,
-                render_token ~options ~registry ~colors ~label ~theme
-                  ~extra_themes ~emit_default ~hooks:themed.hooks ~line_index:i
-                  ~column token
-              )
+        let content =
+          List.map
+            (render_token ~options ~registry ~colors ~label ~theme ~extra_themes
+               ~emit_default ~hooks:themed.hooks ~line_index:i
             )
-            0 (join_crlf line)
+            (join_crlf (with_columns line))
         in
         let attrs =
           ("class", `String "line")

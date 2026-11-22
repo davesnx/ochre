@@ -103,7 +103,7 @@ val notation_word_highlight :
   unit ->
   Transform.t
 ```
-Notation-based word highlight. Finds `[!code word:xxx]` markers in comments, removes them, and highlights all occurrences of `xxx`, across token boundaries. Without a count the highlight runs from the line of the marker to the end of the code; `[!code word:xxx:2]` limits it to two lines. A backslash escapes a character of the word. In HTML, each highlighted piece gets the class `highlighted-word`. Mirrors Shiki's `transformerNotationWordHighlight`; see [`notation_highlight`](./#val-notation_highlight) for where a marker may sit and what is removed.
+Notation-based word highlight. Finds `[!code word:xxx]` markers in comments, removes them, and highlights all occurrences of `xxx`, across token boundaries. Without a count the highlight runs from the line of the marker to the end of the code; `[!code word:xxx:2]` limits it to two lines. A backslash escapes a character of the word. In HTML, each highlighted piece gets the class `highlighted-word`; the pieces are found by line and column, so put transforms that change text before this one (see [`Transform.t`](./Ochre-Transform.md#type-t)). Mirrors Shiki's `transformerNotationWordHighlight`; see [`notation_highlight`](./#val-notation_highlight) for where a marker may sit and what is removed.
 
 Default foreground: `"#ffff00"`. Default font style: bold.
 

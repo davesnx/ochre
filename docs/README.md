@@ -136,14 +136,6 @@ Transforms run after tokenization, theming and decorations, but before rendering
 module Transform : sig ... end
 ```
 
-## Themed code
-
-Highlighted code is tokenized once and styled under one or more themes.
-
-```ocaml
-module Themed : sig ... end
-```
-
 ### Built-in transforms
 
 Ready-to-use transforms for common highlighting patterns. Each one sets its colours on the tokens, and in HTML also adds the class names of the Shiki transformers, so a page can style the marked code with CSS. Ochre ships no CSS. For example:
@@ -157,6 +149,14 @@ Ready-to-use transforms for common highlighting patterns. Each one sets its colo
 ```
 ```ocaml
 module Transform_builtin : sig ... end
+```
+
+## Themed code
+
+Highlighted code is tokenized once and styled under one or more themes.
+
+```ocaml
+module Themed : sig ... end
 ```
 
 ## Highlighting
