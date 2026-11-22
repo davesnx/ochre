@@ -34,9 +34,15 @@ val analyze : ?load_path:string list -> string -> t
       with a known type, with its printed type in the [ochre-type] data
       attribute. Values show their generic type (for [List.map]:
       [('a -> 'b) -> 'a list -> 'b list]);
-    - one decoration per diagnostic, with its message in the [ochre-diagnostic]
-      data attribute and the class [ochre-error] or [ochre-warning];
-    - the diagnostics themselves.
+    - decorations for the diagnostics, with the message in the
+      [ochre-diagnostic] data attribute and the class [ochre-error] or
+      [ochre-warning]. Where diagnostics overlap, the range is split and each
+      part carries all the messages that cover it, separated by a blank line,
+      with [ochre-error] if any of them is an error. An empty diagnostic range
+      is widened to the next character, or to the last character before it when
+      the line ends there;
+    - the diagnostics themselves, with Merlin's positions. Each message includes
+      its sub-messages, such as hints, one per line.
 
     [load_path] lists directories with compiled interfaces ([.cmi]) to resolve
     modules other than the standard library. It defaults to [[]]. The

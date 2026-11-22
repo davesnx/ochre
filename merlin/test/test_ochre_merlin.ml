@@ -158,6 +158,109 @@ let test_html_escapes_data () =
       ({|not matched: &quot;&quot;"|}, true);
     ]
 
+let html_of source =
+  let { Ochre_merlin.decorations; _ } = Ochre_merlin.analyze source in
+  let highlighter = Ochre.load_exn [ ("ocaml", Tm_grammar_ocaml.json) ] in
+  Ochre.to_html highlighter ~decorations ~theme:Ochre.Theme.dark ~lang:"ocaml"
+    source
+
+let escape s =
+  String.concat ""
+    (List.map
+       (function
+         | '&' ->
+             "&amp;"
+         | '<' ->
+             "&lt;"
+         | '>' ->
+             "&gt;"
+         | '"' ->
+             "&quot;"
+         | '\'' ->
+             "&apos;"
+         | c ->
+             String.make 1 c
+         )
+       (List.of_seq (String.to_seq s))
+    )
+
+let diagnostic_tooltips html =
+  let key = "data-ochre-diagnostic=\"" in
+  let rec collect from acc =
+    match
+      List.find_opt
+        (fun i -> String.sub html i (String.length key) = key)
+        (List.init
+           (max 0 (String.length html - String.length key - from + 1))
+           (fun i -> from + i)
+        )
+    with
+    | None ->
+        List.rev acc
+    | Some i ->
+        let start = i + String.length key in
+        let stop = String.index_from html start '"' in
+        collect stop (String.sub html start (stop - start) :: acc)
+  in
+  collect 0 []
+
+let test_overlapping_diagnostics_all_shown () =
+  let source = "let f x = match x with 0 -> \"a\" + 1" in
+  let { Ochre_merlin.diagnostics; _ } = Ochre_merlin.analyze source in
+  Alcotest.(check int) "two diagnostics" 2 (List.length diagnostics);
+  Alcotest.(check bool)
+    "one tooltip holds both messages" true
+    (List.exists
+       (fun tooltip ->
+         List.for_all
+           (fun (d : Ochre_merlin.diagnostic) ->
+             contains ~sub:(escape d.message) tooltip
+           )
+           diagnostics
+       )
+       (diagnostic_tooltips (html_of source))
+    )
+
+let test_zero_width_diagnostic_is_shown () =
+  List.iter
+    (fun source ->
+      let { Ochre_merlin.diagnostics; _ } = Ochre_merlin.analyze source in
+      Alcotest.(check bool)
+        "a zero-width diagnostic keeps its position" true
+        (List.exists
+           (fun (d : Ochre_merlin.diagnostic) -> d.start = d.end_)
+           diagnostics
+        );
+      Alcotest.(check bool)
+        (Printf.sprintf "html of %S has a diagnostic tooltip" source)
+        true
+        (diagnostic_tooltips (html_of source) <> [])
+    )
+    [ "let x ="; "let x =\n"; "let x =\n\n" ]
+
+let test_warning_as_error_is_error () =
+  let result =
+    Ochre_merlin.analyze
+      "[@@@ocaml.warnerror \"+26\"]\nlet f () = let x = 1 in 2"
+  in
+  Alcotest.(check (list bool))
+    "severity is Error" [ true ]
+    (List.map
+       (fun (d : Ochre_merlin.diagnostic) -> d.severity = Error)
+       result.diagnostics
+    )
+
+let test_sub_messages_are_kept () =
+  let result = Ochre_merlin.analyze "let lenght = 1\nlet y = lengt" in
+  Alcotest.(check bool)
+    "hint in message" true
+    (List.exists
+       (fun (d : Ochre_merlin.diagnostic) ->
+         contains ~sub:"Hint: Did you mean lenght?" d.message
+       )
+       result.diagnostics
+    )
+
 let test_css_targets_decorations () =
   List.iter
     (fun sub -> Alcotest.(check bool) sub true (contains ~sub Ochre_merlin.css))
@@ -196,6 +299,14 @@ let () =
             test_css_targets_decorations;
           Alcotest.test_case "syntax error does not raise" `Quick
             test_syntax_error_does_not_raise;
+          Alcotest.test_case "overlapping diagnostics all shown" `Quick
+            test_overlapping_diagnostics_all_shown;
+          Alcotest.test_case "zero-width diagnostic is shown" `Quick
+            test_zero_width_diagnostic_is_shown;
+          Alcotest.test_case "warning as error is error" `Quick
+            test_warning_as_error_is_error;
+          Alcotest.test_case "sub-messages are kept" `Quick
+            test_sub_messages_are_kept;
         ]
       );
     ]

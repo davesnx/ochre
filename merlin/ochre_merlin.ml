@@ -17,25 +17,29 @@ type t = {
   diagnostics : diagnostic list;
 }
 
+let scalar_count source start stop =
+  let stop = min stop (String.length source) in
+  let rec count offset acc =
+    if offset >= stop then
+      acc
+    else
+      let decoded = String.get_utf_8_uchar source offset in
+      let length =
+        if Uchar.utf_decode_is_valid decoded then
+          Uchar.utf_decode_length decoded
+        else
+          1
+      in
+      count (offset + length) (acc + 1)
+  in
+  count start 0
+
 let position source (p : Lexing.position) =
   if p.pos_lnum < 1 || p.pos_cnum < 0 then
     Ochre.Decoration.pos 0 0
   else
-    let stop = min p.pos_cnum (String.length source) in
-    let rec count offset acc =
-      if offset >= stop then
-        acc
-      else
-        let decoded = String.get_utf_8_uchar source offset in
-        let length =
-          if Uchar.utf_decode_is_valid decoded then
-            Uchar.utf_decode_length decoded
-          else
-            1
-        in
-        count (offset + length) (acc + 1)
-    in
-    Ochre.Decoration.pos (p.pos_lnum - 1) (count p.pos_bol 0)
+    Ochre.Decoration.pos (p.pos_lnum - 1)
+      (scalar_count source p.pos_bol p.pos_cnum)
 
 let config load_path =
   let initial = Mconfig.initial in
@@ -111,9 +115,11 @@ let severity (report : Location.report) message =
 
 let diagnostic source (report : Location.report) =
   let loc = Location.loc_of_report report in
-  let message =
-    String.trim (Format.asprintf "@[%a@]" Location.print_main report)
+  let main = Format.asprintf "@[%a@]" Location.print_main report in
+  let subs =
+    List.map (Format.asprintf "@[%a@]" Location.print_sub_msg) report.sub
   in
+  let message = String.concat "\n" (List.map String.trim (main :: subs)) in
   {
     severity = severity report message;
     start = position source loc.loc_start;
@@ -121,13 +127,78 @@ let diagnostic source (report : Location.report) =
     message;
   }
 
-let diagnostic_decoration d =
-  let class_ =
-    match d.severity with Error -> "ochre-error" | Warning -> "ochre-warning"
+let visible_range line_lengths d =
+  let length line =
+    if line >= 0 && line < Array.length line_lengths then
+      line_lengths.(line)
+    else
+      0
   in
+  let rec last_character line =
+    if line < 0 then
+      (d.start, d.end_)
+    else
+      match length line with
+      | 0 ->
+          last_character (line - 1)
+      | n ->
+          (Ochre.Decoration.pos line (n - 1), Ochre.Decoration.pos line n)
+  in
+  let { Ochre.Decoration.line; character } = d.start in
+  if d.start <> d.end_ then
+    (d.start, d.end_)
+  else if character < length line then
+    (d.start, Ochre.Decoration.pos line (character + 1))
+  else
+    last_character line
+
+let segment_decoration start end_ covering =
+  let class_ =
+    if List.exists (fun d -> d.severity = Error) covering then
+      "ochre-error"
+    else
+      "ochre-warning"
+  in
+  let message = String.concat "\n\n" (List.map (fun d -> d.message) covering) in
   Ochre.Decoration.make ~class_
-    ~data:[ ("ochre-diagnostic", d.message) ]
-    ~start:d.start ~end_:d.end_ ()
+    ~data:[ ("ochre-diagnostic", message) ]
+    ~start ~end_ ()
+
+let diagnostic_decorations source diagnostics =
+  let line_lengths =
+    String.split_on_char '\n' source
+    |> List.map (fun line -> scalar_count line 0 (String.length line))
+    |> Array.of_list
+  in
+  let ranges =
+    List.map (fun d -> (visible_range line_lengths d, d)) diagnostics
+  in
+  let points =
+    List.sort_uniq compare
+      (List.concat_map (fun ((start, end_), _) -> [ start; end_ ]) ranges)
+  in
+  let rec segments = function
+    | start :: (end_ :: _ as rest) -> (
+        let covering =
+          List.filter_map
+            (fun ((s, e), d) ->
+              if compare s start <= 0 && compare end_ e <= 0 then
+                Some d
+              else
+                None
+            )
+            ranges
+        in
+        match covering with
+        | [] ->
+            segments rest
+        | _ ->
+            segment_decoration start end_ covering :: segments rest
+      )
+    | _ ->
+        []
+  in
+  segments points
 
 let analyze ?(load_path = []) source =
   let pipeline = Mpipeline.make (config load_path) (Msource.make source) in
@@ -141,7 +212,7 @@ let analyze ?(load_path = []) source =
       {
         decorations =
           type_decorations source typedtree
-          @ List.map diagnostic_decoration diagnostics;
+          @ diagnostic_decorations source diagnostics;
         diagnostics;
       }
   )
