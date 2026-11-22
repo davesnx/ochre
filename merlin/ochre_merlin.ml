@@ -34,12 +34,32 @@ let scalar_count source start stop =
   in
   count start 0
 
-let position source (p : Lexing.position) =
-  if p.pos_lnum < 1 || p.pos_cnum < 0 then
-    Ochre.Decoration.pos 0 0
-  else
-    Ochre.Decoration.pos (p.pos_lnum - 1)
-      (scalar_count source p.pos_bol p.pos_cnum)
+let positions source =
+  let length = String.length source in
+  let line_starts =
+    List.init length Fun.id
+    |> List.filter_map (fun i ->
+        if source.[i] = '\n' then
+          Some (i + 1)
+        else
+          None
+    )
+    |> List.cons 0 |> Array.of_list
+  in
+  fun (p : Lexing.position) ->
+    let offset = max 0 (min p.pos_cnum length) in
+    let rec search low high =
+      if low >= high then
+        low
+      else
+        let mid = (low + high + 1) / 2 in
+        if line_starts.(mid) <= offset then
+          search mid high
+        else
+          search low (mid - 1)
+    in
+    let line = search 0 (Array.length line_starts - 1) in
+    Ochre.Decoration.pos line (scalar_count source line_starts.(line) offset)
 
 let config load_path =
   let initial = Mconfig.initial in
@@ -50,11 +70,15 @@ let config load_path =
       { initial.query with filename = "snippet.ml"; directory = Sys.getcwd () };
   }
 
-let print_type env ty =
-  Format.asprintf "%a" (Type_utils.Printtyp.type_scheme env) ty
+let print_in env printer value =
+  Type_utils.Printtyp.wrap_printing_env env ~verbosity:Mconfig.Verbosity.default
+    (fun () -> Format.asprintf "%a" printer value
+  )
+
+let print_type env ty = print_in env (Type_utils.Printtyp.type_scheme env) ty
 
 let print_constructor env desc =
-  Format.asprintf "%a"
+  print_in env
     (Type_utils.print_constr ~verbosity:Mconfig.Verbosity.default env)
     desc
 
@@ -64,16 +88,14 @@ let decoration ?class_ ~data ~start ~end_ () =
       { severity = Error; start; end_; message = Ochre.Error.to_string error }
   )
 
-let type_decorations source typedtree =
+let type_decorations position typedtree =
   let found = ref [] in
   let add (loc : Location.t) printed =
     if not loc.loc_ghost then
       found :=
         decoration
           ~data:[ ("ochre-type", printed) ]
-          ~start:(position source loc.loc_start)
-          ~end_:(position source loc.loc_end)
-          ()
+          ~start:(position loc.loc_start) ~end_:(position loc.loc_end) ()
         :: !found
   in
   let expr sub (e : Typedtree.expression) =
@@ -119,7 +141,7 @@ let severity (report : Location.report) message =
   | _ ->
       Error
 
-let diagnostic source (report : Location.report) =
+let diagnostic position (report : Location.report) =
   let loc = Location.loc_of_report report in
   let main = Format.asprintf "@[%a@]" Location.print_main report in
   let subs =
@@ -128,8 +150,8 @@ let diagnostic source (report : Location.report) =
   let message = String.concat "\n" (List.map String.trim (main :: subs)) in
   {
     severity = severity report message;
-    start = position source loc.loc_start;
-    end_ = position source loc.loc_end;
+    start = position loc.loc_start;
+    end_ = position loc.loc_end;
     message;
   }
 
@@ -206,17 +228,18 @@ let diagnostic_decorations source diagnostics =
 
 let analyze ?(load_path = []) source =
   let pipeline = Mpipeline.make (config load_path) (Msource.make source) in
+  let position = positions source in
   Mpipeline.with_pipeline pipeline (fun () ->
       let typedtree = Mtyper.get_typedtree (Mpipeline.typer_result pipeline) in
       let diagnostics =
         Query_commands.dispatch pipeline
           (Errors { lexing = true; parsing = true; typing = true })
-        |> List.map (diagnostic source)
+        |> List.map (diagnostic position)
       in
       let decorations, rejected =
         List.partition_map
           (function Ok d -> Either.Left d | Error d -> Either.Right d)
-          (type_decorations source typedtree
+          (type_decorations position typedtree
           @ diagnostic_decorations source diagnostics
           )
       in

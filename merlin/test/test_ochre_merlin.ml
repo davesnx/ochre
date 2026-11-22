@@ -63,6 +63,41 @@ let test_recovered_expressions_have_no_type () =
     "no type on unbound identifier" false
     (List.mem (1, 8, 1, 17) ranges)
 
+let test_line_directive_keeps_physical_lines () =
+  let source = "# 100 \"x.ml\"\nlet x = succ 1\nlet y : string = 1" in
+  check_type source ~range:(1, 4, 1, 5) "int";
+  check_type source ~range:(1, 8, 1, 12) "int -> int";
+  Alcotest.(check (list (pair (pair int int) (pair int int))))
+    "diagnostic range"
+    [ ((2, 17), (2, 18)) ]
+    (List.map
+       (fun (d : Ochre_merlin.diagnostic) ->
+         ((d.start.line, d.start.character), (d.end_.line, d.end_.character))
+       )
+       (Ochre_merlin.analyze source).diagnostics
+    )
+
+let test_shadowed_type_names_are_qualified () =
+  let source =
+    "type 'a option = Local of 'a\nlet f = List.find_opt\nlet v = Some 1"
+  in
+  let found = types source in
+  List.iter
+    (fun range ->
+      match List.assoc_opt range found with
+      | None ->
+          Alcotest.fail "no type"
+      | Some ty ->
+          Alcotest.(check bool)
+            (ty ^ " does not show a bare option")
+            false
+            (List.exists
+               (fun word -> word = "option")
+               (String.split_on_char ' ' ty)
+            )
+    )
+    [ (1, 8, 1, 21); (2, 4, 2, 5); (2, 8, 2, 12) ]
+
 let test_type_error () =
   let source = "let y : string = 1" in
   let result = Ochre_merlin.analyze source in
@@ -292,6 +327,10 @@ let () =
           Alcotest.test_case "constructors and fields" `Quick
             test_constructors_and_fields;
           Alcotest.test_case "type error" `Quick test_type_error;
+          Alcotest.test_case "line directive keeps physical lines" `Quick
+            test_line_directive_keeps_physical_lines;
+          Alcotest.test_case "shadowed type names are qualified" `Quick
+            test_shadowed_type_names_are_qualified;
           Alcotest.test_case "recovered expressions have no type" `Quick
             test_recovered_expressions_have_no_type;
           Alcotest.test_case "warning" `Quick test_warning;
