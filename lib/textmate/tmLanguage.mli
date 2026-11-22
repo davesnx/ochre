@@ -1,3 +1,8 @@
+(** Internal to ochre: this library is not a stable API and can change in any
+    release.
+
+    A TextMate grammar reader and tokenizer. *)
+
 type t
 (** The collection of TextMate grammars. *)
 

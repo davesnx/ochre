@@ -15,7 +15,7 @@
 
 (maintainers "David Sancho")
 
-(license MIT)
+(license "MIT AND BSD-2-Clause")
 
 (package
  (name ochre)
@@ -72,6 +72,24 @@
     :with-dev-setup))))
 
 (package
+ (name ochre-semantic)
+ (synopsis "Syntax-only semantic classification of OCaml source for ochre")
+ (description
+  "Parses OCaml source with ppxlib and returns spans for modules, constructors, polymorphic variants, record fields, labels and types, each with a TextMate scope.")
+ (depends
+  (ocaml
+   (>= 4.14.0))
+  (ppxlib
+   (and
+    (>= 0.38.0)
+    (< 0.39.0)))
+  (alcotest :with-test)
+  (odoc
+   (and
+    (>= 3.2.0)
+    :with-doc))))
+
+(package
  (name ochre-cli)
  (synopsis "Command-line interface for ochre syntax highlighter")
  (description
@@ -86,6 +104,32 @@
    (>= 1.1.0))
   dune-build-info
   (ezjsonm :with-test)
+  (alcotest :with-test)
+  (odoc
+   (and
+    (>= 3.2.0)
+    :with-doc))))
+
+(package
+ (name ochre-merlin)
+ (allow_empty)
+ (synopsis "Type hovers and inline errors for ochre, computed with Merlin")
+ (description
+  "Types OCaml snippets with merlin-lib and returns ochre decorations: the type of each identifier and each compiler error or warning, shown with CSS only.")
+ (depends
+  (ocaml
+   (and
+    (>= 5.4.0)
+    (< 5.5)))
+  (ochre (= :version))
+  (merlin-lib
+   (and
+    (>= 5.7.1-504)
+    (< 5.8)))
+  (tm-grammars
+   (and
+    (>= 2.0.0)
+    :with-test))
   (alcotest :with-test)
   (odoc
    (and
