@@ -1,4 +1,7 @@
-(** Bindings to K.Kosako's {{:https://github.com/kkos/oniguruma} Oniguruma}
+(** Internal to ochre: this library is not a stable API and can change in any
+    release.
+
+    Bindings to K.Kosako's {{:https://github.com/kkos/oniguruma} Oniguruma}
     library. Also see the
     {{:https://github.com/kkos/oniguruma/blob/master/doc/API} Oniguruma API
      documentation}. *)

@@ -1,0 +1,11 @@
+(test
+ (name test_ochre_merlin)
+ (package ochre-merlin)
+ (build_if
+  (and
+   %{lib-available:merlin-lib.kernel}
+   (>= %{ocaml_version} 5.4)
+   (< %{ocaml_version} 5.5)))
+ (libraries ochre ochre-merlin alcotest tm-grammars)
+ (action
+  (run %{test} %{cmi:fixture/fixture_lib})))

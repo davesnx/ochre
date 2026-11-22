@@ -23,6 +23,7 @@
 - No function of the library raises on its inputs.
 - Remove the built-in themes and their JSON from core `ochre`: `Theme.find`, `Theme.available_names`, `Theme.themes`, the 12 theme values (`dark`, `light`, `nord`, ...) and `matrix`. Load a theme from the new `tm-themes` package, which has every Shiki theme under its Shiki name: `Ochre.Theme.load Tm_themes.nord`. The CLI takes Shiki names in `--theme` (`dark-plus`, `light-plus`, `tokyo-night`, ...), lists the `tm-themes` names for an unknown name, and defaults to `dark-plus` or `light-plus`.
 - Add `Ochre.html_render_whole_theme_css ~class_prefix theme`, a stylesheet for every style that `theme` can give a token, with no code to highlight. Its class names are the ones `Css_classes` rendering uses. In `Css_classes` mode, a style that a transform makes, such as a line highlight or a bold word, stays inline, so the stylesheet has a rule for every class.
+- The public library `ochre.textmate_language` is renamed to `ochre.textmate`. It and `ochre.oniguruma` are internal to ochre and not supported for direct use; use the `Ochre` API instead.
 
 ### Other changes
 

@@ -6,7 +6,7 @@ description:
   "ochre is a syntax highlighter inspired by Shiki, using TextMate grammars and themes. It supports HTML output (inline styles or CSS classes), ANSI terminal colors, LaTeX, SVG, and raw token output."
 maintainer: ["David Sancho"]
 authors: ["David Sancho"]
-license: "MIT"
+license: "MIT AND BSD-2-Clause"
 homepage: "https://github.com/davesnx/ochre"
 doc: "https://davesnx.github.io/ochre/odoc/"
 bug-reports: "https://github.com/davesnx/ochre/issues"
