@@ -6,7 +6,7 @@ description:
   "Types OCaml snippets with merlin-lib and returns ochre decorations: the type of each identifier and each compiler error or warning, shown with CSS only."
 maintainer: ["David Sancho"]
 authors: ["David Sancho"]
-license: "MIT"
+license: "MIT AND BSD-2-Clause"
 homepage: "https://github.com/davesnx/ochre"
 doc: "https://davesnx.github.io/ochre/odoc/"
 bug-reports: "https://github.com/davesnx/ochre/issues"
