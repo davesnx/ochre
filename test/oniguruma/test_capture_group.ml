@@ -5,10 +5,9 @@
    TextMate grammars routinely mix the two (e.g. Swift's bundled grammar has
    a regex-literal-callout rule using a numbered subroutine call, \g<20>,
    alongside several (?<name>...) groups), and vscode-oniguruma always
-   compiles with this option set. ocaml-textmate-language's
-   [TmLanguage.compile_regex] (vendor/ocaml-textmate-language/src/common.ml)
-   relies on the same option to load such grammars; this locks in the
-   Oniguruma-level behavior that depends on. *)
+   compiles with this option set. [TmLanguage.compile_regex]
+   (lib/textmate/common.ml) relies on the same option to load such
+   grammars; this locks in the Oniguruma-level behavior that depends on. *)
 
 let pattern = "(?<name>a)(b)\\g<2>"
 

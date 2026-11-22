@@ -1,4 +1,4 @@
 (library
  (name tmLanguage)
- (public_name ochre.textmate_language)
+ (public_name ochre.textmate)
  (libraries ochre.oniguruma unix))
