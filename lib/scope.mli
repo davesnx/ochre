@@ -22,3 +22,7 @@ val styled_token :
   scopes:string list ->
   Theme.token_color_settings option ->
   Token.styled_token
+
+val produces : Theme.theme -> Token.styled_token -> bool
+(** Whether {!styled_token} gives [token]'s foreground, background and font
+    style for some settings in {!styles}. *)

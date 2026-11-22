@@ -232,7 +232,19 @@ let entries_of_rules rules =
     rules
   |> List.concat
 
-type compiled = { trie : element; defaults : Theme.token_color_settings }
+type compiled = {
+  trie : element;
+  defaults : Theme.token_color_settings;
+  produced :
+    ( (Theme.color * Theme.color)
+    * ( Token.color option * Token.color option * Token.font_style list,
+        unit
+      )
+      Hashtbl.t
+    )
+    option
+    Atomic.t;
+}
 
 let compile rules =
   let entries = List.stable_sort compare_entries (entries_of_rules rules) in
@@ -283,7 +295,7 @@ let compile rules =
     )
     scoped;
   freeze trie;
-  { trie; defaults }
+  { trie; defaults; produced = Atomic.make None }
 
 let cache_capacity = 16
 let compiled_cache : (Theme.token_color_rule list * compiled) list Atomic.t =
@@ -573,3 +585,27 @@ let styled_token (theme : Theme.theme) ~text ~scopes settings =
         []
   in
   { Token.text; foreground; background; font_style; scopes; decoration = None }
+
+let produces (theme : Theme.theme) (token : Token.styled_token) =
+  let compiled = compiled_for theme.token_colors in
+  let key = (theme.fg, theme.bg) in
+  let table =
+    match Atomic.get compiled.produced with
+    | Some (k, table) when k = key ->
+        table
+    | _ ->
+        let table = Hashtbl.create 64 in
+        List.iter
+          (fun settings ->
+            let token =
+              styled_token theme ~text:"" ~scopes:[] (Some settings)
+            in
+            Hashtbl.replace table
+              (token.foreground, token.background, token.font_style)
+              ()
+          )
+          (styles theme.token_colors);
+        Atomic.set compiled.produced (Some (key, table));
+        table
+  in
+  Hashtbl.mem table (token.foreground, token.background, token.font_style)

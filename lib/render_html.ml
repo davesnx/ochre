@@ -193,7 +193,6 @@ type class_registry = {
   table : (string, string) Hashtbl.t;
   mutable order : (string * string) list;
   prefix : string;
-  themed : string -> bool;
 }
 
 let theme_styles ~prefix (theme : Theme.theme) =
@@ -204,7 +203,7 @@ let theme_styles ~prefix (theme : Theme.theme) =
   |> List.sort compare
   |> List.map (token_style_to_css ~emit_default:true ~prefix theme)
 
-let create_registry ?(themed = fun _ -> true) prefix =
+let create_registry prefix =
   let prefix =
     match prefix with
     | "" ->
@@ -216,7 +215,7 @@ let create_registry ?(themed = fun _ -> true) prefix =
     | p ->
         p
   in
-  { table = Hashtbl.create 16; order = []; prefix; themed }
+  { table = Hashtbl.create 16; order = []; prefix }
 
 let class_for_style registry style =
   match Hashtbl.find_opt registry.table style with
@@ -230,7 +229,8 @@ let class_for_style registry style =
 
 let join_styles parts = String.concat ";" (List.filter (( <> ) "") parts)
 
-let render_span_attrs ~options ~registry ~style ~extra_style decoration scopes =
+let render_span_attrs ~options ~registry ~themed ~style ~extra_style decoration
+    scopes =
   let open Html_options in
   let attrs = [] in
   let attrs =
@@ -266,7 +266,7 @@ let render_span_attrs ~options ~registry ~style ~extra_style decoration scopes =
   in
   let class_style, inline_style =
     match (options.style_mode, registry) with
-    | Css_classes _, Some reg when style <> "" && reg.themed style ->
+    | Css_classes _, Some reg when style <> "" && themed () ->
         ( Some (class_for_style reg style),
           join_styles [ extra_style; decoration_style ]
         )
@@ -313,7 +313,9 @@ let render_token ~options ~registry ~extras ~emit_default ~label
   in
   let text = escape_token_text primary.text in
   match
-    render_span_attrs ~options ~registry ~style:primary_style
+    render_span_attrs ~options ~registry
+      ~themed:(fun () -> Scope.produces primary_theme primary)
+      ~style:primary_style
       ~extra_style:(String.concat ";" extra_vars)
       primary.decoration primary.scopes
   with
@@ -409,17 +411,7 @@ let render ?(options = Html_options.default) ?label theme ?(extra_themes = [])
   let registry =
     match options.style_mode with
     | Html_options.Css_classes { class_prefix } ->
-        let styles =
-          lazy
-            (let table = Hashtbl.create 64 in
-             List.iter
-               (fun style -> Hashtbl.replace table style ())
-               (theme_styles ~prefix theme);
-             table
-            )
-        in
-        let themed style = Hashtbl.mem (Lazy.force styles) style in
-        Some (create_registry ~themed class_prefix)
+        Some (create_registry class_prefix)
     | Html_options.Inline_styles ->
         None
   in
