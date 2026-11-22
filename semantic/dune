@@ -1,0 +1,5 @@
+(library
+ (name ochre_semantic)
+ (public_name ochre-semantic)
+ (optional)
+ (libraries compiler-libs.common ppxlib))
