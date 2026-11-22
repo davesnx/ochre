@@ -77,7 +77,14 @@ let class_names ~prefix html =
       List.rev acc
     else if String.sub html i n = prefix && html.[i - 1] = '"' then
       let j = String.index_from html i '"' in
-      go j (String.sub html i (j - i) :: acc)
+      go j
+        (List.rev_append
+           (List.filter
+              (String.starts_with ~prefix)
+              (String.split_on_char ' ' (String.sub html i (j - i)))
+           )
+           acc
+        )
     else
       go (i + 1) acc
   in

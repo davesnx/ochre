@@ -553,6 +553,251 @@ let test_duplicate_class_and_style_merge () =
   check_contains "one style" html
     ~sub:{|<span style="color:var(--ochre,#aa0000);outline:0">let</span>|}
 
+let field_grammar =
+  {|{
+  "scopeName": "source.fields",
+  "name": "fields",
+  "patterns": [
+    { "match": "#.*", "name": "comment.line.fields" },
+    { "match": "\\b(let|in)\\b", "name": "keyword.control.fields" },
+    { "match": "\\b(and|or)\\b", "name": "keyword.operator.word.fields" },
+    { "match": "\"[^\"]*\"", "name": "string.quoted.fields" },
+    { "match": "@\\w+", "name": "markup.underline.fields" },
+    {
+      "begin": "\\[",
+      "end": "\\]",
+      "name": "invalid.illegal.fields",
+      "patterns": [ { "include": "$self" } ]
+    }
+  ]
+}|}
+
+let field_lang () =
+  get_ok
+    (Ochre.lang (get_ok (Ochre.load [ ("fields", field_grammar) ])) "fields")
+
+let field_theme =
+  let open Ochre.Style in
+  Ochre.Theme.make ~name:"fields"
+    ~colors:
+      [
+        ("editor.foreground", color "#111111");
+        ("editor.background", color "#eeeeee");
+      ]
+    ~token_colors:
+      [
+        Ochre.Theme.rule ~scope:[ "keyword.control" ]
+          ~foreground:(color "#aa0000")
+          ~font_style:{ plain with italic = true }
+          ();
+        Ochre.Theme.rule ~scope:[ "keyword.operator" ]
+          ~foreground:(color "#aa0000") ~font_style:{ plain with bold = true }
+          ();
+        Ochre.Theme.rule ~scope:[ "comment" ] ~foreground:(color "#777777")
+          ~font_style:{ plain with italic = true; underline = true }
+          ();
+        Ochre.Theme.rule ~scope:[ "string" ] ~foreground:(color "#00aa00") ();
+        Ochre.Theme.rule ~scope:[ "invalid" ] ~foreground:(color "#ffffff")
+          ~background:(color "#ff000033") ();
+        Ochre.Theme.rule ~scope:[ "markup.underline" ]
+          ~font_style:{ plain with underline = true }
+          ();
+      ]
+    ()
+
+let index_of ~sub s from =
+  let n = String.length sub in
+  let rec scan i =
+    if i + n > String.length s then
+      None
+    else if String.sub s i n = sub then
+      Some i
+    else
+      scan (i + 1)
+  in
+  scan from
+
+let token_spans html =
+  let rec attrs i acc =
+    if html.[i] = '>' then
+      (List.rev acc, i + 1)
+    else
+      let eq = String.index_from html i '=' in
+      let stop = String.index_from html (eq + 2) '"' in
+      attrs (stop + 1)
+        (( String.sub html (i + 1) (eq - i - 1),
+           String.sub html (eq + 2) (stop - eq - 2)
+         )
+        :: acc
+        )
+  in
+  let rec scan i acc =
+    match index_of ~sub:"<span" html i with
+    | None ->
+        List.rev acc
+    | Some i ->
+        let attributes, body = attrs (i + 5) [] in
+        let next = String.index_from html body '<' in
+        if
+          index_of ~sub:"</span>" html next = Some next
+          && List.assoc_opt "class" attributes <> Some "line"
+        then
+          scan next ((attributes, String.sub html body (next - body)) :: acc)
+        else
+          scan body acc
+  in
+  scan 0 []
+
+let span_classes ~prefix attributes =
+  List.filter
+    (String.starts_with ~prefix)
+    (String.split_on_char ' '
+       (Option.value (List.assoc_opt "class" attributes) ~default:"")
+    )
+
+let stylesheet_rules css =
+  List.filter_map
+    (fun line ->
+      match index_of ~sub:" { " line 0 with
+      | Some i when String.length line > 0 && line.[0] = '.' ->
+          Some
+            ( String.sub line 1 (i - 1),
+              String.sub line (i + 3) (String.length line - i - 5)
+            )
+      | _ ->
+          None
+    )
+    (String.split_on_char '\n' css)
+
+let declarations text = List.filter (( <> ) "") (String.split_on_char ';' text)
+
+let class_options =
+  Ochre.Html_options.make ~style_mode:(Css_classes { class_prefix = "c-" }) ()
+
+let test_token_gets_one_class_per_field () =
+  let themed =
+    Ochre.highlight ~theme:field_theme ~lang:(field_lang ()) "let x"
+  in
+  let html = Ochre.to_html ~options:class_options themed in
+  let rules =
+    stylesheet_rules (Ochre.html_render_theme_css ~class_prefix:"c-" themed)
+  in
+  match List.find_opt (fun (_, text) -> text = "let") (token_spans html) with
+  | None ->
+      Alcotest.fail "no span for let"
+  | Some (attributes, _) ->
+      let classes = span_classes ~prefix:"c-" attributes in
+      Alcotest.(check int) "two classes" 2 (List.length classes);
+      Alcotest.(check (list string))
+        "one rule for each class"
+        [
+          "color:var(--ochre,#aa0000)";
+          "font-style:var(--ochre-font-style,italic)";
+        ]
+        (List.sort compare
+           (List.map
+              (fun cls ->
+                match List.assoc_opt cls rules with
+                | Some rule ->
+                    rule
+                | None ->
+                    Alcotest.failf "no rule for %s" cls
+              )
+              classes
+           )
+        )
+
+let test_tokens_share_field_classes () =
+  let themed =
+    Ochre.highlight ~theme:field_theme ~lang:(field_lang ()) "let x and y"
+  in
+  let html = Ochre.to_html ~options:class_options themed in
+  let css = Ochre.html_render_theme_css ~class_prefix:"c-" themed in
+  let classes text =
+    match List.find_opt (fun (_, t) -> t = text) (token_spans html) with
+    | Some (attributes, _) ->
+        span_classes ~prefix:"c-" attributes
+    | None ->
+        Alcotest.failf "no span for %s" text
+  in
+  let shared =
+    List.filter (fun cls -> List.mem cls (classes "and")) (classes "let")
+  in
+  Alcotest.(check int) "one shared class" 1 (List.length shared);
+  let rules = stylesheet_rules css in
+  Alcotest.(check (option string))
+    "the shared class is the foreground" (Some "color:var(--ochre,#aa0000)")
+    (List.assoc_opt (List.hd shared) rules);
+  Alcotest.(check int)
+    "no duplicate rule"
+    (List.length (List.sort_uniq compare rules))
+    (List.length rules);
+  Alcotest.(check int)
+    "foreground rule once" 1
+    (occurrences ~sub:"{ color:var(--ochre,#aa0000) }" css)
+
+let effective_declarations ~rules (attributes, text) =
+  let classes =
+    List.concat_map
+      (fun cls ->
+        match List.assoc_opt cls rules with
+        | Some rule ->
+            declarations rule
+        | None ->
+            Alcotest.failf "no rule for %s" cls
+      )
+      (span_classes ~prefix:"c-" attributes)
+  in
+  let inline =
+    declarations (Option.value (List.assoc_opt "style" attributes) ~default:"")
+  in
+  (text, List.sort compare (classes @ inline))
+
+let test_classes_keep_colors () =
+  let source = "let x and y # note\n[let \"s\" or @u]\n\"str\" @w in [z # c]" in
+  let check name ~default_color themed =
+    let inline =
+      Ochre.to_html ~options:(Ochre.Html_options.make ~default_color ()) themed
+    in
+    let classes =
+      Ochre.to_html
+        ~options:
+          (Ochre.Html_options.make
+             ~style_mode:(Css_classes { class_prefix = "c-" })
+             ~default_color ()
+          )
+        themed
+    in
+    let rules =
+      stylesheet_rules (Ochre.html_render_theme_css ~class_prefix:"c-" themed)
+    in
+    let expected =
+      List.map (effective_declarations ~rules:[]) (token_spans inline)
+    in
+    Alcotest.(check bool) (name ^ ": tokens") true (List.length expected > 10);
+    Alcotest.(check (list (pair string (list string))))
+      name expected
+      (List.map (effective_declarations ~rules) (token_spans classes))
+  in
+  let lang = field_lang () in
+  let one theme = Ochre.highlight ~theme ~lang source in
+  let several ~label extra_themes =
+    get_ok
+      (Ochre.highlight_themes ~label ~theme:field_theme ~extra_themes ~lang
+         source
+      )
+  in
+  List.iter
+    (fun default_color ->
+      check "fields" ~default_color (one field_theme);
+      check "nord" ~default_color (one Ochre.Theme.nord);
+      check "extra themes" ~default_color
+        (several ~label:"base" [ ("nord", Ochre.Theme.nord) ]);
+      check "light and dark" ~default_color
+        (several ~label:"light" [ ("dark", Ochre.Theme.nord) ])
+    )
+    [ Ochre.Html_options.Default_color; No_default_color ]
+
 let () =
   Alcotest.run "Ochre HTML"
     [
@@ -611,6 +856,12 @@ let () =
             test_css_classes_have_rules;
           Alcotest.test_case "Three themes use CSS variables" `Quick
             test_three_themes_use_variables;
+          Alcotest.test_case "A token gets one class per field" `Quick
+            test_token_gets_one_class_per_field;
+          Alcotest.test_case "Tokens share field classes" `Quick
+            test_tokens_share_field_classes;
+          Alcotest.test_case "Classes keep the inline colors" `Quick
+            test_classes_keep_colors;
         ]
       );
     ]

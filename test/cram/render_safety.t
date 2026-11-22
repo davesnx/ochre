@@ -68,7 +68,7 @@ A decoration style stays in effect in CSS class mode
 
 Different styles never share a CSS class
   $ ./test_render_safety.exe css-classes-collision
-  distinct classes in html: 3
+  distinct classes in html: 5
   every class defined in the stylesheet: true
 
 HTML escaping replaces invalid UTF-8 and NUL by U+FFFD

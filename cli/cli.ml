@@ -393,8 +393,9 @@ let input_file =
 
 let css_classes =
   let doc =
-    "Use CSS class names instead of inline styles for HTML output. Each unique \
-     style gets a deterministic class like ochre-<hash>"
+    "Use CSS class names instead of inline styles for HTML output. Each token \
+     gets deterministic classes like ochre-<hash>, one for its colour, one for \
+     its background and one for its font style"
   in
   Arg.(value & flag & info [ "html-css-classes" ] ~doc)
 

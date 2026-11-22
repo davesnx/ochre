@@ -930,7 +930,11 @@ module Html_options : sig
   type style_mode = Html_options.style_mode =
     | Inline_styles  (** Emit [style="color:..."] on each [<span>]. Default. *)
     | Css_classes of { class_prefix : string }
-        (** Replace inline styles with deterministic CSS class names. *)
+        (** Replace inline styles with deterministic CSS class names: one class
+            for the token colour, one for its background when it has one, and
+            one for its [font-weight], [font-style] and [text-decoration] when
+            it has any. Each class sets different properties, so their order
+            does not matter. *)
 
   (** {2 default_color} *)
 
@@ -1084,11 +1088,12 @@ val html_render_theme_css :
   ?css_variable_prefix:string -> class_prefix:string -> Themed.t -> string
 (** [html_render_theme_css ~class_prefix themed] generates a complete CSS
     stylesheet for the default theme of [themed] when using
-    {!Html_options.Css_classes} mode. Walks all tokens to discover unique styles
-    and maps each to a deterministic class name prefixed with [class_prefix].
-    Pass the [css_variable_prefix] of the {!Html_options.type-t} used to render
-    the HTML as [~css_variable_prefix]; the class names depend on it. For light
-    and dark themes (see {!val-to_html}) the rules use [light-dark()]. *)
+    {!Html_options.Css_classes} mode. Walks all tokens and writes one rule for
+    each distinct colour, background and font style they use, named with
+    [class_prefix] and a hash of the rule's declarations. Pass the
+    [css_variable_prefix] of the {!Html_options.type-t} used to render the HTML
+    as [~css_variable_prefix]; the class names depend on it. For light and dark
+    themes (see {!val-to_html}) the rules use [light-dark()]. *)
 
 (** {2 to_ansi} *)
 
