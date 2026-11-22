@@ -208,7 +208,7 @@ class collector source =
 
     method private constructor lid =
       match lid.txt with
-      | Lident ("::" | "[]" | "()") ->
+      | Lident ("::" | "[]" | "()" | "true" | "false") ->
           ()
       | _ ->
           self#add (path_spans ~last:enum_member source lid)
@@ -451,3 +451,16 @@ let classify source =
       collector#spans
     )
     (parse source)
+
+let scope_spans source =
+  Result.bind (classify source) (fun spans ->
+      Result.map_error Ochre.Error.to_string
+        (Ochre.Scope_spans.make ~source
+           (List.map
+              (fun { offset; length; scope } ->
+                { Ochre.Scope_spans.offset; length; scope }
+              )
+              spans
+           )
+        )
+  )

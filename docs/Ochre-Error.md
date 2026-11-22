@@ -20,6 +20,12 @@ type t =
     transform : string;
   } (* The transform returned a token taken from another Themed value with a different number of themes. *)
   | Invalid_data_key of string (* A decoration data key is empty or holds a byte outside A-Za-z0-9_-. *)
+  | Invalid_scope_span of {
+    offset : int;
+    length : int;
+    scope : string;
+    message : string;
+  } (* A Scope_spans.span is outside the source, splits a UTF-8 sequence, overlaps another span, is empty, or has a scope that is empty or holds a blank. *)
 ```
 Every error that loading grammars, themes and languages can return.
 

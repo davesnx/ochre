@@ -7,6 +7,12 @@ type t =
   | Unknown_theme_label of string
   | Foreign_token of { transform : string }
   | Invalid_data_key of string
+  | Invalid_scope_span of {
+      offset : int;
+      length : int;
+      scope : string;
+      message : string;
+    }
 
 let to_string = function
   | Unknown_language lang ->
@@ -37,5 +43,8 @@ let to_string = function
          letters, digits, '-' and '_', since it becomes part of a data-* \
          attribute name"
         key
+  | Invalid_scope_span { offset; length; scope; message } ->
+      Printf.sprintf "invalid scope span %S at byte %d, length %d: %s" scope
+        offset length message
   | Unknown_theme_label label ->
       Printf.sprintf "no theme has the label %S" label

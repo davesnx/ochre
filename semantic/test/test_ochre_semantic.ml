@@ -53,6 +53,9 @@ let test_constructor () =
     "let _ = function M.None -> () | () -> ()"
     [ ("M", "entity.name.namespace"); ("None", "variable.other.enummember") ]
 
+let test_booleans () =
+  check "true and false" "let _ = function true -> false | false -> true" []
+
 let test_polymorphic_variant () =
   check "`Tag" "let _ = `Tag 1" [ ("`Tag", "variable.other.enummember") ];
   check "`Tag in a pattern and a type"
@@ -302,6 +305,93 @@ let test_lexer_error () =
   | Ok _ ->
       Alcotest.fail "expected a parse error"
 
+let ocaml =
+  match Ochre.load [ ("ocaml", Tm_grammars.ocaml) ] with
+  | Ok highlighter -> (
+      match Ochre.lang highlighter "ocaml" with
+      | Ok lang ->
+          lang
+      | Error error ->
+          failwith (Ochre.Error.to_string error)
+    )
+  | Error error ->
+      failwith (Ochre.Error.to_string error)
+
+let color hex = Option.get (Ochre.Color.of_hex hex)
+
+let theme rules =
+  Ochre.Theme.make ~name:"semantic-test"
+    ~colors:
+      [
+        ("editor.foreground", color "#111111");
+        ("editor.background", color "#fafafa");
+      ]
+    ~token_colors:
+      (List.map
+         (fun (scope, hex) ->
+           Ochre.Theme.rule ~scope:[ scope ] ~foreground:(color hex) ()
+         )
+         rules
+      )
+    ()
+
+let semantic_theme =
+  theme
+    [
+      ("entity.name.namespace", "#ff0000");
+      ("variable.other.enummember", "#00aa00");
+    ]
+
+let html ?scopes theme source =
+  Ochre.to_html (Ochre.highlight ?scopes ~theme ~lang:ocaml source)
+
+let semantic_html theme source =
+  match Ochre_semantic.scope_spans source with
+  | Ok scopes ->
+      html ~scopes theme source
+  | Error message ->
+      Alcotest.failf "unexpected error: %s" message
+
+let contains ~sub text =
+  let n = String.length sub in
+  let rec go i =
+    i + n <= String.length text && (String.sub text i n = sub || go (i + 1))
+  in
+  go 0
+
+let test_semantic_colors_in_html () =
+  let output = semantic_html semantic_theme "let _ = Foo.bar (Some x)" in
+  Alcotest.(check bool)
+    "Foo is red" true
+    (contains ~sub:{|color:var(--ochre,#ff0000)">Foo</span>|} output);
+  Alcotest.(check bool)
+    "Some is green" true
+    (contains ~sub:{|color:var(--ochre,#00aa00)">Some</span>|} output)
+
+let test_theme_without_semantic_rules () =
+  let plain = theme [ ("keyword", "#0000ff") ] in
+  let source =
+    "module M = Foo.Bar\n\
+     let f ~label ?opt (x : M.t) = Some { r with name = `Tag }"
+  in
+  Alcotest.(check string)
+    "same HTML" (html plain source)
+    (semantic_html plain source)
+
+let test_booleans_keep_their_color () =
+  let source = "let _ = true && false" in
+  Alcotest.(check string)
+    "same HTML"
+    (html semantic_theme source)
+    (semantic_html semantic_theme source)
+
+let test_scope_spans_parse_error () =
+  match Ochre_semantic.scope_spans "let x = (" with
+  | Error _ ->
+      ()
+  | Ok _ ->
+      Alcotest.fail "expected a parse error"
+
 let () =
   Alcotest.run "ochre-semantic"
     [
@@ -313,6 +403,7 @@ let () =
           Alcotest.test_case "first-class modules" `Quick
             test_first_class_modules;
           Alcotest.test_case "constructor" `Quick test_constructor;
+          Alcotest.test_case "booleans" `Quick test_booleans;
           Alcotest.test_case "polymorphic variant" `Quick
             test_polymorphic_variant;
           Alcotest.test_case "labels at a call site" `Quick
@@ -348,6 +439,17 @@ let () =
           Alcotest.test_case "lexer error" `Quick test_lexer_error;
           Alcotest.test_case "lexer warnings are silent" `Quick
             test_lexer_warnings_are_silent;
+        ]
+      );
+      ( "highlight",
+        [
+          Alcotest.test_case "semantic colors in HTML" `Quick
+            test_semantic_colors_in_html;
+          Alcotest.test_case "theme without semantic rules" `Quick
+            test_theme_without_semantic_rules;
+          Alcotest.test_case "booleans keep their color" `Quick
+            test_booleans_keep_their_color;
+          Alcotest.test_case "parse error" `Quick test_scope_spans_parse_error;
         ]
       );
     ]

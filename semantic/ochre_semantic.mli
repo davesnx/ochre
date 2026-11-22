@@ -21,3 +21,12 @@ val classify : string -> (span list, string) result
     of the rest of that path or label. Parser warnings are not printed. It uses
     the compiler's global lexer state, so do not call it from several domains at
     the same time. *)
+
+val scope_spans : string -> (Ochre.Scope_spans.t, string) result
+(** [scope_spans source] classifies [source] and checks the spans for
+    {!Ochre.highlight}. Returns [Error message] when [source] does not parse.
+
+    {@ocaml[
+    let scopes = Result.to_option (Ochre_semantic.scope_spans code) in
+    Ochre.highlight ?scopes ~theme ~lang code
+    ]} *)

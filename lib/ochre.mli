@@ -47,6 +47,15 @@ module Error : sig
     | Invalid_data_key of string
         (** A decoration data key is empty or holds a byte outside
             [A-Za-z0-9_-]. *)
+    | Invalid_scope_span of {
+        offset : int;
+        length : int;
+        scope : string;
+        message : string;
+      }
+        (** A {!Scope_spans.span} is outside the source, splits a UTF-8
+            sequence, overlaps another span, is empty, or has a scope that is
+            empty or holds a blank. *)
 
   val to_string : t -> string
   (** A message for humans. *)
@@ -570,6 +579,53 @@ module Decoration : sig
       transforms. *)
 end
 
+(** {1 Extra scopes}
+
+    Extra scopes add a TextMate scope to byte ranges of the source, for example
+    the semantic scopes of the [ochre-semantic] package. They are applied after
+    tokenization and before theme matching, so themes color them through their
+    normal scope rules. A span changes only the tokens whose style its scope
+    changes, so with a theme that has no rule for a scope, every output is the
+    same as without the span. *)
+
+module Scope_spans : sig
+  type span = {
+    offset : int;  (** Byte offset of the first byte in the source. *)
+    length : int;  (** Number of bytes, at least [1]. *)
+    scope : string;  (** TextMate scope, for example [entity.name.namespace]. *)
+  }
+
+  type t
+  (** Spans checked against one source. *)
+
+  val make : source:string -> span list -> (t, Error.t) result
+  (** [make ~source spans] checks [spans] against [source], in any order.
+      Returns {!Error.Invalid_scope_span} for the first span that is empty, ends
+      outside [source], starts or ends inside a UTF-8 sequence, overlaps another
+      span, or has a scope that is empty or holds a blank.
+
+      Give the result to {!val-highlight} with the same [source]. Spans apply
+      only to tokens that a grammar scoped: a token with no scopes, such as a
+      token of {!Lang.plaintext}, stays as it is. For each other token that
+      spans cover, the token is split at the span boundaries that fall inside
+      it, and each covered piece gets the span's scope as its innermost scope,
+      the head of {!Token.t.scopes}. This happens only when at least one piece
+      then has a different style under at least one theme. Otherwise the token
+      stays exactly as it is without spans: same text, scopes and style.
+
+      {@ocaml[
+      let themed =
+        match
+          Ochre.Scope_spans.make ~source:code
+            [ { offset = 0; length = 3; scope = "entity.name.namespace" } ]
+        with
+        | Ok scopes ->
+            Ochre.highlight ~scopes ~theme ~lang code
+        | Error _ ->
+            Ochre.highlight ~theme ~lang code
+      ]} *)
+end
+
 (** {1 Transforms}
 
     Transforms run after tokenization, theming and decorations, but before
@@ -768,6 +824,7 @@ end
 (** {1 Highlighting} *)
 
 val highlight :
+  ?scopes:Scope_spans.t ->
   ?decorations:Decoration.t list ->
   ?transforms:Transform.t list ->
   ?label:string ->
@@ -776,9 +833,11 @@ val highlight :
   string ->
   Themed.t
 (** [highlight ~theme ~lang source] tokenizes [source] and styles it with
-    [theme]. Decorations are applied after tokenization and transforms run after
-    decorations. [~label] names the theme for HTML with
-    {!Html_options.No_default_color}; it defaults to the theme name.
+    [theme]. [~scopes] are added to the tokens before theme matching; they must
+    come from {!Scope_spans.make} with the same [source]. Decorations are
+    applied after that, and transforms run after decorations. [~label] names the
+    theme for HTML with {!Html_options.No_default_color}; it defaults to the
+    theme name.
 
     The source may contain bytes that are not valid UTF-8. They are kept byte
     for byte in the token texts. The tokenizer sees each such byte as an
@@ -792,6 +851,7 @@ val highlight :
     ]} *)
 
 val highlight_themes :
+  ?scopes:Scope_spans.t ->
   ?decorations:Decoration.t list ->
   ?transforms:Transform.t list ->
   ?label:string ->

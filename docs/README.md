@@ -136,6 +136,14 @@ Decorations attach format-agnostic properties (CSS class, inline style, data att
 module Decoration : sig ... end
 ```
 
+## Extra scopes
+
+Extra scopes add a TextMate scope to byte ranges of the source, for example the semantic scopes of the `ochre-semantic` package. They are applied after tokenization and before theme matching, so themes color them through their normal scope rules. A span changes only the tokens whose style its scope changes, so with a theme that has no rule for a scope, every output is the same as without the span.
+
+```ocaml
+module Scope_spans : sig ... end
+```
+
 ## Transforms
 
 Transforms run after tokenization, theming and decorations, but before rendering. They change structure (text, splitting, decorations) through the token fields, and style through [`Token.map_style`](./Ochre-Token.md#val-map_style), which runs once per theme. A token taken from another [`Themed`](./Ochre-Themed.md) value with the same number of themes keeps the styles it carries.
@@ -156,6 +164,7 @@ module Transform_builtin : sig ... end
 
 ```ocaml
 val highlight : 
+  ?scopes:Scope_spans.t ->
   ?decorations:Decoration.t list ->
   ?transforms:Transform.t list ->
   ?label:string ->
@@ -164,7 +173,7 @@ val highlight :
   string ->
   Themed.t
 ```
-`highlight ~theme ~lang source` tokenizes `source` and styles it with `theme`. Decorations are applied after tokenization and transforms run after decorations. `~label` names the theme for HTML with [`Html_options.default_color.No_default_color`](./Ochre-Html_options.md#type-default_color.No_default_color); it defaults to the theme name.
+`highlight ~theme ~lang source` tokenizes `source` and styles it with `theme`. `~scopes` are added to the tokens before theme matching; they must come from [`Scope_spans.make`](./Ochre-Scope_spans.md#val-make) with the same `source`. Decorations are applied after that, and transforms run after decorations. `~label` names the theme for HTML with [`Html_options.default_color.No_default_color`](./Ochre-Html_options.md#type-default_color.No_default_color); it defaults to the theme name.
 
 The source may contain bytes that are not valid UTF-8. They are kept byte for byte in the token texts. The tokenizer sees each such byte as an underscore, so it behaves like a non-ASCII letter.
 
@@ -176,6 +185,7 @@ List.iter
 ```
 ```ocaml
 val highlight_themes : 
+  ?scopes:Scope_spans.t ->
   ?decorations:Decoration.t list ->
   ?transforms:Transform.t list ->
   ?label:string ->

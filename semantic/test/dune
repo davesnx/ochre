@@ -1,4 +1,4 @@
 (test
  (name test_ochre_semantic)
  (package ochre-semantic)
- (libraries ochre-semantic alcotest unix))
+ (libraries ochre-semantic ochre tm-grammars alcotest unix))

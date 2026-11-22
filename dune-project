@@ -81,10 +81,16 @@
  (depends
   (ocaml
    (>= 4.14.0))
+  (ochre
+   (= :version))
   (ppxlib
    (and
     (>= 0.38.0)
     (< 0.39.0)))
+  (tm-grammars
+   (and
+    (= 2.0.0)
+    :with-test))
   (alcotest :with-test)
   (odoc
    (and

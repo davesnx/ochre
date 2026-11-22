@@ -136,37 +136,33 @@ let style_of (theme : Theme.theme) resolver scopes : Style.t =
         ~default:Style.plain;
   }
 
-let apply_themes themes raw =
+let apply_themes ~scopes themes raw =
   let resolvers =
     Array.map
       (fun (theme : Theme.theme) -> Scope.resolver theme.token_colors)
       themes
   in
-  List.map
-    (List.map (fun (text, scopes, position) ->
-         let values =
-           Array.mapi
-             (fun i theme -> style_of theme resolvers.(i) scopes)
-             themes
-         in
-         {
-           Token.text;
-           position;
-           scopes;
-           styles = Token.make_styles themes values;
-           decoration = None;
-         }
-     )
-    )
-    raw
+  let make (text, scopes, position) =
+    let values =
+      Array.mapi (fun i theme -> style_of theme resolvers.(i) scopes) themes
+    in
+    {
+      Token.text;
+      position;
+      scopes;
+      styles = Token.make_styles themes values;
+      decoration = None;
+    }
+  in
+  Scope_spans.apply ~make scopes raw
 
-let decorated ?(decorations = []) ~themes ~lang source =
+let decorated ?(scopes = []) ?(decorations = []) ~themes ~lang source =
   Decoration.apply ~source decorations
-    (apply_themes (Array.of_list themes) (raw_tokenize lang source))
+    (apply_themes ~scopes (Array.of_list themes) (raw_tokenize lang source))
 
-let highlight ?decorations ?(transforms = []) ?label ~(theme : Theme.theme)
-    ~lang source =
-  let lines = decorated ?decorations ~themes:[ theme ] ~lang source in
+let highlight ?scopes ?decorations ?(transforms = []) ?label
+    ~(theme : Theme.theme) ~lang source =
+  let lines = decorated ?scopes ?decorations ~themes:[ theme ] ~lang source in
   {
     Themed.themes = ((Option.value label ~default:theme.name, theme), []);
     lines = Transform.run transforms lines;
@@ -184,7 +180,7 @@ let first_duplicate labels =
   in
   go [] labels
 
-let highlight_themes ?decorations ?(transforms = []) ?label
+let highlight_themes ?scopes ?decorations ?(transforms = []) ?label
     ~(theme : Theme.theme) ~extra_themes ~lang source =
   let label = Option.value label ~default:theme.name in
   match
@@ -195,7 +191,7 @@ let highlight_themes ?decorations ?(transforms = []) ?label
       Error (Error.Duplicate_theme_label label)
   | None ->
       let themes = theme :: List.map snd extra_themes in
-      let lines = decorated ?decorations ~themes ~lang source in
+      let lines = decorated ?scopes ?decorations ~themes ~lang source in
       let count = List.length themes in
       let check (transform : Transform.t) token =
         if Token.style_count token = count then
@@ -244,4 +240,5 @@ module Theme = Theme
 module Transform = Transform
 module Transform_builtin = Transform_builtin
 module Decoration = Decoration
+module Scope_spans = Scope_spans
 module Html_options = Html_options

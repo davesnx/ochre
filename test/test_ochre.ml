@@ -770,6 +770,162 @@ let test_decoration_multiline () =
   | _ ->
       Alcotest.fail "expected 2 lines"
 
+let namespace_theme =
+  Ochre.Theme.make ~name:"namespace-theme"
+    ~colors:
+      [
+        ("editor.foreground", color "#111111");
+        ("editor.background", color "#fafafa");
+      ]
+    ~token_colors:
+      [
+        Ochre.Theme.rule
+          ~scope:[ "entity.name.namespace" ]
+          ~foreground:(color "#ff0000") ();
+      ]
+    ()
+
+let plain_theme =
+  Ochre.Theme.make ~name:"plain-theme"
+    ~colors:
+      [
+        ("editor.foreground", color "#111111");
+        ("editor.background", color "#fafafa");
+      ]
+    ~token_colors:
+      [ Ochre.Theme.rule ~scope:[ "keyword" ] ~foreground:(color "#0000ff") () ]
+    ()
+
+let namespace_spans source spans =
+  get_ok
+    (Ochre.Scope_spans.make ~source
+       (List.map
+          (fun (offset, length) ->
+            {
+              Ochre.Scope_spans.offset;
+              length;
+              scope = "entity.name.namespace";
+            }
+          )
+          spans
+       )
+    )
+
+let tokens_of (themed : Ochre.Themed.t) = List.concat themed.lines
+
+let test_scope_span_splits_token () =
+  let lang = get_ok (Ochre.lang (highlight ()) "test") in
+  let source = "let abc = 1\nabc" in
+  let scopes = namespace_spans source [ (4, 3); (12, 3) ] in
+  let tokens =
+    tokens_of (Ochre.highlight ~scopes ~theme:namespace_theme ~lang source)
+  in
+  Alcotest.(check (list (triple string (list string) string)))
+    "tokens"
+    [
+      ("let", [ "keyword.control.test"; "source.test" ], "#111111");
+      (" ", [ "source.test" ], "#111111");
+      ("abc", [ "entity.name.namespace"; "source.test" ], "#ff0000");
+      (" = ", [ "source.test" ], "#111111");
+      ("1", [ "constant.numeric.test"; "source.test" ], "#111111");
+      ("\n", [ "source.test" ], "#111111");
+      ("abc", [ "entity.name.namespace"; "source.test" ], "#ff0000");
+    ]
+    (List.map
+       (fun (token : Ochre.Token.t) -> (token.text, token.scopes, fg token))
+       tokens
+    )
+
+let test_scope_span_over_whole_token () =
+  let lang = get_ok (Ochre.lang (highlight ()) "test") in
+  let source = "let x" in
+  let scopes = namespace_spans source [ (0, 3) ] in
+  let tokens =
+    tokens_of (Ochre.highlight ~scopes ~theme:namespace_theme ~lang source)
+  in
+  Alcotest.(check (list (triple string (list string) string)))
+    "tokens"
+    [
+      ( "let",
+        [ "entity.name.namespace"; "keyword.control.test"; "source.test" ],
+        "#ff0000"
+      );
+      (" x", [ "source.test" ], "#111111");
+    ]
+    (List.map
+       (fun (token : Ochre.Token.t) -> (token.text, token.scopes, fg token))
+       tokens
+    )
+
+let test_scope_span_without_theme_rule () =
+  let lang = get_ok (Ochre.lang (highlight ()) "test") in
+  let source = "let abc = 1 # Foo.bar" in
+  let scopes = namespace_spans source [ (4, 3); (14, 3) ] in
+  Alcotest.(check string)
+    "same HTML"
+    (Ochre.to_html (Ochre.highlight ~theme:plain_theme ~lang source))
+    (Ochre.to_html (Ochre.highlight ~scopes ~theme:plain_theme ~lang source))
+
+let test_scope_spans_without_style_change () =
+  let lang = get_ok (Ochre.lang (highlight ()) "test") in
+  let source = "let abc = 1" in
+  let options = Ochre.Html_options.make ~scopes_as_data_attrs:true () in
+  let render ?scopes () =
+    Ochre.to_html ~options
+      (Ochre.highlight ?scopes ~theme:plain_theme ~lang source)
+  in
+  List.iter
+    (fun (name, spans) ->
+      Alcotest.(check string)
+        name (render ())
+        (render ~scopes:(namespace_spans source spans) ())
+    )
+    [ ("whole token", [ (0, 3) ]); ("part of a token", [ (4, 3) ]) ]
+
+let test_scope_spans_skip_plaintext () =
+  let source = "hello world" in
+  let scopes = namespace_spans source [ (0, 5) ] in
+  let tokens =
+    tokens_of
+      (Ochre.highlight ~scopes ~theme:namespace_theme ~lang:Ochre.Lang.plaintext
+         source
+      )
+  in
+  Alcotest.(check (list (pair string (list string))))
+    "tokens"
+    [ ("hello world", []) ]
+    (List.map (fun (token : Ochre.Token.t) -> (token.text, token.scopes)) tokens)
+
+let test_invalid_scope_spans () =
+  List.iter
+    (fun (name, source, (offset, length, scope)) ->
+      match
+        Ochre.Scope_spans.make ~source
+          [
+            { Ochre.Scope_spans.offset = 0; length = 1; scope = "a" };
+            { offset; length; scope };
+          ]
+      with
+      | Error (Ochre.Error.Invalid_scope_span _) ->
+          ()
+      | Error error ->
+          Alcotest.failf "%s: unexpected error %s" name
+            (Ochre.Error.to_string error)
+      | Ok _ ->
+          Alcotest.failf "%s: expected Invalid_scope_span" name
+    )
+    [
+      ("empty", "abcdef", (2, 0, "a"));
+      ("negative offset", "abcdef", (-1, 2, "a"));
+      ("past the end", "abcdef", (4, 3, "a"));
+      ("overlap", "abcdef", (0, 2, "a"));
+      ("inside UTF-8", "a\xc3\xa9b", (2, 2, "a"));
+      ("ends inside UTF-8", "a\xc3\xa9b", (1, 1, "a"));
+      ("empty scope", "abcdef", (2, 1, ""));
+      ("blank in scope", "abcdef", (2, 1, "a b"));
+      ("length max_int", "abc", (1, max_int, "a"));
+    ]
+
 let test_decoration_with_highlighter () =
   let hl = highlight () in
   let theme =
@@ -2084,6 +2240,20 @@ let () =
             test_notation_word_highlight_no_match;
           test_case "Notation highlight with highlighter" `Quick
             test_notation_highlight_with_highlighter;
+        ]
+      );
+      ( "scope spans",
+        [
+          test_case "A span splits a token" `Quick test_scope_span_splits_token;
+          test_case "A span over a whole token adds its scope" `Quick
+            test_scope_span_over_whole_token;
+          test_case "A theme without the scope renders the same HTML" `Quick
+            test_scope_span_without_theme_rule;
+          test_case "Invalid spans are errors" `Quick test_invalid_scope_spans;
+          test_case "A span that changes no style changes no token" `Quick
+            test_scope_spans_without_style_change;
+          test_case "Plaintext tokens get no span scopes" `Quick
+            test_scope_spans_skip_plaintext;
         ]
       );
       ( "decoration",
