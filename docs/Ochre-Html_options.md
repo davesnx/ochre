@@ -33,7 +33,7 @@ type t = {
   pre_class : string option;
   code_class : string option;
   line_numbers : bool;
-  css_variable_prefix : string;
+  css_variable_prefix : string; (* The prefix of the CSS variables, "--ochre-" by default. Two themes labelled light and dark write their colours with light-dark(), so for them the prefix names only the font variables. *)
   scopes_as_data_attrs : bool;
 }
 ```

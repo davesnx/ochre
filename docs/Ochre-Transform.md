@@ -28,7 +28,7 @@ type attribute_hooks = {
          option; (* Changes the attributes of the <span> of token on the rendered line line_index. column is the byte offset of the token in the text of that line. A token with no attributes after every hook is written as text, with no <span>. *)
 }
 ```
-HTML attribute hooks, run by [`to_jsx`](./Ochre.md#val-to_jsx) and [`to_html`](./Ochre.md#val-to_html). Each hook takes the attributes built so far and returns the new list. The HTML backend escapes the values. An attribute name must match `[A-Za-z_:][A-Za-z0-9_.:-]*`; rendering never fails, so the HTML backend replaces each other character of a name with `_`, and an empty name becomes `_`.
+HTML attribute hooks, run by [`to_jsx`](./Ochre.md#val-to_jsx) and [`to_html`](./Ochre.md#val-to_html). Each hook takes the attributes built so far and returns the new list. The HTML backend escapes the values. An attribute name must match `[A-Za-z_:][A-Za-z0-9_.:-]*`; rendering never fails, so the HTML backend replaces each other character of a name with `_`, and an empty name becomes `_`. When the list has several `class` attributes, they become one `class` with each name once, in order; several `style` attributes become one `style`, joined with `;`. So a hook can add a class or a style with `attrs @ [ ("class", `String "name") ]`.
 
 
 ### t

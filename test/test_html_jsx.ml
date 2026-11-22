@@ -426,6 +426,133 @@ let test_classes_not_repeated () =
   Alcotest.(check (list string))
     "lines" [ "line highlighted" ] (line_classes html)
 
+let bold_theme name =
+  Ochre.Theme.make ~name
+    ~colors:
+      [
+        ("editor.foreground", color "#111111");
+        ("editor.background", color "#eeeeee");
+      ]
+    ~token_colors:
+      [
+        Ochre.Theme.rule ~scope:[ "keyword" ] ~foreground:(color "#aa0000")
+          ~font_style:{ Ochre.Style.plain with bold = true }
+          ();
+      ]
+    ()
+
+let test_light_dark_no_default_font () =
+  let themed =
+    get_ok
+      (Ochre.highlight_themes ~label:"light" ~theme:(bold_theme "l")
+         ~extra_themes:[ ("dark", bold_theme "d") ]
+         ~lang:(lang ()) "let x"
+      )
+  in
+  let html default_color =
+    Ochre.to_html ~options:(Ochre.Html_options.make ~default_color ()) themed
+  in
+  check_contains "bold without extra CSS" (html No_default_color)
+    ~sub:"font-weight:var(--ochre-font-weight,bold)";
+  Alcotest.(check string)
+    "same as with a default color" (html Default_color) (html No_default_color)
+
+let span_with_class ~cls html =
+  let marker = {|class="|} ^ cls ^ {|">|} in
+  let rec find i =
+    if i + String.length marker > String.length html then
+      None
+    else if String.sub html i (String.length marker) = marker then
+      Some i
+    else
+      find (i + 1)
+  in
+  Option.map
+    (fun stop ->
+      let start =
+        let rec back i =
+          if String.sub html i 5 = "<span" then
+            i
+          else
+            back (i - 1)
+        in
+        back stop
+      in
+      String.sub html start (stop - start)
+    )
+    (find 0)
+
+let test_crlf_class_and_color_agree () =
+  let html =
+    render [ Ochre.Transform_builtin.word_highlight [ "# x" ] ] "# x\r\nlet"
+  in
+  match span_with_class ~cls:"highlighted-word" html with
+  | None ->
+      check_absent "no color without the class" html ~sub:"#ffff00"
+  | Some span ->
+      check_contains "the marked span has the word color" span ~sub:"#ffff00"
+
+let test_scope_marker_crlf () =
+  let html =
+    render [ Ochre.Transform_builtin.scope_marker "comment" ] "# x\r\nlet"
+  in
+  match span_with_class ~cls:"highlighted-scope" html with
+  | None ->
+      Alcotest.fail "no marked span"
+  | Some span ->
+      check_contains "the marked span has the background" span ~sub:"#ffff0033"
+
+let replace_class value attrs =
+  List.map
+    (fun (name, old) ->
+      ( name,
+        if name = "class" then
+          value
+        else
+          old
+      )
+    )
+    attrs
+
+let test_add_class_to_odd_values () =
+  let set value =
+    Ochre.Transform.make "set-class" ~attributes:(fun _ ->
+        { pre = Some (fun _ -> replace_class value); line = None; span = None }
+    )
+  in
+  let pre value =
+    pre_class
+      (render
+         [ set value; Ochre.Transform_builtin.line_highlight [ 0 ] ]
+         "let a"
+      )
+  in
+  Alcotest.(check string) "empty" "has-highlighted" (pre (`String ""));
+  Alcotest.(check string) "int" "7 has-highlighted" (pre (`Int 7))
+
+let test_duplicate_class_and_style_merge () =
+  let extra =
+    Ochre.Transform.make "extra" ~attributes:(fun _ ->
+        {
+          pre = None;
+          line =
+            Some
+              (fun ~line_index:_ _ attrs ->
+                attrs @ [ ("class", `String "line extra") ]
+              );
+          span =
+            Some
+              (fun ~line_index:_ ~column:_ _ attrs ->
+                attrs @ [ ("style", `String "outline:0") ]
+              );
+        }
+    )
+  in
+  let html = render [ extra ] "let" in
+  check_contains "one class" html ~sub:{|<span class="line extra"><span|};
+  check_contains "one style" html
+    ~sub:{|<span style="color:var(--ochre,#aa0000);outline:0">let</span>|}
+
 let () =
   Alcotest.run "Ochre HTML"
     [
@@ -439,6 +566,8 @@ let () =
         [
           Alcotest.test_case "User hooks add escaped attributes in order" `Quick
             test_user_hooks;
+          Alcotest.test_case "Duplicate class and style merge" `Quick
+            test_duplicate_class_and_style_merge;
           Alcotest.test_case "Bad attribute names are replaced" `Quick
             test_bad_attribute_name;
         ]
@@ -460,6 +589,12 @@ let () =
             test_word_marks_inserted_text;
           Alcotest.test_case "pre class follows the rendered lines" `Quick
             test_pre_class_follows_rendered_lines;
+          Alcotest.test_case "word class and color agree with CRLF" `Quick
+            test_crlf_class_and_color_agree;
+          Alcotest.test_case "scope class and color agree with CRLF" `Quick
+            test_scope_marker_crlf;
+          Alcotest.test_case "class added to empty and non-string values" `Quick
+            test_add_class_to_odd_values;
           Alcotest.test_case "class names are not repeated" `Quick
             test_classes_not_repeated;
         ]
@@ -470,6 +605,8 @@ let () =
             test_light_dark;
           Alcotest.test_case "Light and dark CSS classes use light-dark()"
             `Quick test_light_dark_css_classes;
+          Alcotest.test_case "Light and dark without default color keep fonts"
+            `Quick test_light_dark_no_default_font;
           Alcotest.test_case "Every CSS class has a rule" `Quick
             test_css_classes_have_rules;
           Alcotest.test_case "Three themes use CSS variables" `Quick

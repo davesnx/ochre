@@ -14,21 +14,7 @@ let set_word_style ~foreground ~font_style tok =
     (fun _ (style : Style.t) -> { style with foreground; font_style })
     tok
 
-let add_class name attrs =
-  let names = String.split_on_char ' ' name in
-  if List.mem_assoc "class" attrs then
-    List.map
-      (function
-        | "class", `String classes ->
-            let present = String.split_on_char ' ' classes in
-            let added = List.filter (fun n -> not (List.mem n present)) names in
-            ("class", `String (String.concat " " (classes :: added)))
-        | attr ->
-            attr
-        )
-      attrs
-  else
-    attrs @ [ ("class", `String name) ]
+let add_class name attrs = attrs @ [ ("class", `String name) ]
 
 let class_when condition name attrs =
   if condition then
@@ -85,7 +71,17 @@ let line_highlight ?(background = default_highlight_background) lines =
 
 let word_highlight ?(foreground = default_word_foreground) ?(font_style = bold)
     words =
-  let marked (tok : Token.t) = List.mem tok.text words in
+  let marked (tok : Token.t) =
+    let text = tok.text in
+    let length = String.length text in
+    List.mem
+      ( if length > 0 && text.[length - 1] = '\r' then
+          String.sub text 0 (length - 1)
+        else
+          text
+      )
+      words
+  in
   Transform.make "word-highlight"
     ~after_line:(fun ~line_index:_ line ->
       List.map

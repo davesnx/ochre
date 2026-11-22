@@ -143,8 +143,6 @@ let token_styles ~colors ~emit_default ~prefix token =
       ("", [])
   | Variables ->
       (class_style ~colors ~prefix token, [])
-  | Light_dark _ when not emit_default ->
-      (class_style ~colors ~prefix token, [])
   | Light_dark _ ->
       (class_style ~colors ~prefix token, variable_reads ~colors ~prefix token)
 
@@ -337,18 +335,72 @@ let attribute_name name =
       )
       name
 
+let attribute_text = function
+  | `String text ->
+      text
+  | `Int i ->
+      string_of_int i
+  | `Float f ->
+      Float.to_string f
+  | `Bool _ ->
+      ""
+
+let words text = List.filter (( <> ) "") (String.split_on_char ' ' text)
+
+let merge_class first second =
+  let present = words first in
+  String.concat " "
+    (present @ List.filter (fun w -> not (List.mem w present)) (words second))
+
+let merge_style first second =
+  String.concat ";" (List.filter (( <> ) "") [ first; second ])
+
+let merge_duplicates attrs =
+  let merge name =
+    match name with
+    | "class" ->
+        Some merge_class
+    | "style" ->
+        Some merge_style
+    | _ ->
+        None
+  in
+  List.rev
+    (List.fold_left
+       (fun acc (name, value) ->
+         match (merge name, List.assoc_opt name acc) with
+         | Some combine, Some first ->
+             List.map
+               (fun (n, v) ->
+                 if n = name then
+                   ( n,
+                     `String
+                       (combine (attribute_text first) (attribute_text value))
+                   )
+                 else
+                   (n, v)
+               )
+               acc
+         | _ ->
+             (name, value) :: acc
+       )
+       [] attrs
+    )
+
 let node tag attrs children =
   JSX.node tag
-    (List.map
-       (function
-         | name, `String value ->
-             ( attribute_name name,
-               `String (Escape.to_string Escape.valid_utf8 value)
-             )
-         | name, value ->
-             (attribute_name name, value)
-         )
-       attrs
+    (merge_duplicates
+       (List.map
+          (function
+            | name, `String value ->
+                ( attribute_name name,
+                  `String (Escape.to_string Escape.valid_utf8 value)
+                )
+            | name, value ->
+                (attribute_name name, value)
+            )
+          attrs
+       )
     )
     children
 
@@ -372,7 +424,8 @@ let render_token ~options ~registry ~colors ~label ~theme ~extra_themes
   in
   let extra_vars =
     token_theme_declarations ~props:(variable_props colors) ~prefix
-      ~emit_default ~label (theme, primary) extras
+      ~emit_default:(emit_default || colors <> Variables)
+      ~label (theme, primary) extras
   in
   let text = JSX.unsafe (escape_token_text token.text) in
   let style, reads = token_styles ~colors ~emit_default ~prefix token in

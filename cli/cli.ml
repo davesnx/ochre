@@ -415,7 +415,9 @@ let no_default_color =
 
 let css_var_prefix =
   let doc =
-    "CSS custom property prefix for multi-theme output (default: --ochre-)"
+    "CSS custom property prefix for multi-theme output (default: --ochre-). \
+     With --theme-light and --theme-dark, colors use light-dark() and read no \
+     variable, so the prefix applies only to font styles"
   in
   Arg.(
     value

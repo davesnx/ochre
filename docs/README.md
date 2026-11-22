@@ -260,7 +260,7 @@ Pair with [`html_theme_css`](./#val-html_theme_css) to activate alternate themes
 
 Light and dark themes
 
-When there are exactly two themes, labelled `light` and `dark` (in either order), the colours and backgrounds of the `<pre>` and of each token are written as `light-dark(<light>, <dark>)`, in both style modes and with or without a default colour. The browser picks one from the `color-scheme` of the page; the output sets no `color-scheme` itself. With `:root { color-scheme: light dark; }` in the page stylesheet, the code follows the system setting. `font-weight`, `font-style` and `text-decoration` keep the variables above, inline also in [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode, so a font style that differs between the two themes still needs [`html_theme_css`](./#val-html_theme_css).
+When there are exactly two themes, labelled `light` and `dark` (in either order), the colours and backgrounds of the `<pre>` and of each token are written as `light-dark(<light>, <dark>)`, in both style modes and with or without a default colour. The browser picks one from the `color-scheme` of the page; the output sets no `color-scheme` itself. With `:root { color-scheme: light dark; }` in the page stylesheet, the code follows the system setting. To switch with a control, set `color-scheme` on the root, for example `:root[data-theme="dark"] { color-scheme: dark; }`: these colours read no CSS variable, so [`html_theme_css`](./#val-html_theme_css) and `css_variable_prefix` do not change them. `font-weight`, `font-style` and `text-decoration` keep the variables above, with the default theme's value as fallback, inline also in [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode, so a font style that differs between the two themes still needs [`html_theme_css`](./#val-html_theme_css). Any other set of labels keeps the variable output described above.
 
 ```ocaml
 let themed =
@@ -279,6 +279,8 @@ val html_theme_css : ?css_variable_prefix:string -> string -> string
 `html_theme_css label` returns a CSS rule that maps base variables (`--ochre-*`) to the label-scoped variables (`--ochre-<label>-*`). `~css_variable_prefix` replaces `"--ochre-"`; give the prefix of the [`Html_options.t`](./Ochre-Html_options.md#type-t) that rendered the code.
 
 Wrap this in your own selector (a media query, a `.dark` class, a `data-theme` attribute selector, etc.) to control when the theme activates.
+
+For two themes labelled `light` and `dark`, the colours are written with `light-dark()` and read no variable, so this rule changes only their `font-weight`, `font-style` and `text-decoration`. Switch their colours with `color-scheme` on the root (see [`to_html`](./#val-to_html)).
 
 ```ocaml
 Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
