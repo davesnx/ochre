@@ -324,7 +324,13 @@ val load : (string * string) list -> (t, Error.t) result
     size) process-wide; later calls do not change them.
 
     {@ocaml[
-    match Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ] with
+    match
+      Ochre.load
+        [
+          (Tm_grammar_ocaml.lang_id, Tm_grammar_ocaml.json);
+          (Tm_grammar_ocaml_interface.lang_id, Tm_grammar_ocaml_interface.json);
+        ]
+    with
     | Ok hl ->
         hl
     | Error e ->

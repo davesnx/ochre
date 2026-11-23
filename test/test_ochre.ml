@@ -868,6 +868,7 @@ let invalid_utf8_highlighter =
             ("reason", Tm_grammars.reason);
             ("cpp", Tm_grammars.cpp);
             ("ocaml", Tm_grammars.ocaml);
+            ("ocaml-interface", Tm_grammars.ocaml_interface);
             ("json", Tm_grammars.json);
           ]
        )
@@ -1469,7 +1470,15 @@ let test_decorations_scale () =
   )
 
 let test_long_line_is_not_quadratic () =
-  let hl = get_ok (Ochre.load [ ("ocaml", Tm_grammars.ocaml) ]) in
+  let hl =
+    get_ok
+      (Ochre.load
+         [
+           ("ocaml", Tm_grammars.ocaml);
+           ("ocaml-interface", Tm_grammars.ocaml_interface);
+         ]
+      )
+  in
   let time_for n =
     let source = long_arithmetic_line n in
     min_time_of 3 (fun () ->
@@ -1533,6 +1542,10 @@ let test_budget_long_line_without_limits () =
   in
   let t = TmLanguage.create () in
   TmLanguage.add_grammar t grammar;
+  TmLanguage.add_grammar t
+    (TmLanguage.of_yojson_exn
+       (Yojson.Basic.from_string Tm_grammars.ocaml_interface)
+    );
   let source = long_arithmetic_line 6400 in
   check_under ~seconds:0.5 "6400-term OCaml line without limits" (fun () ->
       ignore

@@ -32,11 +32,14 @@ Install the bundled grammar package:
 opam install tm-grammars -y
 v}
 
-Then load a grammar from OCaml and create a highlighter:
+Then load a grammar from OCaml and create a highlighter. The [ocaml] grammar includes rules from [ocaml-interface], so load both:
 
 {[
 let ( let* ) = Result.bind in
-let* highlighter = Ochre.load [ ("ocaml", Tm_grammars.ocaml) ] in
+let* highlighter =
+  Ochre.load
+    [ ("ocaml", Tm_grammars.ocaml); ("ocaml-interface", Tm_grammars.ocaml_interface) ]
+in
 let* lang = Ochre.lang highlighter "ocaml" in
 Ok (Ochre.to_html (Ochre.highlight ~theme:Ochre.Theme.nord ~lang "let x = 42"))
 ]}
