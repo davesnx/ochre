@@ -18,15 +18,15 @@ ochre LANG [FILE] [OPTION]...
 ## Options
 
 - `--theme NAME_OR_PATH`, `-t NAME_OR_PATH` — Optional. Built-in theme name (for example `dark`, `light`, or `tokyonight`) or path to a VS Code / TextMate theme JSON file. A theme color that is not `#rgb`, `#rgba`, `#rrggbb` or `#rrggbbaa` is dropped, with a warning on standard error (`ochre: warning: <message>`).
-- `--theme-dark NAME_OR_PATH` — Theme used when terminal mode is detected as dark (same name-or-path resolution as `--theme`). With `--format html`, when both `--theme-dark` and `--theme-light` are given (and no `--theme`), produces dual-theme output: the light theme is the default and the dark theme is emitted as CSS custom properties (`--ochre-dark-*`) for automatic dark-mode switching.
+- `--theme-dark NAME_OR_PATH` — Theme used when terminal mode is detected as dark (same name-or-path resolution as `--theme`). With `--format html`, when both `--theme-dark` and `--theme-light` are given (and no `--theme`), produces dual-theme output with CSS `light-dark()` colors. They follow the `color-scheme` of the page, for example `:root { color-scheme: light dark; }` for the system setting.
 - `--theme-light NAME_OR_PATH` — Theme used when terminal mode is detected as light (same name-or-path resolution as `--theme`). See `--theme-dark` for dual-theme HTML output.
 - `--grammar FILE`, `-g FILE` — Path to a `.tmLanguage.json` grammar file. Can be specified multiple times. Optional: when omitted, the bundled grammar for `LANG` is used.
 - `--include LANG_OR_PATH`, `-i LANG_OR_PATH` — Additional grammar to load, by bundled name or file path. Use to enable cross-grammar features like HTML embedding CSS/JS. Can be specified multiple times.
 - `--format FORMAT`, `-f FORMAT` — Output format: `html` (default), `ansi`, `latex`, `svg`, or `tokens`.
-- `--html-css-classes` — Use CSS class names instead of inline styles for HTML output. Each unique style gets a deterministic class like `ochre-<hash>`.
+- `--html-css-classes` — Use CSS class names instead of inline styles for HTML output. Each token gets deterministic classes like `ochre-<hash>`, one for its colour, one for its background and one for its font style.
 - `--line-numbers` — Add `data-line` attributes to line spans in HTML output (1-indexed).
-- `--no-default-color` — Suppress inline color/background-color on the primary theme; all colors come from CSS custom properties only. Useful with multi-theme output when you control theme switching entirely via CSS.
-- `--css-var-prefix PREFIX` — CSS custom property prefix for multi-theme output (default: `--ochre-`).
+- `--no-default-color` — Suppress inline color/background-color on the primary theme; all colors come from CSS custom properties only. Useful with multi-theme output when you control theme switching entirely via CSS. Light and dark themes use `light-dark()` colors with or without this flag.
+- `--css-var-prefix PREFIX` — CSS custom property prefix for multi-theme output (default: `--ochre-`). With `--theme-light` and `--theme-dark`, colors use `light-dark()` and read no variable, so the prefix applies only to font styles.
 - `--scopes-data` — Add `data-scope` attributes to token spans in HTML output with TextMate scope names.
 
 ## Exit codes

@@ -108,11 +108,15 @@ The theme stylesheet uses the configured variable prefix
   class defined: true
   class defined: true
   class defined: true
+  class defined: true
+  class defined: true
   .ochre { background-color:#1e1e1e; color:#d4d4d4 }
-  .c-26ca7c872e3d26f5 { font-weight:var(--hl-font-weight,bold);color:var(--hl,#ff0000) }
+  .c-7d5c85d901eb16be { font-weight:var(--hl-font-weight,bold) }
+  .c-0a746e3bde886fdb { color:var(--hl,#ff0000) }
   .c-052b9abb0d1fa589 { color:var(--hl,#d4d4d4) }
   .c-efdfb8891fbe432e { color:var(--hl,#0000ff) }
-  .c-df49164ff9ddda0d { font-style:var(--hl-font-style,italic);color:var(--hl,#888888) }
+  .c-25953fb4e5ee6546 { font-style:var(--hl-font-style,italic) }
+  .c-98ee25ceb23f6dcc { color:var(--hl,#888888) }
   $ ./test_formats.exe theme-css-variables
   .ochre,
   .ochre span {

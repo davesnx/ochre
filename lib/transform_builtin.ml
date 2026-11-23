@@ -14,26 +14,106 @@ let set_word_style ~foreground ~font_style tok =
     (fun _ (style : Style.t) -> { style with foreground; font_style })
     tok
 
+let add_class name attrs = attrs @ [ ("class", `String name) ]
+
+let class_when condition name attrs =
+  if condition then
+    add_class name attrs
+  else
+    attrs
+
+let no_hooks = { Transform.pre = None; line = None; span = None }
+
+let line_classes ~pre_class class_of =
+  {
+    no_hooks with
+    pre =
+      Some
+        (fun doc ->
+          class_when
+            (List.exists Option.is_some
+               (List.mapi (fun line_index line -> class_of ~line_index line) doc)
+            )
+            pre_class
+        );
+    line =
+      Some
+        (fun ~line_index line attrs ->
+          match class_of ~line_index line with
+          | Some name ->
+              add_class name attrs
+          | None ->
+              attrs
+        );
+  }
+
+let source_line_classes ~pre_class marks =
+  let table = Hashtbl.create 16 in
+  List.iter
+    (fun (line, name) ->
+      List.iter
+        (fun (tok : Token.t) -> Hashtbl.replace table tok.position.line name)
+        line
+    )
+    marks;
+  line_classes ~pre_class (fun ~line_index:_ line ->
+      List.find_map
+        (fun (tok : Token.t) -> Hashtbl.find_opt table tok.position.line)
+        line
+  )
+
+let span_class name marked =
+  {
+    no_hooks with
+    span =
+      Some
+        (fun ~line_index:_ ~column:_ token attrs ->
+          class_when (marked token) name attrs
+        );
+  }
+
 let line_highlight ?(background = default_highlight_background) lines =
-  Transform.make "line-highlight" ~after_line:(fun ~line_index line ->
+  Transform.make "line-highlight"
+    ~after_line:(fun ~line_index line ->
       if List.mem line_index lines then
         List.map (set_background background) line
       else
         line
-  )
+    )
+    ~attributes:(fun _ ->
+      line_classes ~pre_class:"has-highlighted" (fun ~line_index _ ->
+          if List.mem line_index lines then
+            Some "highlighted"
+          else
+            None
+      )
+    )
 
 let word_highlight ?(foreground = default_word_foreground) ?(font_style = bold)
     words =
-  Transform.make "word-highlight" ~after_line:(fun ~line_index:_ line ->
+  let marked (tok : Token.t) =
+    let text = tok.text in
+    let length = String.length text in
+    List.mem
+      ( if length > 0 && text.[length - 1] = '\r' then
+          String.sub text 0 (length - 1)
+        else
+          text
+      )
+      words
+  in
+  Transform.make "word-highlight"
+    ~after_line:(fun ~line_index:_ line ->
       List.map
-        (fun (tok : Token.t) ->
-          if List.mem tok.text words then
+        (fun tok ->
+          if marked tok then
             set_word_style ~foreground ~font_style tok
           else
             tok
         )
         line
-  )
+    )
+    ~attributes:(fun _ -> span_class "highlighted-word" marked)
 
 let strip_marker (first : Token.t) rest =
   let length = String.length first.text - 1 in
@@ -42,44 +122,53 @@ let strip_marker (first : Token.t) rest =
   else
     Token.slice first ~pos:1 ~len:length :: rest
 
+let diff_kind = function
+  | { Token.text; _ } :: _ when String.length text > 0 && text.[0] = '+' ->
+      Some (default_add_background, "diff add")
+  | { Token.text; _ } :: _ when String.length text > 0 && text.[0] = '-' ->
+      Some (default_remove_background, "diff remove")
+  | _ ->
+      None
+
 let diff_markers =
-  Transform.make "diff-markers" ~before_render:(fun doc ->
+  Transform.make "diff-markers"
+    ~before_render:(fun doc ->
       List.map
         (fun line ->
-          let with_background background line =
-            List.map (set_background background) line
-          in
-          match line with
-          | ({ Token.text; _ } as first) :: rest
-            when String.length text > 0 && text.[0] = '+' ->
-              with_background default_add_background (strip_marker first rest)
-          | ({ Token.text; _ } as first) :: rest
-            when String.length text > 0 && text.[0] = '-' ->
-              with_background default_remove_background (strip_marker first rest)
-          | line ->
+          match (diff_kind line, line) with
+          | Some (background, _), first :: rest ->
+              List.map (set_background background) (strip_marker first rest)
+          | _ ->
               line
         )
         doc
-  )
+    )
+    ~attributes:(fun doc ->
+      source_line_classes ~pre_class:"has-diff"
+        (List.filter_map
+           (fun line ->
+             Option.map (fun (_, name) -> (line, name)) (diff_kind line)
+           )
+           doc
+        )
+    )
 
 let scope_marker ?(background = Color.rgba 0xff 0xff 0x00 0x33) scope_prefix =
-  Transform.make "scope-marker" ~after_line:(fun ~line_index:_ line ->
+  let marked (tok : Token.t) =
+    List.exists (String.starts_with ~prefix:scope_prefix) tok.scopes
+  in
+  Transform.make "scope-marker"
+    ~after_line:(fun ~line_index:_ line ->
       List.map
-        (fun (tok : Token.t) ->
-          if
-            List.exists
-              (fun s ->
-                String.length s >= String.length scope_prefix
-                && String.sub s 0 (String.length scope_prefix) = scope_prefix
-              )
-              tok.scopes
-          then
+        (fun tok ->
+          if marked tok then
             set_background background tok
           else
             tok
         )
         line
-  )
+    )
+    ~attributes:(fun _ -> span_class "highlighted-scope" marked)
 
 let block_comments =
   [ ("--[[", "]]"); ("<!--", "-->"); ("/*", "*/"); ("(*", "*)"); ("{-", "-}") ]
@@ -480,24 +569,32 @@ let run_notation ~parse ~default_count ~apply doc =
           removed.(i) <- true
     )
     markers;
-  List.iter
-    (fun (i, marker) ->
-      let first =
-        if marker.comment_only then
-          i + 1
-        else
-          i
-      in
-      let last =
-        min count
-          (first + Option.value marker.range ~default:(default_count count))
-      in
-      for j = first to last - 1 do
-        lines.(j) <- apply marker.payload lines.(j)
-      done
-    )
-    markers;
-  List.filteri (fun i _ -> not removed.(i)) (Array.to_list lines)
+  let applied =
+    List.concat_map
+      (fun (i, marker) ->
+        let first =
+          if marker.comment_only then
+            i + 1
+          else
+            i
+        in
+        let last =
+          min count
+            (first + Option.value marker.range ~default:(default_count count))
+        in
+        List.filter_map
+          (fun j ->
+            lines.(j) <- apply marker.payload lines.(j);
+            if removed.(j) then
+              None
+            else
+              Some (lines.(j), marker.payload)
+          )
+          (List.init (max 0 (last - first)) (fun k -> first + k))
+      )
+      markers
+  in
+  (List.filteri (fun i _ -> not removed.(i)) (Array.to_list lines), applied)
 
 let is_digit = function '0' .. '9' -> true | _ -> false
 
@@ -535,32 +632,43 @@ let parse_keyword keywords text position =
 let set_line_background background line =
   List.map (set_background background) line
 
+let marked_lines ~pre_class ~line_class applied =
+  source_line_classes ~pre_class
+    (List.map (fun (line, payload) -> (line, line_class payload)) applied)
+
+let notation_lines ~name ~keywords ~pre_class ~line_class ~background =
+  let run ~apply =
+    run_notation ~parse:(parse_keyword keywords)
+      ~default_count:(fun _ -> 1)
+      ~apply
+  in
+  Transform.make name
+    ~before_render:(fun doc ->
+      fst
+        (run
+           ~apply:(fun keyword line ->
+             set_line_background (background keyword) line
+           )
+           doc
+        )
+    )
+    ~attributes:(fun doc ->
+      marked_lines ~pre_class ~line_class
+        (snd (run ~apply:(fun _ line -> line) doc))
+    )
+
 let notation_highlight ?(background = default_highlight_background) () =
-  Transform.make "notation-highlight" ~before_render:(fun doc ->
-      run_notation
-        ~parse:(parse_keyword [ "highlight"; "hl" ])
-        ~default_count:(fun _ -> 1)
-        ~apply:(fun _ line -> set_line_background background line)
-        doc
-  )
+  notation_lines ~name:"notation-highlight" ~keywords:[ "highlight"; "hl" ]
+    ~pre_class:"has-highlighted"
+    ~line_class:(fun _ -> "highlighted")
+    ~background:(fun _ -> background)
 
 let notation_diff ?(add_background = default_add_background)
     ?(remove_background = default_remove_background) () =
-  Transform.make "notation-diff" ~before_render:(fun doc ->
-      run_notation
-        ~parse:(parse_keyword [ "++"; "--" ])
-        ~default_count:(fun _ -> 1)
-        ~apply:(fun keyword line ->
-          set_line_background
-            ( if keyword = "++" then
-                add_background
-              else
-                remove_background
-            )
-            line
-        )
-        doc
-  )
+  notation_lines ~name:"notation-diff" ~keywords:[ "++"; "--" ]
+    ~pre_class:"has-diff"
+    ~line_class:(function "++" -> "diff add" | _ -> "diff remove")
+    ~background:(function "++" -> add_background | _ -> remove_background)
 
 let parse_word text position =
   let start = position + String.length "[!code word:" in
@@ -593,7 +701,7 @@ let parse_word text position =
     | _ ->
         None
 
-let highlight_word ~foreground ~font_style word line =
+let word_ranges word line =
   let text = line_text line in
   let length = String.length word in
   let limit = body_length text in
@@ -605,18 +713,55 @@ let highlight_word ~foreground ~font_style word line =
         []
   in
   if length = 0 then
-    line
+    []
   else
-    edit_ranges line (occurrences 0) (fun tok ->
-        Some (set_word_style ~foreground ~font_style tok)
-    )
+    occurrences 0
+
+let has_source_bytes (tok : Token.t) =
+  tok.position.length > 0 && tok.position.length = String.length tok.text
 
 let notation_word_highlight ?(foreground = default_word_foreground)
     ?(font_style = bold) () =
-  Transform.make "notation-word-highlight" ~before_render:(fun doc ->
-      run_notation
-        ~parse:(fun text position -> parse_word text position)
-        ~default_count:Fun.id
-        ~apply:(highlight_word ~foreground ~font_style)
-        doc
-  )
+  let run ~apply =
+    run_notation ~parse:parse_word ~default_count:Fun.id ~apply
+  in
+  Transform.make "notation-word-highlight"
+    ~before_render:(fun doc ->
+      fst
+        (run
+           ~apply:(fun word line ->
+             edit_ranges line (word_ranges word line) (fun tok ->
+                 Some (set_word_style ~foreground ~font_style tok)
+             )
+           )
+           doc
+        )
+    )
+    ~attributes:(fun doc ->
+      let source_ranges = Hashtbl.create 16 in
+      let inserted = Hashtbl.create 16 in
+      List.iter
+        (fun (line, word) ->
+          ignore
+            (edit_ranges line (word_ranges word line) (fun (tok : Token.t) ->
+                 let { Token.offset; line; length; _ } = tok.position in
+                 if has_source_bytes tok then
+                   Hashtbl.add source_ranges line (offset, offset + length)
+                 else
+                   Hashtbl.replace inserted (tok.position, tok.text) ();
+                 Some tok
+             )
+            )
+        )
+        (snd (run ~apply:(fun _ line -> line) doc));
+      let marked (tok : Token.t) =
+        let { Token.offset; line; length; _ } = tok.position in
+        if has_source_bytes tok then
+          List.exists
+            (fun (start, stop) -> start <= offset && offset + length <= stop)
+            (Hashtbl.find_all source_ranges line)
+        else
+          Hashtbl.mem inserted (tok.position, tok.text)
+      in
+      span_class "highlighted-word" marked
+    )

@@ -18,8 +18,8 @@ depends: [
   "conf-oniguruma" {= "1"}
   "dune-configurator" {>= "2.9" & build}
   "plist-xml" {>= "0.5.0"}
+  "html_of_jsx" {>= "0.1.0"}
   "ezjsonm" {with-test}
-  "html_of_jsx" {>= "0.0.9" & with-test}
   "tiny_httpd" {with-test}
   "odoc" {>= "3.2.0" & with-doc}
   "omd" {>= "2.0.0~alpha4" & with-dev-setup}

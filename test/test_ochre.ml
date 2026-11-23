@@ -2011,8 +2011,8 @@ let test_to_string_html_options_extra_themes () =
     "options applied (line numbers)" true
     (contains ~sub:"data-line=" via_to_string);
   Alcotest.(check bool)
-    "extra themes applied (dark CSS vars)" true
-    (contains ~sub:"--ochre-dark" via_to_string)
+    "extra themes applied (light-dark colors)" true
+    (contains ~sub:"light-dark(" via_to_string)
 
 let () =
   let open Alcotest in
