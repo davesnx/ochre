@@ -5,7 +5,7 @@
  (modules test_complexity)
  (enabled_if
   (= %{system} linux))
- (libraries ochre.textmate tm-grammars yojson alcotest unix))
+ (libraries ochre.textmate tm-grammars yojson alcotest))
 
 (executable
  (name bench)

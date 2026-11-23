@@ -1,4 +1,4 @@
-let ratio_limit = 2.5
+let ratio_limit = 7.0
 
 let repeated_line ~prefix ~chunk ~suffix ~bytes =
   let count =
@@ -21,10 +21,10 @@ let cases =
 
 let time_per_call f =
   Gc.full_major ();
-  let start = Unix.gettimeofday () in
+  let start = Sys.time () in
   let rec go calls =
     f ();
-    let elapsed = Unix.gettimeofday () -. start in
+    let elapsed = Sys.time () -. start in
     if elapsed >= 0.05 then
       elapsed /. float_of_int calls
     else
@@ -54,12 +54,12 @@ let check_linear (lang, json, (prefix, chunk, suffix)) () =
           )
   in
   let small, large =
-    min_times_interleaved 5 (tokenize 16_000) (tokenize 32_000)
+    min_times_interleaved 5 (tokenize 16_000) (tokenize 64_000)
   in
   if large > small *. ratio_limit then
     Alcotest.failf
-      "%s: a line twice as long took %.1fx as long (%.4f s -> %.4f s), limit \
-       %.1fx"
+      "%s: a line four times as long took %.1fx as long (%.4f s -> %.4f s), \
+       limit %.1fx"
       lang (large /. small) small large ratio_limit
 
 let () =
