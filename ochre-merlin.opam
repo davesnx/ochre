@@ -6,7 +6,7 @@ description:
   "Types OCaml snippets with merlin-lib and returns ochre decorations: the type of each identifier and each compiler error or warning, shown with CSS only."
 maintainer: ["David Sancho"]
 authors: ["David Sancho"]
-license: "MIT"
+license: "MIT AND BSD-2-Clause"
 homepage: "https://github.com/davesnx/ochre"
 doc: "https://davesnx.github.io/ochre/odoc/"
 bug-reports: "https://github.com/davesnx/ochre/issues"
@@ -15,7 +15,7 @@ depends: [
   "ocaml" {>= "5.4.0" & < "5.5"}
   "ochre" {= version}
   "merlin-lib" {>= "5.7.1-504" & < "5.8"}
-  "tm-grammars" {>= "2.0.0" & with-test}
+  "tm-grammars" {>= "2.1.0~dev" & with-test}
   "alcotest" {with-test}
   "odoc" {>= "3.2.0" & with-doc}
 ]
@@ -35,3 +35,6 @@ build: [
 ]
 dev-repo: "git+https://github.com/davesnx/ochre.git"
 x-maintenance-intent: ["(latest)"]
+pin-depends: [
+  ["tm-grammars.2.1.0~dev" "git+https://github.com/davesnx/tm-grammars.git#799519b64e138bf5376b540f4ec79bcf198eb884"]
+]

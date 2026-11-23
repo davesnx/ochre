@@ -10,13 +10,19 @@ let cases =
   [
     ( "ocaml",
       Tm_grammars.ocaml,
+      [ Tm_grammars.ocaml_interface ],
       ("let x = ", "f (a + 1) * \"s\" :: [b; 2.0] @ ", "[]")
     );
     ( "javascript",
       Tm_grammars.javascript,
+      [],
       ("var x = ", "f(a + 1) * \"s\" + [b, 2.0].length + ", "0;")
     );
-    ("json", Tm_grammars.json, ("[", "{\"a\": [1, \"s\", true, null]}, ", "0]"));
+    ( "json",
+      Tm_grammars.json,
+      [],
+      ("[", "{\"a\": [1, \"s\", true, null]}, ", "0]")
+    );
   ]
 
 let min_time_of trials f =
@@ -29,10 +35,12 @@ let min_time_of trials f =
   )
   |> List.fold_left Float.min Float.infinity
 
-let check_linear (lang, json, (prefix, chunk, suffix)) () =
-  let grammar = TmLanguage.of_yojson_exn (Yojson.Basic.from_string json) in
+let check_linear (lang, json, includes, (prefix, chunk, suffix)) () =
+  let parse json = TmLanguage.of_yojson_exn (Yojson.Basic.from_string json) in
+  let grammar = parse json in
   let t = TmLanguage.create () in
   TmLanguage.add_grammar t grammar;
+  List.iter (fun json -> TmLanguage.add_grammar t (parse json)) includes;
   let time_for bytes =
     let line = repeated_line ~prefix ~chunk ~suffix ~bytes in
     min_time_of 5 (fun () ->
@@ -56,7 +64,7 @@ let () =
     [
       ( "long line",
         List.map
-          (fun ((lang, _, _) as case) ->
+          (fun ((lang, _, _, _) as case) ->
             Alcotest.test_case lang `Quick (check_linear case)
           )
           cases

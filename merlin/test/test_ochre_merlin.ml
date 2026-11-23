@@ -183,7 +183,15 @@ let ok = function
 
 let html_of source =
   let { Ochre_merlin.decorations; _ } = Ochre_merlin.analyze source in
-  let highlighter = ok (Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ]) in
+  let highlighter =
+    ok
+      (Ochre.load
+         [
+           (Tm_grammar_ocaml.lang_id, Tm_grammar_ocaml.json);
+           (Tm_grammar_ocaml_interface.lang_id, Tm_grammar_ocaml_interface.json);
+         ]
+      )
+  in
   let lang = ok (Ochre.lang highlighter "ocaml") in
   Ochre.to_html
     (Ochre.highlight ~decorations ~theme:Ochre.Theme.dark ~lang source)
