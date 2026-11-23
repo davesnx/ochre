@@ -61,7 +61,7 @@
     :with-dev-setup))
   (tm-grammars
    (and
-    (= 2.0.0)
+    (= 2.1.0~dev)
     :with-test))
   (alcotest :with-test)
   (crowbar :with-test)
@@ -83,7 +83,7 @@
    (>= 4.14.0))
   ochre
   (tm-grammars
-   (>= 2.0.0))
+   (>= 2.1.0~dev))
   (cmdliner
    (>= 1.1.0))
   dune-build-info
@@ -112,7 +112,7 @@
     (< 5.8)))
   (tm-grammars
    (and
-    (>= 2.0.0)
+    (>= 2.1.0~dev)
     :with-test))
   (alcotest :with-test)
   (odoc
