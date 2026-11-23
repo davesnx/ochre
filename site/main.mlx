@@ -320,7 +320,13 @@ let merlin_load_path =
       else
         dir
     )
-    [ Load_path.ochre; Load_path.tm_grammars; Load_path.tm_grammar_ocaml ]
+    [
+      Load_path.ochre;
+      Load_path.tm_grammars;
+      Load_path.tm_grammar_ocaml;
+      Load_path.tm_grammar_ocaml_interface;
+      Load_path.html_of_jsx;
+    ]
 
 let first_line text =
   match String.index_opt text '\n' with
@@ -329,32 +335,62 @@ let first_line text =
   | None ->
       text
 
+let block_summary ~source ~code ~kind = function
+  | [] ->
+      None
+  | (first : Ochre_merlin.diagnostic) :: _ as diagnostics ->
+      Some
+        (Printf.sprintf
+           "%s: OCaml block %S has %d %s(s), first at line %d: %s" source
+           (first_line code) (List.length diagnostics) kind
+           (first.start.line + 1) (first_line first.message)
+        )
+
 let ocaml_decorations ~source code =
   let { Ochre_merlin.decorations; diagnostics } =
     Ochre_merlin.analyze ~load_path:merlin_load_path code
   in
-  ( match diagnostics with
-  | [] ->
-      ()
-  | first :: _ ->
-      Printf.eprintf
-        "warning: %s: OCaml block %S has %d diagnostic(s), first at line %d: \
-         %s\n\
-         %!"
-        source (first_line code) (List.length diagnostics)
-        (first.start.line + 1) (first_line first.message)
+  let errors =
+    List.filter
+      (fun (d : Ochre_merlin.diagnostic) -> d.severity = Ochre_merlin.Error)
+      diagnostics
+  in
+  ( match block_summary ~source ~code ~kind:"error" errors with
+  | Some message ->
+      Printf.eprintf "error: %s\n%!" message;
+      exit 1
+  | None ->
+      Option.iter
+        (Printf.eprintf "warning: %s\n%!")
+        (block_summary ~source ~code ~kind:"diagnostic" diagnostics)
   );
   decorations
+
+let merlin_block ~section label =
+  section = Guide && lang_of_label label = Some "ocaml"
+
+let uses_merlin page =
+  match page.content with
+  | `Markdown markdown ->
+      List.exists
+        (function
+          | Omd.Code_block (_, label, _) ->
+              merlin_block ~section:page.section label
+          | _ ->
+              false
+          )
+        (Omd.of_string markdown)
+  | `Html _ ->
+      false
 
 let code_figure ~source ~section ~label ~code () =
   let lang = lang_of_label label in
   let code = trim_trailing_newlines code in
   let decorations =
-    match lang with
-    | Some "ocaml" when section = Guide ->
-        ocaml_decorations ~source code
-    | _ ->
-        []
+    if merlin_block ~section label then
+      ocaml_decorations ~source code
+    else
+      []
   in
   let options =
     Ochre.Html_options.make ~pre_class:"doc-code__pre"
@@ -665,7 +701,10 @@ let page ~pages ~current () =
       <script>(JSX.unsafe theme_init_script)</script>
       <link rel="stylesheet" href="assets/fonts.css" />
       <style>(JSX.unsafe doc_theme_css)</style>
-      <style>(JSX.unsafe Ochre_merlin.css)</style>
+      (if uses_merlin current then
+         <style>(JSX.unsafe Ochre_merlin.css)</style>
+       else
+         JSX.null)
       <link rel="stylesheet" href="assets/index.css" />
       <script src="assets/index.js" defer=true />
     </head>
