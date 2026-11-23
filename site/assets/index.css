@@ -465,6 +465,31 @@ img {
   padding: var(--space-4);
 }
 
+.doc-code {
+  position: relative;
+}
+
+.doc-code [data-ochre-type],
+.doc-code [data-ochre-diagnostic] {
+  position: static;
+}
+
+.doc-code [data-ochre-type]:hover::after,
+.doc-code [data-ochre-diagnostic]:hover::before {
+  top: auto;
+  bottom: auto;
+  left: var(--space-4);
+  max-width: calc(100% - 2 * var(--space-4));
+}
+
+.doc-code [data-ochre-type]:hover::after {
+  margin-top: 1lh;
+}
+
+.doc-code [data-ochre-diagnostic]:hover::before {
+  transform: translateY(-100%);
+}
+
 .doc-code .ochre code,
 .doc-code__code {
   font: inherit;
