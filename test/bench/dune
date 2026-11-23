@@ -1,6 +1,10 @@
+; https://github.com/davesnx/ochre/issues/42
+
 (test
  (name test_complexity)
  (modules test_complexity)
+ (enabled_if
+  (= %{system} linux))
  (libraries ochre.textmate tm-grammars yojson alcotest unix))
 
 (executable
