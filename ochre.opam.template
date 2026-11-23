@@ -1,3 +1,3 @@
 pin-depends: [
-  ["tm-grammars.2.1.0~dev" "git+https://github.com/davesnx/tm-grammars.git#799519b64e138bf5376b540f4ec79bcf198eb884"]
+  ["tm-grammars.2.1.0~dev" "git+https://github.com/davesnx/tm-grammars.git#ddbaaf2699d4266d8192359b18120c2dda7aeec5"]
 ]
