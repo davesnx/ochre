@@ -104,12 +104,12 @@
   (ocaml
    (and
     (>= 5.4.0)
-    (< 5.5)))
+    (< 5.6)))
   (ochre (= :version))
   (merlin-lib
    (and
     (>= 5.7.1-504)
-    (< 5.8)))
+    (< 6.0)))
   (tm-grammars
    (and
     (>= 2.1.0~dev)

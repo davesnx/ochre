@@ -175,3 +175,24 @@ jobs:
       - name: Save dune cache
         uses: ml-in-barcelona/gh-ci-action/dune-cache/save@v1.2.0
 
+  merlin-ocaml-5-5:
+    name: Build and test ochre-merlin on OCaml 5.5
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup OCaml and dependencies
+        uses: ml-in-barcelona/gh-ci-action@v1.2.0
+        with:
+          ocaml-compiler: 5.5.2
+
+      - name: Load dune cache
+        uses: ml-in-barcelona/gh-ci-action/dune-cache/load@v1.2.0
+
+      - name: Build and test ochre-merlin
+        run: opam exec -- dune build --root . @merlin/default @merlin/test/runtest
+
+      - name: Save dune cache
+        uses: ml-in-barcelona/gh-ci-action/dune-cache/save@v1.2.0

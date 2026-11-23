@@ -12,9 +12,9 @@ doc: "https://davesnx.github.io/ochre/odoc/"
 bug-reports: "https://github.com/davesnx/ochre/issues"
 depends: [
   "dune" {>= "3.22"}
-  "ocaml" {>= "5.4.0" & < "5.5"}
+  "ocaml" {>= "5.4.0" & < "5.6"}
   "ochre" {= version}
-  "merlin-lib" {>= "5.7.1-504" & < "5.8"}
+  "merlin-lib" {>= "5.7.1-504" & < "6.0"}
   "tm-grammars" {>= "2.1.0~dev" & with-test}
   "alcotest" {with-test}
   "odoc" {>= "3.2.0" & with-doc}
