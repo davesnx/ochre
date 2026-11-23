@@ -219,6 +219,12 @@ let resolve_include name_or_path =
              (String.concat ", " Tm_grammars.available)
           )
 
+let bundled_dependencies = function
+  | "ocaml" | "mlx" ->
+      [ ("ocaml-interface", Tm_grammars.ocaml_interface) ]
+  | _ ->
+      []
+
 let highlight lang theme_path theme_dark theme_light grammars includes format
     input_file css_classes line_numbers no_default_color css_var_prefix
     scopes_data =
@@ -281,7 +287,14 @@ let highlight lang theme_path theme_dark theme_light grammars includes format
               | [] -> (
                   match Tm_grammars.find lang with
                   | Some json ->
-                      (lang, json) :: include_grammars
+                      let required =
+                        List.filter
+                          (fun (id, _) ->
+                            not (List.mem_assoc id include_grammars)
+                          )
+                          (bundled_dependencies lang)
+                      in
+                      ((lang, json) :: required) @ include_grammars
                   | None ->
                       include_grammars
                 )

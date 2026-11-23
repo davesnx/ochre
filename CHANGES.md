@@ -91,6 +91,7 @@
 - Fix wrong tokens after a minor GC and a double free in the Oniguruma bindings.
 - Escape theme, option, decoration and scope values in HTML and SVG output.
 - Raise `Failure` from the `_exn` loaders on any malformed input, and report CLI errors as one `ochre: ...` line.
+- OCaml and mlx highlighting: modules, constructors, fields and types get their own scopes (`entity.name.namespace.ocaml`, `variable.other.enummember.ocaml`, `variable.other.property.ocaml`, `entity.name.type.ocaml`), from `tm-grammars` pinned to davesnx/tm-grammars@799519b. The CLI loads the `ocaml-interface` grammar that `ocaml` and `mlx` include.
 
 ## 1.1.0
 

@@ -229,3 +229,15 @@ COLORFGBG picks the default theme from the background colour: 0-6 and 8 are dark
   15;default;7 #ffffff
   0;250 #1e1e1e
   x #1e1e1e
+
+The ocaml grammar loads the bundled ocaml-interface grammar it includes, also when --include names it
+  $ printf 'val x : t\n' | ochre ocaml --theme nord --format tokens | head -4
+  line 1:
+    "val"  keyword.ocaml, source.ocaml
+    " "  source.ocaml
+    "x"  entity.name.function.binding.ocaml, source.ocaml
+  $ printf 'val x : t\n' | ochre ocaml --theme nord --format tokens --include ocaml-interface | head -4
+  line 1:
+    "val"  keyword.ocaml, source.ocaml
+    " "  source.ocaml
+    "x"  entity.name.function.binding.ocaml, source.ocaml
