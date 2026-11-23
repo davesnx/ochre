@@ -226,7 +226,11 @@ let entries_of_rules rules =
     rules
   |> List.concat
 
-type compiled = { trie : element; defaults : Theme.token_color_settings }
+type compiled = {
+  trie : element;
+  defaults : Theme.token_color_settings;
+  produced : ((Color.t * Color.t) * (Style.t -> bool)) option Atomic.t;
+}
 
 let compile rules =
   let entries = List.stable_sort compare_entries (entries_of_rules rules) in
@@ -277,7 +281,7 @@ let compile rules =
     )
     scoped;
   freeze trie;
-  { trie; defaults }
+  { trie; defaults; produced = Atomic.make None }
 
 let cache_capacity = 16
 let compiled_cache : (Theme.token_color_rule list * compiled) list Atomic.t =
@@ -487,3 +491,92 @@ let match_selector scopes selector =
           search node.up
   in
   search path_of_stack
+
+let style (theme : Theme.theme) settings : Style.t =
+  let field get = Option.bind settings get in
+  {
+    foreground =
+      Option.value
+        (field (fun (s : Theme.token_color_settings) -> s.foreground))
+        ~default:theme.fg;
+    background =
+      ( match field (fun (s : Theme.token_color_settings) -> s.background) with
+      | Some color when not (Color.equal color theme.bg) ->
+          Some color
+      | _ ->
+          None
+      );
+    font_style =
+      Option.value
+        (field (fun (s : Theme.token_color_settings) -> s.font_style))
+        ~default:Style.plain;
+  }
+
+type palette = {
+  foregrounds : Color.t list;
+  backgrounds : Color.t option list;
+  font_styles : Style.font_style list;
+}
+
+let palette (theme : Theme.theme) =
+  let compiled = compiled_for theme.token_colors in
+  let defaults = compiled.defaults in
+  let rec collect element acc =
+    Hashtbl.fold
+      (fun _ child acc -> collect child acc)
+      element.children
+      ((element.main :: element.with_parents) @ acc)
+  in
+  let pick value inherited =
+    if value <> None then
+      value
+    else
+      inherited
+  in
+  let styles =
+    List.map
+      (fun settings -> style theme (Some settings))
+      (defaults
+      :: List.map
+           (fun (rule : rule) ->
+             {
+               Theme.font_style = pick rule.font_style defaults.font_style;
+               foreground = pick rule.foreground defaults.foreground;
+               background = pick rule.background defaults.background;
+             }
+           )
+           (collect compiled.trie [])
+      )
+  in
+  let values get = List.sort_uniq compare (List.map get styles) in
+  {
+    foregrounds = values (fun (s : Style.t) -> s.foreground);
+    backgrounds = values (fun (s : Style.t) -> s.background);
+    font_styles = values (fun (s : Style.t) -> s.font_style);
+  }
+
+let produces (theme : Theme.theme) (style_ : Style.t) =
+  let compiled = compiled_for theme.token_colors in
+  let key = (theme.fg, theme.bg) in
+  let test =
+    match Atomic.get compiled.produced with
+    | Some (k, test) when k = key ->
+        test
+    | _ ->
+        let { foregrounds; backgrounds; font_styles } = palette theme in
+        let set values =
+          let table = Hashtbl.create 64 in
+          List.iter (fun value -> Hashtbl.replace table value ()) values;
+          Hashtbl.mem table
+        in
+        let foreground = set foregrounds
+        and background = set backgrounds
+        and font_style = set font_styles in
+        let test (s : Style.t) =
+          foreground s.foreground && background s.background
+          && font_style s.font_style
+        in
+        Atomic.set compiled.produced (Some (key, test));
+        test
+  in
+  test style_

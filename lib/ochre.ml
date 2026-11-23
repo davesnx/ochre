@@ -115,27 +115,6 @@ let raw_tokenize (lang : Lang.t) source =
     )
     lines
 
-let style_of (theme : Theme.theme) resolver scopes : Style.t =
-  let settings = Scope.resolve resolver scopes in
-  let field get = Option.bind settings get in
-  {
-    foreground =
-      Option.value
-        (field (fun (s : Theme.token_color_settings) -> s.foreground))
-        ~default:theme.fg;
-    background =
-      ( match field (fun (s : Theme.token_color_settings) -> s.background) with
-      | Some color when not (Color.equal color theme.bg) ->
-          Some color
-      | _ ->
-          None
-      );
-    font_style =
-      Option.value
-        (field (fun (s : Theme.token_color_settings) -> s.font_style))
-        ~default:Style.plain;
-  }
-
 let apply_themes themes raw =
   let resolvers =
     Array.map
@@ -146,7 +125,9 @@ let apply_themes themes raw =
     (List.map (fun (text, scopes, position) ->
          let values =
            Array.mapi
-             (fun i theme -> style_of theme resolvers.(i) scopes)
+             (fun i theme ->
+               Scope.style theme (Scope.resolve resolvers.(i) scopes)
+             )
              themes
          in
          {
@@ -218,6 +199,7 @@ let to_html ?options themed = JSX.render (to_jsx ?options themed)
 
 let html_theme_css = Render_html.theme_css
 let html_render_theme_css = Render_html.render_theme_css
+let html_render_whole_theme_css = Render_html.render_whole_theme_css
 
 let render_default render (themed : Themed.t) =
   let (_, theme), _ = themed.themes in

@@ -576,6 +576,8 @@ let field_lang () =
   get_ok
     (Ochre.lang (get_ok (Ochre.load [ ("fields", field_grammar) ])) "fields")
 
+let nord = fst (get_ok (Ochre.Theme.load Tm_themes.nord))
+
 let field_theme =
   let open Ochre.Style in
   Ochre.Theme.make ~name:"fields"
@@ -790,13 +792,52 @@ let test_classes_keep_colors () =
   List.iter
     (fun default_color ->
       check "fields" ~default_color (one field_theme);
-      check "nord" ~default_color (one Ochre.Theme.nord);
+      check "nord" ~default_color (one nord);
       check "extra themes" ~default_color
-        (several ~label:"base" [ ("nord", Ochre.Theme.nord) ]);
+        (several ~label:"base" [ ("nord", nord) ]);
       check "light and dark" ~default_color
-        (several ~label:"light" [ ("dark", Ochre.Theme.nord) ])
+        (several ~label:"light" [ ("dark", nord) ])
     )
     [ Ochre.Html_options.Default_color; No_default_color ]
+
+let check_rules_match_classes label ?css_variable_prefix ~options themed =
+  let html = Ochre.to_html ~options themed in
+  let css =
+    Ochre.html_render_theme_css ?css_variable_prefix ~class_prefix:"oc-" themed
+  in
+  let used = classes_with_prefix "oc-" html in
+  Alcotest.(check bool) (label ^ ": classes are used") true (used <> []);
+  Alcotest.(check (list string))
+    (label ^ ": one rule per class")
+    used
+    (List.sort compare
+       (List.filter
+          (String.starts_with ~prefix:"oc-")
+          (List.map fst (stylesheet_rules css))
+       )
+    )
+
+let test_transform_styles_have_no_rule () =
+  check_rules_match_classes "line_highlight"
+    ~options:
+      (Ochre.Html_options.make
+         ~style_mode:(Css_classes { class_prefix = "oc-" })
+         ()
+      )
+    (Ochre.highlight
+       ~transforms:[ Ochre.Transform_builtin.line_highlight [ 1 ] ]
+       ~theme:field_theme ~lang:(field_lang ()) "let x\nlet y and z"
+    )
+
+let test_unnormalized_variable_prefix () =
+  check_rules_match_classes "--hl" ~css_variable_prefix:"--hl"
+    ~options:
+      {
+        Ochre.Html_options.default with
+        style_mode = Css_classes { class_prefix = "oc-" };
+        css_variable_prefix = "--hl";
+      }
+    (Ochre.highlight ~theme:field_theme ~lang:(field_lang ()) "let x and y")
 
 let test_class_merge_drops_repeated_names () =
   let repeat =
@@ -1030,6 +1071,10 @@ let () =
             test_tokens_share_field_classes;
           Alcotest.test_case "Classes keep the inline colors" `Quick
             test_classes_keep_colors;
+          Alcotest.test_case "Transform styles get no rule" `Quick
+            test_transform_styles_have_no_rule;
+          Alcotest.test_case "Variable prefix without a trailing dash" `Quick
+            test_unnormalized_variable_prefix;
         ]
       );
     ]

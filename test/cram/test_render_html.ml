@@ -67,6 +67,96 @@ let setup () =
   let dim_theme = fst (Support.get_ok (Ochre.Theme.load dim_theme_json)) in
   (hl, theme, light_theme, dim_theme)
 
+let print_class_coverage ?(transforms = []) ?(inline = []) themes =
+  let lang =
+    Support.get_ok
+      (Result.bind
+         (Ochre.load [ ("ocaml", Option.get (Tm_grammars.find "ocaml")) ])
+         (fun hl -> Ochre.lang hl "ocaml")
+      )
+  in
+  let source =
+    {|(* A module with a (* nested *) comment *)
+module Shape : sig
+  type t = Circle of float | Rect of { w : float; h : float }
+  val area : t -> float
+end = struct
+  type t = Circle of float | Rect of { w : float; h : float }
+
+  (** [area s] is the area of [s]. *)
+  let area = function
+| Circle r -> Float.pi *. r *. r
+| Rect { w; h } -> w *. h
+end
+
+let () =
+  let shapes = [ Shape.Circle 1.0; Rect { w = 2.; h = 3. } ] in
+  List.iter (fun s -> Printf.printf "%s: %.2f\n%!" "area" (Shape.area s)) shapes;
+  assert ('a' <> '\n' && 0x1F land 3 >= 1 || not true)
+|}
+  in
+  let options =
+    Ochre.Html_options.make
+      ~style_mode:(Ochre.Html_options.Css_classes { class_prefix = "oc-" })
+      ()
+  in
+  let class_re = Str.regexp "oc-[0-9a-f]+" in
+  let rec classes html start acc =
+    match Str.search_forward class_re html start with
+    | exception Not_found ->
+        List.sort_uniq String.compare acc
+    | _ ->
+        classes html (Str.match_end ()) (Str.matched_string html :: acc)
+  in
+  List.iter
+    (fun (name, theme) ->
+      let html =
+        Ochre.to_html ~options (Ochre.highlight ~transforms ~theme ~lang source)
+      in
+      let css = Ochre.html_render_whole_theme_css ~class_prefix:"oc-" theme in
+      let used = classes html 0 [] in
+      let missing =
+        List.filter
+          (fun cls ->
+            match
+              Str.search_forward (Str.regexp_string ("." ^ cls ^ " {")) css 0
+            with
+            | exception Not_found ->
+                true
+            | _ ->
+                false
+          )
+          used
+      in
+      Printf.printf "%s: %s\n" name
+        ( if used = [] then
+            "no classes"
+          else if missing = [] then
+            "every class has a rule"
+          else
+            "missing " ^ String.concat " " missing
+        );
+      List.iter
+        (fun value ->
+          let in_style =
+            Str.regexp_string ("style=\"" ^ value) |> fun re ->
+            match Str.search_forward re html 0 with
+            | exception Not_found ->
+                false
+            | _ ->
+                true
+          in
+          Printf.printf "%s: %s %s\n" name value
+            ( if in_style then
+                "kept inline"
+              else
+                "not inline"
+            )
+        )
+        inline
+    )
+    (List.map (fun (name, json) -> (name, Support.load_theme json)) themes)
+
 let () =
   let hl, theme, light_theme, dim_theme = setup () in
   match Sys.argv.(1) with
@@ -246,6 +336,51 @@ let () =
               "let x = 42"
            )
         )
+  | "theme-css-covers-ocaml" ->
+      print_class_coverage Tm_themes.all
+  | "theme-css-covers-transforms" ->
+      print_class_coverage
+        ~transforms:
+          Ochre.Transform_builtin.
+            [ line_highlight [ 1; 3 ]; word_highlight [ "area"; "shapes" ] ]
+        ~inline:
+          [
+            "font-weight:var(--ochre-font-weight,bold)";
+            "background-color:var(--ochre-token-bg,#8888883a)";
+          ]
+        [ ("dark-plus", Tm_themes.dark_plus); ("nord", Tm_themes.nord) ]
+  | "theme-css-combined-rule" ->
+      let combined =
+        Ochre.Theme.make ~name:"combined"
+          ~colors:
+            [
+              ("editor.foreground", Support.color "#d4d4d4");
+              ("editor.background", Support.color "#1e1e1e");
+            ]
+          ~token_colors:
+            [
+              Ochre.Theme.rule ~scope:[ "comment" ]
+                ~foreground:(Support.color "#112233") ();
+              Ochre.Theme.rule ~scope:[ "comment.line" ]
+                ~font_style:{ Ochre.Style.plain with italic = true }
+                ();
+            ]
+          ()
+      in
+      let options =
+        Ochre.Html_options.make
+          ~style_mode:(Ochre.Html_options.Css_classes { class_prefix = "s-" })
+          ()
+      in
+      print_endline
+        (Ochre.to_html ~options
+           (Ochre.highlight ~theme:combined
+              ~lang:(Support.get_ok (Ochre.lang hl "test"))
+              "# c"
+           )
+        );
+      print_string
+        (Ochre.html_render_whole_theme_css ~class_prefix:"s-" combined)
   | s ->
       Printf.eprintf "unknown: %s\n" s;
       exit 1

@@ -4,6 +4,8 @@ let get_ok = function
   | Error error ->
       failwith (Ochre.Error.to_string error)
 
+let load_theme json = fst (get_ok (Ochre.Theme.load json))
+
 let color s = Option.get (Ochre.Color.of_hex s)
 let hex = Ochre.Color.to_hex
 

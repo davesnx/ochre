@@ -11,7 +11,7 @@ let grammar_json =
 }|}
 
 let hl = Support.get_ok (Ochre.load [ ("test", grammar_json) ])
-let theme = Ochre.Theme.dark
+let theme = Support.load_theme Tm_themes.dark_plus
 
 let alphabet =
   [|

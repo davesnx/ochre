@@ -14,7 +14,7 @@
   test_cascade
   test_roundtrip
   test_decoration)
- (libraries ochre tm-grammars str unix))
+ (libraries ochre tm-grammars tm-themes str unix))
 
 (cram
  (package ochre-cli)

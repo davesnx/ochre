@@ -51,9 +51,9 @@ SVG output (header only)
 
 Dual-theme HTML emits light-dark() colors and no inline color-scheme
 
-  $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord | grep -o 'background-color:light-dark([^)]*)' | sort -u
+  $ printf 'let x = 1\n' | ochre ocaml --theme-light light-plus --theme-dark nord | grep -o 'background-color:light-dark([^)]*)' | sort -u
   background-color:light-dark(#ffffff,#2e3440)
-  $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord | grep -c 'color-scheme'
+  $ printf 'let x = 1\n' | ochre ocaml --theme-light light-plus --theme-dark nord | grep -c 'color-scheme'
   0
   [1]
 
@@ -65,8 +65,8 @@ Custom CSS variable prefix
 
 No default color keeps light-dark() for light and dark themes
 
-  $ printf 'let x = 1\n' | ochre ocaml --theme-light light --theme-dark nord --no-default-color | head -1
-  <pre class="ochre ochre-themes light nord" style="background-color:light-dark(#ffffff,#2e3440);color:light-dark(#000000,#d8dee9)" tabindex="0"><code><span class="line"><span style="color:light-dark(#0000ff,#81a1c1)">let</span><span style="color:light-dark(#000000,#d8dee9)"> </span><span style="color:light-dark(#795e26,#88c0d0)">x</span><span style="color:light-dark(#000000,#d8dee9)"> </span><span style="color:light-dark(#000000,#81a1c1)">=</span><span style="color:light-dark(#000000,#d8dee9)"> </span><span style="color:light-dark(#098658,#b48ead)">1</span><span style="color:light-dark(#000000,#d8dee9)">
+  $ printf 'let x = 1\n' | ochre ocaml --theme-light light-plus --theme-dark nord --no-default-color | head -1
+  <pre class="ochre ochre-themes light-plus nord" style="background-color:light-dark(#ffffff,#2e3440);color:light-dark(#000000,#d8dee9)" tabindex="0"><code><span class="line"><span style="color:light-dark(#0000ff,#81a1c1)">let</span><span style="color:light-dark(#000000,#d8dee9)"> </span><span style="color:light-dark(#795e26,#88c0d0)">x</span><span style="color:light-dark(#000000,#d8dee9)"> </span><span style="color:light-dark(#000000,#81a1c1)">=</span><span style="color:light-dark(#000000,#d8dee9)"> </span><span style="color:light-dark(#098658,#b48ead)">1</span><span style="color:light-dark(#000000,#d8dee9)">
 
 CSS classes mode
 
@@ -145,24 +145,45 @@ A malformed --theme file is a clean error, not a crash
   ochre: bad-theme.json: invalid JSON: Line 1, bytes 5-15: Expected ':' but
          found 'valid json'
 
-A missing --theme file reports it is not a built-in name or a file
+A missing --theme file reports it is not a theme name or a file
 
   $ printf 'let x = 1\n' | ochre ocaml --theme ./does-not-exist-theme.json 2>theme-missing.log; echo "exit: $?"
   exit: 1
   $ cat theme-missing.log
-  ochre: Unknown theme './does-not-exist-theme.json': not a built-in name and
-         not a file. Available: dark, light, tokyonight, everforest, ayu,
-         catppuccin, catppuccin-macchiato, gruvbox, kanagawa, nord, matrix,
-         one-dark
+  ochre: Unknown theme './does-not-exist-theme.json': not a theme name and not
+         a file. Available: andromeeda, aurora-x, ayu-dark, ayu-light,
+         ayu-mirage, catppuccin-frappe, catppuccin-latte, catppuccin-macchiato,
+         catppuccin-mocha, dark-plus, dracula, dracula-soft, everforest-dark,
+         everforest-light, github-dark, github-dark-default,
+         github-dark-dimmed, github-dark-high-contrast, github-light,
+         github-light-default, github-light-high-contrast, gruvbox-dark-hard,
+         gruvbox-dark-medium, gruvbox-dark-soft, gruvbox-light-hard,
+         gruvbox-light-medium, gruvbox-light-soft, horizon, horizon-bright,
+         houston, kanagawa-dragon, kanagawa-lotus, kanagawa-wave, laserwave,
+         light-plus, material-theme, material-theme-darker,
+         material-theme-lighter, material-theme-ocean,
+         material-theme-palenight, min-dark, min-light, monokai, night-owl,
+         night-owl-light, nord, one-dark-pro, one-light, plastic, poimandres,
+         red, rose-pine, rose-pine-dawn, rose-pine-moon, slack-dark,
+         slack-ochin, snazzy-light, solarized-dark, solarized-light,
+         synthwave-84, tokyo-night, vesper, vitesse-black, vitesse-dark,
+         vitesse-light
 
-A typo'd built-in --theme name lists the available names
+An unknown --theme name lists the tm-themes names
 
   $ printf 'let x = 1\n' | ochre ocaml --theme not-a-real-theme 2>theme-typo.log; echo "exit: $?"
   exit: 1
-  $ cat theme-typo.log
-  ochre: Unknown theme 'not-a-real-theme': not a built-in name and not a file.
-         Available: dark, light, tokyonight, everforest, ayu, catppuccin,
-         catppuccin-macchiato, gruvbox, kanagawa, nord, matrix, one-dark
+  $ tr '\n' ' ' < theme-typo.log | tr -s ' '; echo
+  ochre: Unknown theme 'not-a-real-theme': not a theme name and not a file. Available: andromeeda, aurora-x, ayu-dark, ayu-light, ayu-mirage, catppuccin-frappe, catppuccin-latte, catppuccin-macchiato, catppuccin-mocha, dark-plus, dracula, dracula-soft, everforest-dark, everforest-light, github-dark, github-dark-default, github-dark-dimmed, github-dark-high-contrast, github-light, github-light-default, github-light-high-contrast, gruvbox-dark-hard, gruvbox-dark-medium, gruvbox-dark-soft, gruvbox-light-hard, gruvbox-light-medium, gruvbox-light-soft, horizon, horizon-bright, houston, kanagawa-dragon, kanagawa-lotus, kanagawa-wave, laserwave, light-plus, material-theme, material-theme-darker, material-theme-lighter, material-theme-ocean, material-theme-palenight, min-dark, min-light, monokai, night-owl, night-owl-light, nord, one-dark-pro, one-light, plastic, poimandres, red, rose-pine, rose-pine-dawn, rose-pine-moon, slack-dark, slack-ochin, snazzy-light, solarized-dark, solarized-light, synthwave-84, tokyo-night, vesper, vitesse-black, vitesse-dark, vitesse-light 
+
+With no theme flag, the dark and light modes use dark-plus and light-plus
+
+  $ printf 'let x = 1\n' | ochre ocaml --theme dark-plus > dark-plus.html
+  $ printf 'let x = 1\n' | env -u TERM_THEME -u COLORFGBG OCHRE_THEME_MODE=dark ochre ocaml | cmp - dark-plus.html && echo same
+  same
+  $ printf 'let x = 1\n' | ochre ocaml --theme light-plus > light-plus.html
+  $ printf 'let x = 1\n' | env -u TERM_THEME -u COLORFGBG OCHRE_THEME_MODE=light ochre ocaml | cmp - light-plus.html && echo same
+  same
 
 A valid --grammar file matching LANG works
 

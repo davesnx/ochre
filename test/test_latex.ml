@@ -12,16 +12,15 @@ let grammar_json =
 
 let preview_themes =
   [
-    "tokyonight";
-    "everforest";
-    "ayu";
-    "catppuccin";
-    "catppuccin-macchiato";
-    "gruvbox";
-    "kanagawa";
-    "nord";
-    "matrix";
-    "one-dark";
+    ("tokyo-night", Tm_themes.tokyo_night);
+    ("everforest-dark", Tm_themes.everforest_dark);
+    ("ayu-dark", Tm_themes.ayu_dark);
+    ("catppuccin-mocha", Tm_themes.catppuccin_mocha);
+    ("catppuccin-macchiato", Tm_themes.catppuccin_macchiato);
+    ("gruvbox-dark-medium", Tm_themes.gruvbox_dark_medium);
+    ("kanagawa-wave", Tm_themes.kanagawa_wave);
+    ("nord", Tm_themes.nord);
+    ("one-dark-pro", Tm_themes.one_dark_pro);
   ]
 
 let preamble =
@@ -64,6 +63,13 @@ let lang_of grammar =
   | Error error ->
       failwith (Ochre.Error.to_string error)
 
+let theme_of json =
+  match Ochre.Theme.load json with
+  | Ok (theme, _warnings) ->
+      theme
+  | Error error ->
+      failwith (Ochre.Error.to_string error)
+
 let () =
   let lang = lang_of grammar_json in
   let source =
@@ -71,13 +77,10 @@ let () =
   in
   print_endline preamble;
   List.iter
-    (fun name ->
-      match Ochre.Theme.find name with
-      | Some theme ->
-          Printf.printf "\\subsection*{%s}\n" name;
-          print_endline (Ochre.to_latex (Ochre.highlight ~theme ~lang source))
-      | None ->
-          Printf.printf "\\textbf{Missing built-in theme: %s}\\par\n" name
+    (fun (name, json) ->
+      let theme = theme_of json in
+      Printf.printf "\\subsection*{%s}\n" name;
+      print_endline (Ochre.to_latex (Ochre.highlight ~theme ~lang source))
     )
     preview_themes;
   print_string trailer

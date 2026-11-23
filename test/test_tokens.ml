@@ -25,10 +25,17 @@ let lang_of grammar =
   | Error error ->
       failwith (Ochre.Error.to_string error)
 
+let theme_of json =
+  match Ochre.Theme.load json with
+  | Ok (theme, _warnings) ->
+      theme
+  | Error error ->
+      failwith (Ochre.Error.to_string error)
+
 let () =
   print_string
     (Ochre.to_debug_tokens
-       (Ochre.highlight ~theme:Ochre.Theme.nord
+       (Ochre.highlight ~theme:(theme_of Tm_themes.nord)
           ~lang:(lang_of Tm_grammars.ocaml)
           source
        )

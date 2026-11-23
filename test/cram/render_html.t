@@ -80,3 +80,91 @@ Custom pre class
 Custom code class
   $ ./test_render_html.exe code-class
   <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code class="language-test"><span class="line"><span style="font-weight:var(--ochre-font-weight,bold);color:var(--ochre,#ff0000)">let</span><span style="color:var(--ochre,#d4d4d4)"> x = </span><span style="color:var(--ochre,#0000ff)">42</span></span></code></pre>
+
+Without tokens, the theme stylesheet has a rule for every class that
+CSS-class rendering of real OCaml uses
+  $ ./test_render_html.exe theme-css-covers-ocaml
+  andromeeda: every class has a rule
+  aurora-x: every class has a rule
+  ayu-dark: every class has a rule
+  ayu-light: every class has a rule
+  ayu-mirage: every class has a rule
+  catppuccin-frappe: every class has a rule
+  catppuccin-latte: every class has a rule
+  catppuccin-macchiato: every class has a rule
+  catppuccin-mocha: every class has a rule
+  dark-plus: every class has a rule
+  dracula: every class has a rule
+  dracula-soft: every class has a rule
+  everforest-dark: every class has a rule
+  everforest-light: every class has a rule
+  github-dark: every class has a rule
+  github-dark-default: every class has a rule
+  github-dark-dimmed: every class has a rule
+  github-dark-high-contrast: every class has a rule
+  github-light: every class has a rule
+  github-light-default: every class has a rule
+  github-light-high-contrast: every class has a rule
+  gruvbox-dark-hard: every class has a rule
+  gruvbox-dark-medium: every class has a rule
+  gruvbox-dark-soft: every class has a rule
+  gruvbox-light-hard: every class has a rule
+  gruvbox-light-medium: every class has a rule
+  gruvbox-light-soft: every class has a rule
+  horizon: every class has a rule
+  horizon-bright: every class has a rule
+  houston: every class has a rule
+  kanagawa-dragon: every class has a rule
+  kanagawa-lotus: every class has a rule
+  kanagawa-wave: every class has a rule
+  laserwave: every class has a rule
+  light-plus: every class has a rule
+  material-theme: every class has a rule
+  material-theme-darker: every class has a rule
+  material-theme-lighter: every class has a rule
+  material-theme-ocean: every class has a rule
+  material-theme-palenight: every class has a rule
+  min-dark: every class has a rule
+  min-light: every class has a rule
+  monokai: every class has a rule
+  night-owl: every class has a rule
+  night-owl-light: every class has a rule
+  nord: every class has a rule
+  one-dark-pro: every class has a rule
+  one-light: every class has a rule
+  plastic: every class has a rule
+  poimandres: every class has a rule
+  red: every class has a rule
+  rose-pine: every class has a rule
+  rose-pine-dawn: every class has a rule
+  rose-pine-moon: every class has a rule
+  slack-dark: every class has a rule
+  slack-ochin: every class has a rule
+  snazzy-light: every class has a rule
+  solarized-dark: every class has a rule
+  solarized-light: every class has a rule
+  synthwave-84: every class has a rule
+  tokyo-night: every class has a rule
+  vesper: every class has a rule
+  vitesse-black: every class has a rule
+  vitesse-dark: every class has a rule
+  vitesse-light: every class has a rule
+
+Without tokens, a style that takes its colour from one rule and its font
+style from another gets a class
+  $ ./test_render_html.exe theme-css-combined-rule
+  <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span class="s-ae2cf74260356c77 s-b15f3da5ff0399f1"># c</span></span></code></pre>
+  .ochre { background-color:#1e1e1e; color:#d4d4d4 }
+  .s-ae2cf74260356c77 { font-style:var(--ochre-font-style,italic) }
+  .s-b15f3da5ff0399f1 { color:var(--ochre,#112233) }
+  .s-232033c531ff619a { color:var(--ochre,#d4d4d4) }
+
+Without tokens, the theme stylesheet also has a rule for every class of code
+changed by transforms
+  $ ./test_render_html.exe theme-css-covers-transforms
+  dark-plus: every class has a rule
+  dark-plus: font-weight:var(--ochre-font-weight,bold) kept inline
+  dark-plus: background-color:var(--ochre-token-bg,#8888883a) kept inline
+  nord: every class has a rule
+  nord: font-weight:var(--ochre-font-weight,bold) kept inline
+  nord: background-color:var(--ochre-token-bg,#8888883a) kept inline

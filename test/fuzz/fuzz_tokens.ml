@@ -39,7 +39,7 @@ let highlighter =
        )
     )
 
-let theme = Ochre.Theme.dark
+let theme = fst (get_ok (Ochre.Theme.load Tm_themes.dark_plus))
 
 let check_tokens lang source =
   let tokens =

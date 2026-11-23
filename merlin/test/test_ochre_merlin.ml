@@ -194,7 +194,10 @@ let html_of source =
   in
   let lang = ok (Ochre.lang highlighter "ocaml") in
   Ochre.to_html
-    (Ochre.highlight ~decorations ~theme:Ochre.Theme.dark ~lang source)
+    (Ochre.highlight ~decorations
+       ~theme:(Ochre.Theme.make ~name:"plain" ~token_colors:[] ())
+       ~lang source
+    )
 
 let test_html_escapes_data () =
   let source = "let o = object method m = 1 end\nlet f = function \"a\" -> 1" in

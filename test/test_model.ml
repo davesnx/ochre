@@ -15,6 +15,8 @@ let get_ok = function
   | Error error ->
       Alcotest.fail (Ochre.Error.to_string error)
 
+let load_theme json = fst (get_ok (Ochre.Theme.load json))
+
 let highlighter () = get_ok (Ochre.load [ ("test", grammar_json) ])
 
 let error_testable =
@@ -83,7 +85,9 @@ let test_invalid_regexes () =
   in
   let lang = get_ok (Ochre.lang hl "r") in
   let source = "<a>x</a>\ny\n" in
-  let lines = (Ochre.highlight ~theme:Ochre.Theme.dark ~lang source).lines in
+  let lines =
+    (Ochre.highlight ~theme:(load_theme Tm_themes.dark_plus) ~lang source).lines
+  in
   Alcotest.(check string)
     "tokens keep the source" source
     (String.concat ""
@@ -97,8 +101,9 @@ let test_invalid_regexes () =
     );
   ignore
     (get_ok
-       (Ochre.highlight_themes ~theme:Ochre.Theme.dark
-          ~extra_themes:[ ("n", Ochre.Theme.nord) ]
+       (Ochre.highlight_themes
+          ~theme:(load_theme Tm_themes.dark_plus)
+          ~extra_themes:[ ("n", load_theme Tm_themes.nord) ]
           ~lang source
        )
     )
@@ -359,7 +364,8 @@ let test_rule_font_style () =
 let test_lang () = get_ok (Ochre.lang (highlighter ()) "test")
 
 let tokens ?decorations ?transforms source =
-  (Ochre.highlight ?decorations ?transforms ~theme:Ochre.Theme.dark
+  (Ochre.highlight ?decorations ?transforms
+     ~theme:(load_theme Tm_themes.dark_plus)
      ~lang:(test_lang ()) source
   )
     .lines
@@ -415,7 +421,8 @@ let test_removed_text_keeps_positions () =
   let lines =
     (Ochre.highlight
        ~transforms:[ Ochre.Transform_builtin.diff_markers ]
-       ~theme:Ochre.Theme.dark ~lang:Ochre.Lang.plaintext "+add\n-del"
+       ~theme:(load_theme Tm_themes.dark_plus)
+       ~lang:Ochre.Lang.plaintext "+add\n-del"
     )
       .lines
   in
@@ -699,7 +706,10 @@ let test_latex_uppercase_hex () =
 let test_foreign_token () =
   let lang = test_lang () in
   let foreign =
-    List.hd (List.hd (Ochre.highlight ~theme:Ochre.Theme.nord ~lang "x").lines)
+    List.hd
+      (List.hd
+         (Ochre.highlight ~theme:(load_theme Tm_themes.nord) ~lang "x").lines
+      )
   in
   let append =
     Ochre.Transform.make "append-foreign" ~after_render:(fun doc ->
@@ -707,8 +717,9 @@ let test_foreign_token () =
     )
   in
   match
-    Ochre.highlight_themes ~transforms:[ append ] ~theme:Ochre.Theme.light
-      ~extra_themes:[ ("dark", Ochre.Theme.nord) ]
+    Ochre.highlight_themes ~transforms:[ append ]
+      ~theme:(load_theme Tm_themes.light_plus)
+      ~extra_themes:[ ("dark", load_theme Tm_themes.nord) ]
       ~lang "let x\n"
   with
   | Ok themed ->
@@ -719,43 +730,38 @@ let test_foreign_token () =
         (Ochre.Error.Foreign_token { transform = "append-foreign" })
         error
 
-let builtin_sources =
+let formerly_builtin =
   [
-    ("dark", Ochre__Theme_builtin_json.dark_plus);
-    ("light", Ochre__Theme_builtin_json.light_plus);
-    ("tokyonight", Ochre__Theme_builtin_json.tokyo_night);
-    ("everforest", Ochre__Theme_builtin_json.everforest_dark);
-    ("ayu", Ochre__Theme_builtin_json.ayu_dark);
-    ("catppuccin", Ochre__Theme_builtin_json.catppuccin_mocha);
-    ("catppuccin-macchiato", Ochre__Theme_builtin_json.catppuccin_macchiato);
-    ("gruvbox", Ochre__Theme_builtin_json.gruvbox_dark_medium);
-    ("kanagawa", Ochre__Theme_builtin_json.kanagawa_wave);
-    ("nord", Ochre__Theme_builtin_json.nord);
-    ("one-dark", Ochre__Theme_builtin_json.one_dark_pro);
+    "dark-plus";
+    "light-plus";
+    "tokyo-night";
+    "everforest-dark";
+    "ayu-dark";
+    "catppuccin-mocha";
+    "catppuccin-macchiato";
+    "gruvbox-dark-medium";
+    "kanagawa-wave";
+    "nord";
+    "one-dark-pro";
   ]
 
-let test_builtin_themes_load () =
+let test_tm_themes_load () =
   List.iter
     (fun (name, json) ->
-      let theme, warnings = get_ok (Ochre.Theme.load json) in
-      Alcotest.(check (list string))
-        (name ^ " has no warnings")
-        []
-        (List.map Ochre.Theme.warning_to_string warnings);
-      match Ochre.Theme.find name with
-      | None ->
-          Alcotest.failf "%s is not a built-in theme" name
-      | Some builtin ->
-          Alcotest.(check int)
-            (name ^ " has every rule of its JSON")
-            (List.length theme.token_colors)
-            (List.length builtin.token_colors)
+      let _, warnings = get_ok (Ochre.Theme.load json) in
+      if List.mem name formerly_builtin then
+        Alcotest.(check (list string))
+          (name ^ " has no warnings")
+          []
+          (List.map Ochre.Theme.warning_to_string warnings)
     )
-    builtin_sources;
+    Tm_themes.all;
   Alcotest.(check (list string))
-    "every JSON theme is checked"
-    (List.sort compare ("matrix" :: List.map fst builtin_sources))
-    (List.sort compare Ochre.Theme.available_names)
+    "every formerly built-in theme is in tm-themes" formerly_builtin
+    (List.filter
+       (fun name -> List.mem name Tm_themes.available)
+       formerly_builtin
+    )
 
 let () =
   Alcotest.run "Ochre model"
@@ -790,8 +796,9 @@ let () =
             test_legacy_colors_fall_through;
           Alcotest.test_case "Unused workbench colors are not reported" `Quick
             test_unused_workbench_colors;
-          Alcotest.test_case "Built-in themes load without errors or warnings"
-            `Quick test_builtin_themes_load;
+          Alcotest.test_case
+            "tm-themes themes load; former built-ins without warnings" `Quick
+            test_tm_themes_load;
         ]
       );
       ( "positions",

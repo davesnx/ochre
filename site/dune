@@ -19,7 +19,8 @@
      "let tm_grammar_ocaml = {|%{lib:tm-grammars.ocaml:tm_grammar_ocaml.cmi}|}\n")
     (echo
      "let tm_grammar_ocaml_interface = {|%{lib:tm-grammars.ocaml-interface:tm_grammar_ocaml_interface.cmi}|}\n")
-    (echo "let html_of_jsx = {|%{lib:html_of_jsx:jSX.cmi}|}\n")))))
+    (echo "let html_of_jsx = {|%{lib:html_of_jsx:jSX.cmi}|}\n")
+    (echo "let tm_themes = {|%{lib:tm-themes:tm_themes.cmi}|}\n")))))
 
 (executable
  (name main)
@@ -30,6 +31,7 @@
   ochre
   ochre-merlin
   tm-grammars
+  tm-themes
   omd
   str
   html_of_jsx)

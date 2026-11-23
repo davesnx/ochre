@@ -4,6 +4,11 @@ let get_ok = function
   | Error error ->
       failwith (Ochre.Error.to_string error)
 
+let load_theme json = fst (get_ok (Ochre.Theme.load json))
+let dark_plus = load_theme Tm_themes.dark_plus
+let light_plus = load_theme Tm_themes.light_plus
+let nord = load_theme Tm_themes.nord
+
 let hex = Ochre.Color.to_hex
 let color s = Option.get (Ochre.Color.of_hex s)
 let fg (tok : Ochre.Token.t) = hex (Ochre.Token.style tok).foreground
@@ -28,7 +33,7 @@ let font_styles (tok : Ochre.Token.t) =
 let lines_of pieces =
   let source = String.concat "" (List.concat pieces) in
   let themed =
-    Ochre.highlight ~theme:Ochre.Theme.dark ~lang:Ochre.Lang.plaintext source
+    Ochre.highlight ~theme:dark_plus ~lang:Ochre.Lang.plaintext source
   in
   List.map2
     (fun line pieces ->
@@ -111,7 +116,7 @@ let test_theme_loading () =
 let test_source_text_is_preserved () =
   let highlighter = highlight () in
   let rendered_source source =
-    (Ochre.highlight ~theme:Ochre.Theme.dark
+    (Ochre.highlight ~theme:dark_plus
        ~lang:(get_ok (Ochre.lang highlighter "test"))
        source
     )
@@ -405,7 +410,7 @@ let test_default_highlight_shows_on_light_and_dark () =
       in
       Alcotest.(check bool) (name ^ ": highlight is visible") true (plain <> lit)
     )
-    [ ("dark", Ochre.Theme.dark); ("light", Ochre.Theme.light) ]
+    [ ("dark", dark_plus); ("light", light_plus) ]
 
 let test_transform_before_render_then_line () =
   let doc : Ochre.Token.line list = [ [ make_tok "x" ] ] in
@@ -876,7 +881,7 @@ let invalid_utf8_highlighter =
 
 let test_invalid_utf8_keeps_bytes () =
   let hl = Lazy.force invalid_utf8_highlighter in
-  let theme = Ochre.Theme.dark in
+  let theme = dark_plus in
   List.iter
     (fun (lang, source) ->
       let label = Printf.sprintf "%s %S" lang source in
@@ -933,7 +938,7 @@ let test_invalid_utf8_keeps_bytes () =
 let test_invalid_utf8_does_not_split_valid_text () =
   let hl = Lazy.force invalid_utf8_highlighter in
   let tokens =
-    (Ochre.highlight ~theme:Ochre.Theme.dark
+    (Ochre.highlight ~theme:dark_plus
        ~lang:(get_ok (Ochre.lang hl "json"))
        "{\"a\": \"\xff\", \"b\": 12}\n"
     )
@@ -1010,7 +1015,7 @@ let sweep_corpus =
 
 let test_every_bundled_grammar_covers_the_source () =
   let hl = get_ok (Ochre.load Tm_grammars.all) in
-  let theme = Ochre.Theme.nord in
+  let theme = nord in
   let failures =
     List.concat_map
       (fun (lang, _) ->
@@ -1390,7 +1395,7 @@ let test_deep_nesting_theme_matching () =
   let hl = Lazy.force invalid_utf8_highlighter in
   check_under ~seconds:30.0 "json 1600 deep" (fun () ->
       ignore
-        ( (Ochre.highlight ~theme:Ochre.Theme.nord
+        ( (Ochre.highlight ~theme:nord
              ~lang:(get_ok (Ochre.lang hl "json"))
              (deep_json_objects 1600)
           )
@@ -1409,7 +1414,7 @@ let test_long_nested_line_theme () =
     (fun lang ->
       check_under ~seconds:2.0 (lang ^ " 9999 brackets") (fun () ->
           ignore
-            ( (Ochre.highlight ~theme:Ochre.Theme.dark
+            ( (Ochre.highlight ~theme:dark_plus
                  ~lang:(get_ok (Ochre.lang hl lang))
                  source
               )
@@ -1456,7 +1461,7 @@ let test_decorations_scale () =
   in
   check_under ~seconds:10.0 "40k lines x 4k decorations" (fun () ->
       let tokens =
-        (Ochre.highlight ~decorations ~theme:Ochre.Theme.nord
+        (Ochre.highlight ~decorations ~theme:nord
            ~lang:(get_ok (Ochre.lang hl "plaintext"))
            source
         )
@@ -1484,7 +1489,7 @@ let test_long_line_is_not_quadratic () =
     min_time_of 3 (fun () ->
         let (_ : string) =
           Ochre.to_html
-            (Ochre.highlight ~theme:Ochre.Theme.dark
+            (Ochre.highlight ~theme:dark_plus
                ~lang:(get_ok (Ochre.lang hl "ocaml"))
                source
             )
@@ -1528,13 +1533,95 @@ let test_budget_js_file_to_html () =
   check_under ~seconds:10.0 "10,000-line JS to_html" (fun () ->
       ignore
         ( Ochre.to_html
-            (Ochre.highlight ~theme:Ochre.Theme.dark
+            (Ochre.highlight ~theme:dark_plus
                ~lang:(get_ok (Ochre.lang hl "javascript"))
                source
             )
           : string
           )
   )
+
+let test_whole_theme_css_scales_with_values () =
+  let hex_color i = color (Printf.sprintf "#%06x" i) in
+  let rules prefix n make =
+    List.init n (fun i ->
+        make ~scope:[ Printf.sprintf "%s%d" prefix i ] (hex_color (i + 1))
+    )
+  in
+  let font_styles =
+    Ochre.Style.
+      [
+        { plain with bold = true };
+        { plain with italic = true };
+        { plain with underline = true };
+        { plain with strikethrough = true };
+      ]
+  in
+  let theme =
+    Ochre.Theme.make ~name:"many"
+      ~colors:
+        [
+          ("editor.foreground", color "#ffffff");
+          ("editor.background", color "#000000");
+        ]
+      ~token_colors:
+        (rules "fg" 500 (fun ~scope c ->
+             Ochre.Theme.rule ~scope ~foreground:c ()
+         )
+        @ rules "bg" 50 (fun ~scope c ->
+            Ochre.Theme.rule ~scope ~background:c ()
+        )
+        @ List.mapi
+            (fun i font_style ->
+              Ochre.Theme.rule ~scope:[ Printf.sprintf "fs%d" i ] ~font_style ()
+            )
+            font_styles
+        )
+      ()
+  in
+  let css = ref "" in
+  check_under ~seconds:1.0 "500 colours x 50 backgrounds x 4 font styles"
+    (fun () ->
+      css := Ochre.html_render_whole_theme_css ~class_prefix:"c-" theme;
+      ignore
+        ( Ochre.to_html
+            ~options:
+              (Ochre.Html_options.make
+                 ~style_mode:(Css_classes { class_prefix = "c-" })
+                 ()
+              )
+            (Ochre.highlight ~theme ~lang:Ochre.Lang.plaintext "x")
+          : string
+          )
+  );
+  let declarations =
+    List.filter_map
+      (fun line ->
+        match String.index_opt line '{' with
+        | Some i when String.starts_with ~prefix:".c-" line ->
+            Some (String.sub line (i + 2) (String.length line - i - 2))
+        | _ ->
+            None
+      )
+      (String.split_on_char '\n' !css)
+  in
+  let count props =
+    List.length
+      (List.filter
+         (fun decl ->
+           List.exists (fun prefix -> String.starts_with ~prefix decl) props
+         )
+         declarations
+      )
+  in
+  Alcotest.(check (list int))
+    "one rule per distinct colour, background and font style" [ 501; 50; 4 ]
+    [
+      count [ "color:" ];
+      count [ "background-color:" ];
+      count [ "font-weight:"; "font-style:"; "text-decoration:" ];
+    ];
+  Alcotest.(check int) "no other rule" 555 (List.length declarations)
 
 let test_budget_long_line_without_limits () =
   let grammar =
@@ -1569,7 +1656,7 @@ let test_budget_minified_line () =
       check_under ~seconds:2.0 (Printf.sprintf "%d-byte minified JS line" bytes)
         (fun () ->
           ignore
-            ( (Ochre.highlight ~theme:Ochre.Theme.dark
+            ( (Ochre.highlight ~theme:dark_plus
                  ~lang:(get_ok (Ochre.lang hl "javascript"))
                  (minified bytes)
               )
@@ -1759,7 +1846,7 @@ let test_notation_word_highlight_no_match () =
   match result with
   | [ [ tok; _ ] ] ->
       Alcotest.(check string) "unchanged" "let x = 42" tok.text;
-      Alcotest.(check string) "no fg change" (hex Ochre.Theme.dark.fg) (fg tok)
+      Alcotest.(check string) "no fg change" (hex dark_plus.fg) (fg tok)
   | _ ->
       Alcotest.fail "expected 1 line"
 
@@ -1830,7 +1917,7 @@ let test_notation_highlight_with_highlighter () =
 
 let test_plaintext_langs () =
   let hl = get_ok (Ochre.load []) in
-  let theme = Ochre.Theme.dark in
+  let theme = dark_plus in
   List.iter
     (fun lang ->
       match
@@ -1952,7 +2039,7 @@ let test_load_rejects_duplicate_ids () =
       Alcotest.fail "expected duplicate language id to be rejected"
 
 let test_bundled_grammars_that_used_to_fail_to_load () =
-  let theme = Ochre.Theme.dark in
+  let theme = dark_plus in
   List.iter
     (fun (lang, json, sample) ->
       match Ochre.load [ (lang, json) ] with
@@ -1985,12 +2072,12 @@ let test_bundled_grammars_that_used_to_fail_to_load () =
 let test_to_string_html_options_extra_themes () =
   let hl = highlight () in
   let options = Ochre.Html_options.make ~line_numbers:true () in
-  let extra_themes = [ ("dark", Ochre.Theme.nord) ] in
-  let theme = Ochre.Theme.light in
+  let extra_themes = [ ("dark", nord) ] in
+  let theme = light_plus in
   let source = "let x = 42" in
   let themed =
     get_ok
-      (Ochre.highlight_themes ~extra_themes ~theme
+      (Ochre.highlight_themes ~label:"light" ~extra_themes ~theme
          ~lang:(get_ok (Ochre.lang hl "test"))
          source
       )
@@ -2139,6 +2226,8 @@ let () =
             test_decorations_scale;
           test_case "10,000-line JS file renders to HTML in budget" `Quick
             test_budget_js_file_to_html;
+          test_case "Whole-theme stylesheet scales with distinct values" `Quick
+            test_whole_theme_css_scales_with_values;
           test_case "Long line without limits tokenizes in budget" `Quick
             test_budget_long_line_without_limits;
           test_case "Line just under max_line_length tokenizes in budget" `Quick

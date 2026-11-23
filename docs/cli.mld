@@ -18,7 +18,7 @@ v}
 {1 Options}
 
 {ul
-{- [--theme NAME_OR_PATH], [-t NAME_OR_PATH] — Optional. Built-in theme name (for example [dark], [light], or [tokyonight]) or path to a VS Code / TextMate theme JSON file. A theme color that is not [#rgb], [#rgba], [#rrggbb] or [#rrggbbaa] is dropped, with a warning on standard error ([ochre: warning: <message>]).}
+{- [--theme NAME_OR_PATH], [-t NAME_OR_PATH] — Optional. Theme name from {{:https://github.com/davesnx/tm-grammars} tm-themes} (for example [dark-plus], [light-plus], or [tokyo-night]) or path to a VS Code / TextMate theme JSON file. A theme color that is not [#rgb], [#rgba], [#rrggbb] or [#rrggbbaa] is dropped, with a warning on standard error ([ochre: warning: <message>]).}
 {- [--theme-dark NAME_OR_PATH] — Theme used when terminal mode is detected as dark (same name-or-path resolution as [--theme]). With [--format html], when both [--theme-dark] and [--theme-light] are given (and no [--theme]), produces dual-theme output with CSS [light-dark()] colors. They follow the [color-scheme] of the page, for example [:root { color-scheme: light dark; }] for the system setting.}
 {- [--theme-light NAME_OR_PATH] — Theme used when terminal mode is detected as light (same name-or-path resolution as [--theme]). See [--theme-dark] for dual-theme HTML output.}
 {- [--grammar FILE], [-g FILE] — Path to a [.tmLanguage.json] grammar file. Can be specified multiple times. Optional: when omitted, the bundled grammar for [LANG] is used.}
@@ -60,7 +60,7 @@ v}
 {2 Dual-theme HTML output}
 
 {v
-ochre ocaml file.ml --theme-light light --theme-dark tokyonight
+ochre ocaml file.ml --theme-light light-plus --theme-dark tokyo-night
 v}
 
 {2 Load multiple grammars (e.g. for embedded languages)}
@@ -112,26 +112,10 @@ grammar files:
 Themes use the VS Code / TextMate JSON format with [colors] and [tokenColors] fields.
 See {{:https://vscodethemes.com/} VS Code Theme Gallery} for available themes.
 
-For the CLI, [--theme] is optional. ochre uses a built-in theme and auto-picks
-dark/light from your terminal (using [OCHRE_THEME_MODE], [TERM_THEME], or
+For the CLI, [--theme] is optional. ochre uses [dark-plus] or [light-plus] and
+auto-picks dark/light from your terminal (using [OCHRE_THEME_MODE], [TERM_THEME], or
 [COLORFGBG]).
 
-You can also pass a built-in name directly, for example [--theme dark], instead
-of a file path.
-
-Built-in themes:
-
-{ul
-{- [dark] — Default dark ochre theme}
-{- [light] — Default light ochre theme}
-{- [tokyonight] — Based on the Tokyonight theme}
-{- [everforest] — Based on the Everforest theme}
-{- [ayu] — Based on the Ayu dark theme}
-{- [catppuccin] — Based on the Catppuccin Mocha theme}
-{- [catppuccin-macchiato] — Based on the Catppuccin Macchiato theme}
-{- [gruvbox] — Based on the Gruvbox dark medium theme}
-{- [kanagawa] — Based on the Kanagawa Wave theme}
-{- [nord] — Based on the Nord theme}
-{- [matrix] — Hacker-style green on black theme}
-{- [one-dark] — Based on the Atom One Dark theme}
-}
+You can also pass a theme name directly, for example [--theme nord], instead
+of a file path. The names are the {{:https://shiki.style/themes} Shiki theme}
+names: [andromeeda], [aurora-x], [ayu-dark], [ayu-light], [ayu-mirage], [catppuccin-frappe], [catppuccin-latte], [catppuccin-macchiato], [catppuccin-mocha], [dark-plus], [dracula], [dracula-soft], [everforest-dark], [everforest-light], [github-dark], [github-dark-default], [github-dark-dimmed], [github-dark-high-contrast], [github-light], [github-light-default], [github-light-high-contrast], [gruvbox-dark-hard], [gruvbox-dark-medium], [gruvbox-dark-soft], [gruvbox-light-hard], [gruvbox-light-medium], [gruvbox-light-soft], [horizon], [horizon-bright], [houston], [kanagawa-dragon], [kanagawa-lotus], [kanagawa-wave], [laserwave], [light-plus], [material-theme], [material-theme-darker], [material-theme-lighter], [material-theme-ocean], [material-theme-palenight], [min-dark], [min-light], [monokai], [night-owl], [night-owl-light], [nord], [one-dark-pro], [one-light], [plastic], [poimandres], [red], [rose-pine], [rose-pine-dawn], [rose-pine-moon], [slack-dark], [slack-ochin], [snazzy-light], [solarized-dark], [solarized-light], [synthwave-84], [tokyo-night], [vesper], [vitesse-black], [vitesse-dark], [vitesse-light].

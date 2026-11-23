@@ -252,10 +252,24 @@ let highlighter =
 
 let find_lang name = get_ok (Ochre.lang highlighter name)
 
+let load_theme json = fst (get_ok (Ochre.Theme.load json))
+
 let themes =
-  List.filter_map
-    (fun name -> Option.map (fun t -> (name, t)) (Ochre.Theme.find name))
-    Ochre.Theme.available_names
+  List.map
+    (fun (name, json) -> (name, load_theme json))
+    [
+      ("dark-plus", Tm_themes.dark_plus);
+      ("light-plus", Tm_themes.light_plus);
+      ("tokyo-night", Tm_themes.tokyo_night);
+      ("everforest-dark", Tm_themes.everforest_dark);
+      ("ayu-dark", Tm_themes.ayu_dark);
+      ("catppuccin-mocha", Tm_themes.catppuccin_mocha);
+      ("catppuccin-macchiato", Tm_themes.catppuccin_macchiato);
+      ("gruvbox-dark-medium", Tm_themes.gruvbox_dark_medium);
+      ("kanagawa-wave", Tm_themes.kanagawa_wave);
+      ("nord", Tm_themes.nord);
+      ("one-dark-pro", Tm_themes.one_dark_pro);
+    ]
 
 let ocaml_ident name = String.map (function '-' -> '_' | c -> c) name
 
@@ -292,8 +306,8 @@ let trim_trailing_newlines text =
   in
   String.sub text 0 (last (String.length text - 1) + 1)
 
-let doc_light = Ochre.Theme.light
-let doc_dark = ("doc-dark", Ochre.Theme.gruvbox)
+let doc_light = load_theme Tm_themes.light_plus
+let doc_dark = ("doc-dark", load_theme Tm_themes.gruvbox_dark_medium)
 
 let doc_theme_css =
   Printf.sprintf ":root[data-doc-theme=\"dark\"] {\n%s\n}"
@@ -326,6 +340,7 @@ let merlin_load_path =
       Load_path.tm_grammar_ocaml;
       Load_path.tm_grammar_ocaml_interface;
       Load_path.html_of_jsx;
+      Load_path.tm_themes;
     ]
 
 let first_line text =
@@ -519,7 +534,8 @@ let playground_html =
             (Printf.sprintf
                "let hl = Result.get_ok (Ochre.load [ %s ]) in\n\
                 let lang = Result.get_ok (Ochre.lang hl %S) in\n\
-                Ochre.to_html (Ochre.highlight ~theme:Ochre.Theme.%s ~lang source)"
+                let theme, _ = Result.get_ok (Ochre.Theme.load Tm_themes.%s) in\n\
+                Ochre.to_html (Ochre.highlight ~theme ~lang source)"
                grammars lang placeholder
             )
         in
@@ -549,7 +565,7 @@ let playground_html =
 %s
 </style>
 <h1>Playground</h1>
-<p>Every built-in theme of <code>Ochre.Theme</code> with grammars from <a href="https://github.com/davesnx/tm-grammars">tm-grammars</a>. Pick a theme and a language; the code below produces the block above.</p>
+<p>Themes from <a href="https://github.com/davesnx/tm-grammars">tm-themes</a> with grammars from <a href="https://github.com/davesnx/tm-grammars">tm-grammars</a>. Pick a theme and a language; the code below produces the block above.</p>
 <div class="playground" id="playground">
 <div class="playground__toolbar">
 <label>Theme <select id="playground-theme">%s</select></label>

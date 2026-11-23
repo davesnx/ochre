@@ -10,16 +10,19 @@
       | Error e ->
           Error e
       | Ok highlighter -> (
-          match Ochre.lang highlighter "ocaml" with
-          | Error e ->
+          match
+            (Ochre.lang highlighter "ocaml", Ochre.Theme.load Tm_themes.nord)
+          with
+          | Error e, _ | _, Error e ->
               Error e
-          | Ok lang ->
-              Ok
-                (Ochre.to_html
-                   (Ochre.highlight ~theme:Ochre.Theme.nord ~lang "let x = 42")
-                )
+          | Ok lang, Ok (theme, _warnings) ->
+              Ok (Ochre.to_html (Ochre.highlight ~theme ~lang "let x = 42"))
         )
-    ]} *)
+    ]}
+
+    Themes are data: load one from JSON with {!Theme.val-load}. The [tm-themes]
+    package has every Shiki theme as a JSON string, such as [Tm_themes.nord].
+    The examples below use a [theme] loaded this way. *)
 
 (** {1 Errors} *)
 
@@ -110,9 +113,9 @@ end
 
 (** {1 Themes}
 
-    A theme maps TextMate scopes to colors and font styles. Ochre ships with
-    several built-in themes and can load any VS Code / TextMate theme from JSON.
-*)
+    A theme maps TextMate scopes to colors and font styles. Ochre loads any VS
+    Code / TextMate theme from JSON. The [tm-themes] package has the Shiki
+    themes as OCaml strings. *)
 
 module Theme : sig
   (** {2 color} *)
@@ -262,41 +265,6 @@ module Theme : sig
     unit ->
     token_color_rule
   (** Construct a token color rule. *)
-
-  (** {2 available_names} *)
-
-  val available_names : string list
-  (** Names of all built-in themes. *)
-
-  (** {2 find} *)
-
-  val find : string -> theme option
-  (** Look up a built-in theme by name. Returns [None] when the name is not
-      recognised.
-
-      {@ocaml[
-      let theme = Ochre.Theme.find "nord"
-      ]} *)
-
-  (** {2 themes} *)
-
-  val themes : (string * theme) list
-  (** All built-in themes as [(name, theme)] pairs. *)
-
-  (** {2 Built-in themes} *)
-
-  val dark : theme
-  val light : theme
-  val tokyonight : theme
-  val everforest : theme
-  val ayu : theme
-  val catppuccin : theme
-  val catppuccin_macchiato : theme
-  val gruvbox : theme
-  val kanagawa : theme
-  val nord : theme
-  val matrix : theme
-  val one_dark : theme
 end
 
 (** {1 Highlighter}
@@ -372,8 +340,7 @@ val lang : t -> string -> (Lang.t, Error.t) result
     {@ocaml[
     match Ochre.lang hl "ocaml" with
     | Ok lang ->
-        Ochre.to_html
-          (Ochre.highlight ~theme:Ochre.Theme.nord ~lang "let x = 42")
+        Ochre.to_html (Ochre.highlight ~theme ~lang "let x = 42")
     | Error e ->
         failwith (Ochre.Error.to_string e)
     ]} *)
@@ -898,7 +865,7 @@ val highlight :
     underscore, so it behaves like a non-ASCII letter.
 
     {@ocaml[
-    let themed = Ochre.highlight ~theme:Ochre.Theme.nord ~lang code in
+    let themed = Ochre.highlight ~theme ~lang code in
     List.iter
       (List.iter (fun (tok : Ochre.Token.t) -> print_string tok.text))
       themed.lines
@@ -925,8 +892,8 @@ val highlight_themes :
 
     {@ocaml[
     match
-      Ochre.highlight_themes ~label:"light" ~theme:Ochre.Theme.light
-        ~extra_themes:[ ("dark", Ochre.Theme.nord) ]
+      Ochre.highlight_themes ~label:"light" ~theme:light_theme
+        ~extra_themes:[ ("dark", dark_theme) ]
         ~lang code
     with
     | Ok themed ->
@@ -1048,7 +1015,7 @@ val to_html : ?options:Html_options.t -> Themed.t -> string
     {3 Single theme}
 
     {@ocaml[
-    Ochre.to_html (Ochre.highlight ~theme:Ochre.Theme.nord ~lang "let x = 42")
+    Ochre.to_html (Ochre.highlight ~theme ~lang "let x = 42")
     ]}
 
     {3 Multiple themes}
@@ -1091,8 +1058,8 @@ val to_html : ?options:Html_options.t -> Themed.t -> string
 
     {@ocaml[
     let themed =
-      Ochre.highlight_themes ~label:"light" ~theme:Ochre.Theme.light
-        ~extra_themes:[ ("dark", Ochre.Theme.dark) ]
+      Ochre.highlight_themes ~label:"light" ~theme:light_theme
+        ~extra_themes:[ ("dark", dark_theme) ]
         ~lang code
     in
     Result.map Ochre.to_html themed
@@ -1131,6 +1098,29 @@ val html_render_theme_css :
     as [~css_variable_prefix]; the class names depend on it. For light and dark
     themes (see {!val-to_html}) the rules use [light-dark()]. *)
 
+(** {2 html_render_whole_theme_css} *)
+
+val html_render_whole_theme_css :
+  ?css_variable_prefix:string -> class_prefix:string -> Theme.theme -> string
+(** [html_render_whole_theme_css ~class_prefix theme] generates a CSS stylesheet
+    for every style that [theme] can give a token, with no code to highlight:
+    the [.ochre] rule with the theme background and foreground, then one rule
+    for each distinct colour, background and font style of those styles. The
+    class names are the ones that {!Html_options.Css_classes} rendering with
+    [class_prefix] uses, so the stylesheet covers any code highlighted with
+    [theme] alone or with other themes that use CSS variables. A style that a
+    transform makes, such as a line highlight, is not in the stylesheet; the
+    HTML keeps it inline. The stylesheet has no [light-dark()] rules: for two
+    themes labelled [light] and [dark] (see {!val-to_html}), every token style
+    gets a class, the styles that transforms make included, so use
+    {!val-html_render_theme_css} for that output. Pass the [css_variable_prefix]
+    of the {!Html_options.type-t} used to render the HTML as
+    [~css_variable_prefix]; the class names depend on it.
+
+    {@ocaml[
+    let css = Ochre.html_render_whole_theme_css ~class_prefix:"hl-" theme
+    ]} *)
+
 (** {2 to_ansi} *)
 
 val to_ansi : Themed.t -> string
@@ -1142,8 +1132,7 @@ val to_ansi : Themed.t -> string
     translucent foreground over the background behind it.
 
     {@ocaml[
-    print_string
-      (Ochre.to_ansi (Ochre.highlight ~theme:Ochre.Theme.nord ~lang code))
+    print_string (Ochre.to_ansi (Ochre.highlight ~theme ~lang code))
     ]} *)
 
 (** {2 to_latex} *)

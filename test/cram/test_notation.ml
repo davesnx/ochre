@@ -1,4 +1,4 @@
-let theme = Ochre.Theme.dark
+let theme = Support.load_theme Tm_themes.dark_plus
 
 let highlighter =
   let grammars =

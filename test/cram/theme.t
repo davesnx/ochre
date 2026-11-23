@@ -51,45 +51,23 @@ Alternative fg/bg keys
   bg: #112233
   rules: 0
 
-Load built-in dark theme
-  $ ./test_theme.exe builtin-dark
-  name: dark
+Load dark-plus from tm-themes
+  $ ./test_theme.exe dark-plus
+  name: dark-plus
   fg: #d4d4d4
   bg: #1e1e1e
   rules: 65
 
-Load built-in light theme
-  $ ./test_theme.exe builtin-light
-  name: light
+Load light-plus from tm-themes
+  $ ./test_theme.exe light-plus
+  name: light-plus
   fg: #000000
   bg: #ffffff
   rules: 64
 
-Load by alias with name-or-path API
-  $ ./test_theme.exe load-dark-alias
-  name: dark
-  fg: #d4d4d4
-  bg: #1e1e1e
-  rules: 65
-
-Built-in theme catalog includes all shipped themes
-  $ ./test_theme.exe available
-  dark
-  light
-  tokyonight
-  everforest
-  ayu
-  catppuccin
-  catppuccin-macchiato
-  gruvbox
-  kanagawa
-  nord
-  matrix
-  one-dark
-
-Load a newly added built-in theme by name
-  $ ./test_theme.exe tokyonight
-  name: tokyonight
+Load tokyo-night from tm-themes
+  $ ./test_theme.exe tokyo-night
+  name: tokyo-night
   fg: #a9b1d6
   bg: #1a1b26
   rules: 114

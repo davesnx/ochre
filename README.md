@@ -18,8 +18,9 @@ opam install ochre -y
 let ( let* ) = Result.bind in
 let* highlighter = Ochre.load_from_files ["path/to/ocaml.tmLanguage.json"] in
 let* lang = Ochre.lang highlighter "ocaml" in
+let* theme, _warnings = Ochre.Theme.load_from_file "path/to/theme.json" in
 let source_code = "..." in
-Ok (Ochre.to_html (Ochre.highlight ~theme:Ochre.Theme.nord ~lang source_code))
+Ok (Ochre.to_html (Ochre.highlight ~theme ~lang source_code))
 ```
 Loading and language lookup return `(_, Ochre.Error.t) result`; rendering never fails.
 
@@ -28,10 +29,10 @@ Loading and language lookup return `(_, Ochre.Error.t) result`; rendering never 
 
 [tm-grammars](https://github.com/davesnx/tm-grammars) packages a collection of TextMate grammars for OCaml, so you can load grammars in `ochre` without managing JSON files on disk.
 
-Install the bundled grammar package:
+Install the grammar package, and `tm-themes` for the [Shiki themes](https://shiki.style/themes):
 
 ```
-opam install tm-grammars -y
+opam install tm-grammars tm-themes -y
 ```
 Then load a grammar from OCaml and create a highlighter. The `ocaml` grammar includes rules from `ocaml-interface`, so load both:
 
@@ -42,9 +43,10 @@ let* highlighter =
     [ ("ocaml", Tm_grammars.ocaml); ("ocaml-interface", Tm_grammars.ocaml_interface) ]
 in
 let* lang = Ochre.lang highlighter "ocaml" in
-Ok (Ochre.to_html (Ochre.highlight ~theme:Ochre.Theme.nord ~lang "let x = 42"))
+let* theme, _warnings = Ochre.Theme.load Tm_themes.nord in
+Ok (Ochre.to_html (Ochre.highlight ~theme ~lang "let x = 42"))
 ```
-Try every built-in theme with several grammars in the [playground](https://davesnx.github.io/ochre/playground.html).
+Try several themes with several grammars in the [playground](https://davesnx.github.io/ochre/playground.html).
 
 
 ## Output formats
@@ -64,15 +66,15 @@ All backends share the same interface: load a highlighter, look up a language, h
 
 ```ocaml
 let page ~lang code =
-  let themed =
-    Ochre.highlight_themes ~label:"light" ~theme:Ochre.Theme.light
-      ~extra_themes:[ ("dark", Ochre.Theme.dark) ]
+  let ( let* ) = Result.bind in
+  let* light, _warnings = Ochre.Theme.load Tm_themes.light_plus in
+  let* dark, _warnings = Ochre.Theme.load Tm_themes.dark_plus in
+  let* themed =
+    Ochre.highlight_themes ~label:"light" ~theme:light
+      ~extra_themes:[ ("dark", dark) ]
       ~lang code
   in
-  Result.map
-    (fun themed ->
-      JSX.render (JSX.node "article" [] [ Ochre.to_jsx themed ]))
-    themed
+  Ok (JSX.render (JSX.node "article" [] [ Ochre.to_jsx themed ]))
 ```
 With two themes labelled `light` and `dark`, colors are written as CSS `light-dark()`. Set the `color-scheme` of the page to choose one, or `:root { color-scheme: light dark; }` to follow the system setting.
 

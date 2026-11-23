@@ -1,6 +1,6 @@
 (executable
  (name fuzz_tokens)
- (libraries ochre tm-grammars crowbar))
+ (libraries ochre tm-grammars tm-themes crowbar))
 
 (rule
  (alias runtest)

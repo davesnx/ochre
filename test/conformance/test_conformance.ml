@@ -62,7 +62,8 @@ let get_ok = function
       failwith (Ochre.Error.to_string error)
 
 let ochre_tokens hl ~lang source =
-  (Ochre.highlight ~theme:Ochre.Theme.dark
+  (Ochre.highlight
+     ~theme:(fst (get_ok (Ochre.Theme.load Tm_themes.dark_plus)))
      ~lang:(get_ok (Ochre.lang hl lang))
      source
   )
