@@ -1,6 +1,7 @@
 open Common
 
 type token = { ending : int; scopes : string list }
+type stats = { match_calls : int; positions : int }
 
 let ending token = token.ending
 let scopes token = token.scopes
@@ -81,17 +82,19 @@ type clock = { mutable calls : int; mutable expired : bool; deadline : float }
 let clock_check_interval = 16
 
 let match_regex clock regex line pos options =
-  clock.calls <- clock.calls + 1;
-  if
-    (not clock.expired)
-    && clock.calls mod clock_check_interval = 0
-    && Unix.gettimeofday () > clock.deadline
-  then
-    clock.expired <- true;
   if clock.expired then
     None
-  else
+  else if
+    clock.calls > 0
+    && clock.calls mod clock_check_interval = 0
+    && Unix.gettimeofday () > clock.deadline
+  then (
+    clock.expired <- true;
+    None
+  ) else (
+    clock.calls <- clock.calls + 1;
     try Oniguruma.match_ regex line pos options with Oniguruma.Error _ -> None
+  )
 
 (* As vscode-textmate, [\A] only matches on the first line and [\G] only at the
    anchor. *)
@@ -269,6 +272,7 @@ type candidate_groups = {
 type line_state = {
   mutable entries :
     (stack_elem option * rule list * grammar * candidate_groups) list;
+  mutable positions : int;
   clock : clock;
   line_id : line_id;
   first_line : bool;
@@ -1031,7 +1035,8 @@ let rec match_line ~t ~state ~grammar ~stack ~anchor ~line_pos ~pos ~toks ~line
   in
   if pos > len || state.clock.expired then
     stop toks stack
-  else
+  else (
+    state.positions <- state.positions + 1;
     let cur_grammar, end_rule =
       match stack with
       | [] ->
@@ -1070,6 +1075,7 @@ let rec match_line ~t ~state ~grammar ~stack ~anchor ~line_pos ~pos ~toks ~line
         | End_last (se, stack') ->
             try_base ~k:(fun () -> try_delim_end se stack' ~k:try_right)
     )
+  )
 
 let empty_captures = Hashtbl.create 0
 
@@ -1123,6 +1129,7 @@ let tokenize_line ~time_limit ~eol t grammar { first_line; frames } line =
   let state =
     {
       entries = [];
+      positions = 0;
       line_id = ref ();
       clock =
         {
@@ -1147,7 +1154,8 @@ let tokenize_line ~time_limit ~eol t grammar { first_line; frames } line =
                 (toks, pos, anchor, List.rev_append (se :: stack) rem_stack)
               else if pos' = String.length line then
                 (toks, pos, anchor, rem_stack)
-              else
+              else (
+                state.positions <- state.positions + 1;
                 match
                   match_pattern ~first_line:state.first_line state.clock
                     se.stack_end_re line pos' anchor
@@ -1172,6 +1180,7 @@ let tokenize_line ~time_limit ~eol t grammar { first_line; frames } line =
                     in
                     try_while_rules matched.end_ (Some matched.end_) toks
                       (se :: rem_stack) stack
+              )
             in
             loop pos
       )
@@ -1189,9 +1198,12 @@ let tokenize_line ~time_limit ~eol t grammar { first_line; frames } line =
     match_line ~t ~state ~grammar ~stack:frames ~anchor ~line_pos:pos ~pos ~toks
       ~line (next_pats grammar frames)
   in
-  (toks, { first_line = false; frames })
+  let stats =
+    { match_calls = state.clock.calls; positions = state.positions }
+  in
+  (toks, { first_line = false; frames }, stats)
 
-let tokenize_exn ?(max_line_length = default_max_line_length)
+let tokenize_with_stats_exn ?(max_line_length = default_max_line_length)
     ?(time_limit = default_time_limit) t grammar stack line =
   let added_newline = not (String.ends_with ~suffix:"\n" line) in
   let line =
@@ -1202,12 +1214,13 @@ let tokenize_exn ?(max_line_length = default_max_line_length)
   in
   let len = String.length line in
   let max_line_length = max 1 max_line_length in
-  let toks, stack =
+  let toks, stack, stats =
     if len <= max_line_length then
       tokenize_line ~time_limit ~eol:len t grammar stack line
     else
       ( [ { scopes = end_of_line_scopes grammar stack.frames; ending = len } ],
-        { stack with first_line = false }
+        { stack with first_line = false },
+        { match_calls = 0; positions = 0 }
       )
   in
   let toks =
@@ -1220,4 +1233,10 @@ let tokenize_exn ?(max_line_length = default_max_line_length)
     | _ ->
         toks
   in
-  (List.rev toks, stack)
+  (List.rev toks, stack, stats)
+
+let tokenize_exn ?max_line_length ?time_limit t grammar stack line =
+  let toks, stack, _ =
+    tokenize_with_stats_exn ?max_line_length ?time_limit t grammar stack line
+  in
+  (toks, stack)

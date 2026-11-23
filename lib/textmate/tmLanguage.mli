@@ -105,6 +105,12 @@ val ending : token -> int
 val scopes : token -> string list
 (** The token's stack of TextMate grammar scopes. *)
 
+type stats = {
+  match_calls : int;  (** Number of Oniguruma match calls made on the line. *)
+  positions : int;  (** Number of line positions inspected by the tokenizer. *)
+}
+(** Work counters recorded while tokenizing a single line. *)
+
 val tokenize_exn :
   ?max_line_length:int ->
   ?time_limit:float ->
@@ -165,3 +171,15 @@ val tokenize_exn :
 
     A single regex call is not interrupted. Its cost is bounded by Oniguruma's
     own retry limit ([Oniguruma.set_retry_limit_in_match]). *)
+
+val tokenize_with_stats_exn :
+  ?max_line_length:int ->
+  ?time_limit:float ->
+  t ->
+  grammar ->
+  stack ->
+  string ->
+  token list * stack * stats
+(** Same as {!val:tokenize_exn}, also returning the {!type:stats} recorded for
+    the line. A line skipped by [max_line_length] reports zero for all counters.
+*)

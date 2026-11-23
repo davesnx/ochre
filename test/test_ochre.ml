@@ -823,16 +823,6 @@ let test_decoration_with_highlighter () =
 let long_arithmetic_line n =
   "let x = " ^ String.concat " + " (List.init n string_of_int)
 
-let min_time_of trials f =
-  let best = ref Float.infinity in
-  for _ = 1 to trials do
-    let t0 = Unix.gettimeofday () in
-    f ();
-    let dt = Unix.gettimeofday () -. t0 in
-    if dt < !best then best := dt
-  done;
-  !best
-
 let tokens_text tokens =
   tokens
   |> List.concat_map (fun line ->
@@ -1475,37 +1465,75 @@ let test_decorations_scale () =
   )
 
 let test_long_line_is_not_quadratic () =
-  let hl =
-    get_ok
-      (Ochre.load
-         [
-           ("ocaml", Tm_grammars.ocaml);
-           ("ocaml-interface", Tm_grammars.ocaml_interface);
-         ]
+  let check_ratio ~label n1 n2 =
+    Alcotest.(check bool)
+      (Printf.sprintf "%s: positive work count (%d)" label n1)
+      true (n1 > 0);
+    let ratio = float_of_int n2 /. float_of_int n1 in
+    Alcotest.(check bool)
+      (Printf.sprintf
+         "%s: doubling the line length scales linearly (%d -> %d, %.2fx, limit \
+          2.2x)"
+         label n1 n2 ratio
       )
+      true (ratio <= 2.2)
   in
-  let time_for n =
-    let source = long_arithmetic_line n in
-    min_time_of 3 (fun () ->
-        let (_ : string) =
-          Ochre.to_html
-            (Ochre.highlight ~theme:dark_plus
-               ~lang:(get_ok (Ochre.lang hl "ocaml"))
-               source
-            )
-        in
-        ()
-    )
+  let cases =
+    [
+      ( "ocaml",
+        Tm_grammars.ocaml,
+        [ Tm_grammars.ocaml_interface ],
+        long_arithmetic_line
+      );
+      ( "javascript",
+        Tm_grammars.javascript,
+        [],
+        fun n ->
+          "var x = "
+          ^ String.concat " + " (List.init n (fun i -> Printf.sprintf "f(%d)" i))
+          ^ ";"
+      );
+      ( "json",
+        Tm_grammars.json,
+        [],
+        fun n ->
+          "["
+          ^ String.concat ", "
+              (List.init n (fun i -> Printf.sprintf "{\"a\": %d}" i))
+          ^ "]"
+      );
+    ]
   in
-  let t1 = time_for 800 in
-  let t2 = time_for 1600 in
-  Alcotest.(check bool)
-    (Printf.sprintf
-       "doubling the line length takes less than 3x as long (%.4fs -> %.4fs)" t1
-       t2
+  List.iter
+    (fun (lang, json, includes, make_line) ->
+      let parse s = TmLanguage.of_yojson_exn (Yojson.Basic.from_string s) in
+      let grammar = parse json in
+      let t = TmLanguage.create () in
+      TmLanguage.add_grammar t grammar;
+      List.iter (fun s -> TmLanguage.add_grammar t (parse s)) includes;
+      let tokenize n =
+        TmLanguage.tokenize_with_stats_exn ~max_line_length:max_int
+          ~time_limit:Float.infinity t grammar TmLanguage.empty (make_line n)
+      in
+      let toks1, _, stats1 = tokenize 800 in
+      let toks2, _, stats2 = tokenize 1600 in
+      Alcotest.(check bool)
+        (Printf.sprintf "%s: 800-term line produced tokens (%d)" lang
+           (List.length toks1)
+        )
+        true
+        (List.length toks1 > 800);
+      Alcotest.(check bool)
+        (Printf.sprintf "%s: 1600-term line produced tokens (%d)" lang
+           (List.length toks2)
+        )
+        true
+        (List.length toks2 > 1600);
+      check_ratio ~label:(lang ^ " match_calls") stats1.match_calls
+        stats2.match_calls;
+      check_ratio ~label:(lang ^ " positions") stats1.positions stats2.positions
     )
-    true
-    (t2 < t1 *. 3.0)
+    cases
 
 let js_like_source lines =
   let line i =
@@ -2214,7 +2242,7 @@ let () =
       );
       ( "performance",
         [
-          test_case "Long single line tokenizes in near-linear time" `Quick
+          test_case "Long single line tokenizes with linear work" `Quick
             test_long_line_is_not_quadratic;
           test_case "Deep nesting resolves theme styles in time" `Quick
             test_deep_nesting_theme_matching;
