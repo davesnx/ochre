@@ -1,6 +1,7 @@
 type t = {
   themes : (string * Theme.theme) * (string * Theme.theme) list;
   lines : Token.t list list;
+  hooks : Transform.attribute_hooks list;
 }
 
 let select label themed =
@@ -16,4 +17,5 @@ let select label themed =
         {
           themes = (chosen, List.map snd others);
           lines = List.map (List.map (Token.reorder_styles order)) themed.lines;
+          hooks = themed.hooks;
         }

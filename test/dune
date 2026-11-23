@@ -116,3 +116,7 @@
 (test
  (name test_model)
  (libraries ochre alcotest))
+
+(test
+ (name test_html_jsx)
+ (libraries ochre alcotest html_of_jsx))

@@ -9,7 +9,7 @@ A theme name is escaped in the class attribute
   > {"name":"\"><img src=x onerror=alert(1)>","tokenColors":[]}
   > JSON
   $ ochre ocaml ok.ml --theme-light evil-name.json --theme-dark nord | grep -o '<pre[^>]*>'
-  <pre class="ochre ochre-themes &quot;&gt;&lt;img src=x onerror=alert(1)&gt; nord" style="background-color:var(--ochre-bg,#ffffff);color:var(--ochre,#000000);--ochre-dark-bg:#2e3440;--ochre-dark:#d8dee9" tabindex="0">
+  <pre class="ochre ochre-themes &quot;&gt;&lt;img src=x onerror=alert(1)&gt; nord" style="background-color:light-dark(#ffffff,#2e3440);color:light-dark(#000000,#d8dee9)" tabindex="0">
   $ ochre ocaml ok.ml --theme-light evil-name.json --theme-dark nord | grep -c '<img'
   0
   [1]

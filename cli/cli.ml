@@ -361,8 +361,7 @@ let theme_dark =
   let doc =
     "Theme name or path for dark mode. When both --theme-light and \
      --theme-dark are given with --format html, produces dual-theme output \
-     with CSS custom properties (--ochre-dark-*) for automatic dark mode \
-     switching"
+     with CSS light-dark() colors, which follow the page color-scheme"
   in
   Arg.(value & opt (some string) None & info [ "theme-dark" ] ~docv:"THEME" ~doc)
 
@@ -370,7 +369,7 @@ let theme_light =
   let doc =
     "Theme name or path for light mode. When both --theme-light and \
      --theme-dark are given with --format html, produces dual-theme output \
-     with the light theme as default and dark theme as CSS custom properties"
+     with CSS light-dark() colors, which follow the page color-scheme"
   in
   Arg.(
     value & opt (some string) None & info [ "theme-light" ] ~docv:"THEME" ~doc
@@ -422,13 +421,16 @@ let no_default_color =
   let doc =
     "Suppress inline color/background-color on the primary theme. All colors \
      come from CSS custom properties only. Useful with multi-theme output when \
-     you control theme switching entirely via CSS"
+     you control theme switching entirely via CSS. Light and dark themes use \
+     light-dark() colors with or without this flag"
   in
   Arg.(value & flag & info [ "no-default-color" ] ~doc)
 
 let css_var_prefix =
   let doc =
-    "CSS custom property prefix for multi-theme output (default: --ochre-)"
+    "CSS custom property prefix for multi-theme output (default: --ochre-). \
+     With --theme-light and --theme-dark, colors use light-dark() and read no \
+     variable, so the prefix applies only to font styles"
   in
   Arg.(
     value

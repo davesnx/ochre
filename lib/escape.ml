@@ -27,7 +27,7 @@ let needs_attention = function
   | c ->
       Char.code c >= 0x80
 
-let html buf s =
+let replace_invalid add_ascii buf s =
   if not (String.exists needs_attention s) then
     Buffer.add_string buf s
   else
@@ -39,7 +39,7 @@ let html buf s =
           if c = '\000' then
             Buffer.add_string buf replacement
           else
-            add_specials buf c;
+            add_ascii buf c;
           loop (i + 1)
         ) else
           let d = String.get_utf_8_uchar s i in
@@ -52,6 +52,9 @@ let html buf s =
       )
     in
     loop 0
+
+let html = replace_invalid add_specials
+let valid_utf8 = replace_invalid Buffer.add_char
 
 let xml_filtered ~attr buf s =
   let length = String.length s in

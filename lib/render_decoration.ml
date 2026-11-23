@@ -11,5 +11,4 @@ let escape_with escape_string (dec : Token.decoration_properties) =
     data = List.map (fun (k, v) -> (k, escape_string v)) dec.data;
   }
 
-let escape = escape_with (Escape.to_string Escape.html)
 let escape_xml = escape_with (Escape.to_string Escape.xml_attr)

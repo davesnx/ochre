@@ -461,36 +461,6 @@ module Token : sig
   (** Like {!val-insert_before}, at the end of [token]. *)
 end
 
-(** {1 Themed code}
-
-    Highlighted code is tokenized once and styled under one or more themes. *)
-
-module Themed : sig
-  type t = Themed.t = private {
-    themes : (string * Theme.theme) * (string * Theme.theme) list;
-        (** The labelled default theme, then the labelled extra themes. The
-            default label is the [?label] given to {!val-highlight} or
-            {!val-highlight_themes}, or the theme name. *)
-    lines : Token.line list;
-  }
-  (** Highlighted code. Each token has one style per theme, in the order of
-      [themes]. Make one with {!val-highlight} or {!val-highlight_themes}. *)
-
-  val select : string -> t -> (t, Error.t) result
-  (** [select label themed] makes the theme labelled [label] the default theme,
-      and keeps the others as extra themes in their order. Renderers that show
-      one theme, such as {!val-to_ansi}, show the default theme. Returns
-      {!Error.Unknown_theme_label} when no theme has [label].
-
-      {@ocaml[
-      match Ochre.Themed.select "dark" themed with
-      | Ok dark ->
-          print_string (Ochre.to_ansi dark)
-      | Error e ->
-          prerr_endline (Ochre.Error.to_string e)
-      ]} *)
-end
-
 (** {1 Decorations}
 
     Decorations attach format-agnostic properties (CSS class, inline style, data
@@ -589,6 +559,42 @@ module Transform : sig
   type line = token list
   type document = line list
 
+  (** {2 attribute_hooks} *)
+
+  type attributes = JSX.attribute list
+
+  type attribute_hooks = Transform.attribute_hooks = {
+    pre : (document -> attributes -> attributes) option;
+        (** Changes the attributes of the [<pre>]. It gets the rendered lines.
+        *)
+    line : (line_index:int -> line -> attributes -> attributes) option;
+        (** Changes the attributes of the [<span class="line">] of the rendered
+            line [line_index] (from [0]), which holds the tokens of [line]. *)
+    span :
+      (line_index:int -> column:int -> token -> attributes -> attributes) option;
+        (** Changes the attributes of the [<span>] of [token] on the rendered
+            line [line_index]. [token] is the token of [line], as the [line]
+            hook gets it, and [column] is the byte offset of [token] in the text
+            of that line. The [<span>] can hold a different text: the HTML
+            backend moves the ["\r"] that ends a token into the next token when
+            that one starts with ["\n"], so that the pair stays together. Such a
+            [<span>] starts at [column - 1], one byte before [token]. A token
+            that holds only that ["\r"] has no [<span>] and no [span] call. A
+            token with no attributes after every hook is written as text, with
+            no [<span>]. *)
+  }
+  (** HTML attribute hooks, run by {!val-to_jsx} and {!val-to_html}. Each hook
+      takes the attributes built so far and returns the new list. The HTML
+      backend escapes the values. An attribute name must match
+      [[A-Za-z_:][A-Za-z0-9_.:-]*]; rendering never fails, so the HTML backend
+      replaces each other character of a name with [_], and an empty name
+      becomes [_]. Names are compared without case. When the list has several
+      [class] attributes, they become one [class] with each name once, in order;
+      several [style] attributes become one [style], joined with [;]. For any
+      other name, the last value wins, at the place of the first. So a hook can
+      add a class or a style with [attrs @ [ ("class", `String "name") ]], and
+      replace a value with [attrs @ [ ("tabindex", `Int (-1)) ]]. *)
+
   (** {2 t} *)
 
   type t = Transform.t = {
@@ -597,17 +603,36 @@ module Transform : sig
     after_line : (line_index:int -> line -> line) option;
     before_render : (document -> document) option;
     after_render : (document -> document) option;
+    attributes : (document -> attribute_hooks) option;
   }
   (** A transform with named hooks. Each hook is optional. The pipeline calls
       them in this order:
 
-      + [before_render] on the full document
+      + [attributes] then [before_render], on the full document
       + [before_line] for each line (by index)
       + [after_line] for each line (by index)
       + [after_render] on the full document
 
       When multiple transforms are provided, each hook phase folds over all
-      transforms in list order before moving to the next phase. *)
+      transforms in list order before moving to the next phase.
+
+      [attributes] runs once per highlight, with the document as the transform
+      sees it: after the [before_render] of the transforms before it, and before
+      its own. Its hooks are kept in {!Themed.t.hooks}, and the HTML backend
+      calls them in the order of the transforms. The [line_index] of a hook is
+      the index of the rendered line, and the [column] of a [span] hook is a
+      byte offset in its text. An [attributes] sees only the [before_render]
+      changes of the transforms before it. It does not see the [before_render]
+      changes of the transforms after it, or the changes of any [before_line],
+      [after_line] or [after_render] hook, because those run after every
+      [attributes]. When one of these changes adds or removes lines, or changes
+      the text of a line, a [line_index] or [column] that [attributes] computed
+      from its document no longer matches the rendered code. The
+      {!Token.type-position} of a token does not change, so identify lines and
+      tokens by it: a [line] hook by the [position.line] of the tokens of
+      [line], and a [span] hook by the source bytes of [token]. The built-in
+      transforms do this for the lines and tokens they mark, so they give the
+      same classes in any order. *)
 
   (** {2 make} *)
 
@@ -616,6 +641,7 @@ module Transform : sig
     ?after_line:(line_index:int -> line -> line) ->
     ?before_render:(document -> document) ->
     ?after_render:(document -> document) ->
+    ?attributes:(document -> attribute_hooks) ->
     string ->
     t
   (** [make name] creates a transform with the given hooks.
@@ -640,6 +666,23 @@ module Transform : sig
               )
               line
         )
+      ]}
+
+      A transform that adds a [data-line-count] attribute to the [<pre>]:
+
+      {@ocaml[
+      let line_count =
+        Ochre.Transform.make "line-count" ~attributes:(fun _ ->
+            {
+              pre =
+                Some
+                  (fun doc attrs ->
+                    attrs @ [ ("data-line-count", `Int (List.length doc)) ]
+                  );
+              line = None;
+              span = None;
+            }
+        )
       ]} *)
 
   (** {2 run} *)
@@ -653,14 +696,26 @@ end
 
 (** {2 Built-in transforms}
 
-    Ready-to-use transforms for common highlighting patterns. *)
+    Ready-to-use transforms for common highlighting patterns. Each one sets its
+    colours on the tokens, and in HTML also adds the class names of the Shiki
+    transformers, so a page can style the marked code with CSS. Ochre ships no
+    CSS. For example:
+
+    {@css[
+    .ochre .line.highlighted { background-color: #8888883a; }
+    .ochre .line.diff.add { background-color: #22883322; }
+    .ochre .line.diff.remove { background-color: #88222222; }
+    .ochre .highlighted-word { outline: 1px solid currentColor; }
+    .ochre.has-highlighted .line:not(.highlighted) { opacity: 0.6; }
+    ]} *)
 
 module Transform_builtin : sig
   (** {2 line_highlight} *)
 
   val line_highlight : ?background:Color.t -> int list -> Transform.t
   (** Highlights the given line indices (0-based) by setting every token's
-      background color, under every theme.
+      background color, under every theme. In HTML, each highlighted line gets
+      the class [highlighted] and the [<pre>] gets [has-highlighted].
 
       Default background: ["#8888883a"].
 
@@ -678,7 +733,7 @@ module Transform_builtin : sig
     string list ->
     Transform.t
   (** Highlights tokens whose text matches one of the given words, under every
-      theme.
+      theme. In HTML, each highlighted token gets the class [highlighted-word].
 
       Default foreground: ["#ffff00"]. Default font style: bold.
 
@@ -692,12 +747,15 @@ module Transform_builtin : sig
 
   val diff_markers : Transform.t
   (** Strips leading [+] or [-] from the first token of each line and applies a
-      green or red background to the entire line, under every theme. *)
+      green or red background to the entire line, under every theme. In HTML,
+      those lines get the classes [diff add] or [diff remove], and the [<pre>]
+      gets [has-diff]. *)
 
   (** {2 scope_marker} *)
 
   val scope_marker : ?background:Color.t -> string -> Transform.t
-  (** Highlights tokens that have at least one scope starting with [prefix].
+  (** Highlights tokens that have at least one scope starting with [prefix]. In
+      HTML, each highlighted token gets the class [highlighted-scope].
 
       Default background: ["#ffff0033"]. *)
 
@@ -724,6 +782,11 @@ module Transform_builtin : sig
       its line, the line is removed and the marker applies to the lines below
       it.
 
+      In HTML, each highlighted line gets the class [highlighted] and the
+      [<pre>] gets [has-highlighted]. The notation transforms find the marked
+      lines in the document they receive, so a transform after them that adds or
+      removes lines shifts the classes (see {!Transform.type-t}).
+
       Default background: ["#8888883a"].
 
       {@ocaml[
@@ -738,8 +801,10 @@ module Transform_builtin : sig
     ?add_background:Color.t -> ?remove_background:Color.t -> unit -> Transform.t
   (** Notation-based diff markers. Finds [[!code ++]] and [[!code --]] markers
       in comments, removes them, and applies green or red backgrounds to the
-      entire line. Mirrors Shiki's [transformerNotationDiff]; see
-      {!val-notation_highlight} for where a marker may sit and what is removed.
+      entire line. In HTML, those lines get the classes [diff add] or
+      [diff remove], and the [<pre>] gets [has-diff]. Mirrors Shiki's
+      [transformerNotationDiff]; see {!val-notation_highlight} for where a
+      marker may sit and what is removed.
 
       Default add background: ["#22883322"]. Default remove background:
       ["#88222222"].
@@ -758,9 +823,15 @@ module Transform_builtin : sig
       comments, removes them, and highlights all occurrences of [xxx], across
       token boundaries. Without a count the highlight runs from the line of the
       marker to the end of the code; [[!code word:xxx:2]] limits it to two
-      lines. A backslash escapes a character of the word. Mirrors Shiki's
-      [transformerNotationWordHighlight]; see {!val-notation_highlight} for
-      where a marker may sit and what is removed.
+      lines. A backslash escapes a character of the word. In HTML, each
+      highlighted piece gets the class [highlighted-word]; the pieces are found
+      in the document after the [before_render] of the transforms before this
+      one, and matched by their {!Token.type-position}, so a later transform
+      that removes or splits text keeps the class on what remains of a piece.
+      Text inserted after this transform runs is not seen (see
+      {!Transform.type-t}). Mirrors Shiki's [transformerNotationWordHighlight];
+      see {!val-notation_highlight} for where a marker may sit and what is
+      removed.
 
       Default foreground: ["#ffff00"]. Default font style: bold.
 
@@ -768,6 +839,42 @@ module Transform_builtin : sig
       let code = "let x = 42 // [!code word:x]" in
       let transforms = [ Ochre.Transform_builtin.notation_word_highlight () ] in
       Ochre.highlight ~transforms ~theme ~lang code
+      ]} *)
+end
+
+(** {1 Themed code}
+
+    Highlighted code is tokenized once and styled under one or more themes. *)
+
+module Themed : sig
+  type t = Themed.t = private {
+    themes : (string * Theme.theme) * (string * Theme.theme) list;
+        (** The labelled default theme, then the labelled extra themes. The
+            default label is the [?label] given to {!val-highlight} or
+            {!val-highlight_themes}, or the theme name. *)
+    lines : Token.line list;
+    hooks : Transform.attribute_hooks list;
+        (** The attribute hooks of the transforms that made the value, in the
+            order of the transforms. {!val-to_jsx} runs them. *)
+  }
+  (** Highlighted code. Each token has one style per theme, in the order of
+      [themes]. Make one with {!val-highlight} or {!val-highlight_themes}. A
+      value made with transforms that have [attributes] holds functions in
+      [hooks], so [=], [compare] and [Marshal] raise [Invalid_argument] on it,
+      and it cannot be a key of a generic [Hashtbl]. *)
+
+  val select : string -> t -> (t, Error.t) result
+  (** [select label themed] makes the theme labelled [label] the default theme,
+      and keeps the others as extra themes in their order. Renderers that show
+      one theme, such as {!val-to_ansi}, show the default theme. Returns
+      {!Error.Unknown_theme_label} when no theme has [label].
+
+      {@ocaml[
+      match Ochre.Themed.select "dark" themed with
+      | Ok dark ->
+          print_string (Ochre.to_ansi dark)
+      | Error e ->
+          prerr_endline (Ochre.Error.to_string e)
       ]} *)
 end
 
@@ -877,6 +984,9 @@ module Html_options : sig
     code_class : string option;
     line_numbers : bool;
     css_variable_prefix : string;
+        (** The prefix of the CSS variables, ["--ochre-"] by default. Two themes
+            labelled [light] and [dark] write their colours with [light-dark()],
+            so for them the prefix names only the font variables. *)
     scopes_as_data_attrs : bool;
   }
   (** The full set of HTML rendering options. *)
@@ -908,6 +1018,20 @@ module Html_options : sig
       ]} *)
 end
 
+(** {2 to_jsx} *)
+
+val to_jsx : ?options:Html_options.t -> Themed.t -> JSX.element
+(** Render highlighted code to an html_of_jsx element: a [<pre>] that holds a
+    [<code>], with one [<span class="line">] per line. Put it in an html_of_jsx
+    page, or render it with [JSX.render]. {!val-to_html} returns
+    [JSX.render (to_jsx ?options themed)]. Render the page with [JSX.render],
+    not [JSX.pp]: [JSX.pp] adds whitespace, which shows inside [<pre>].
+
+    {@ocaml[
+    let page code =
+      JSX.node "article" [] [ Ochre.to_jsx (Ochre.highlight ~theme ~lang code) ]
+    ]} *)
+
 (** {2 to_html} *)
 
 val to_html : ?options:Html_options.t -> Themed.t -> string
@@ -938,7 +1062,33 @@ val to_html : ?options:Html_options.t -> Themed.t -> string
     not the page background [--ochre-bg]. Underline and strikethrough together
     give [underline line-through].
 
-    Pair with {!val-html_theme_css} to activate alternate themes via CSS. *)
+    Pair with {!val-html_theme_css} to activate alternate themes via CSS.
+
+    {3 Light and dark themes}
+
+    When there are exactly two themes, labelled [light] and [dark] (in either
+    order), the colours and backgrounds of the [<pre>] and of each token are
+    written as [light-dark(<light>, <dark>)], in both style modes and with or
+    without a default colour. The browser picks one from the [color-scheme] of
+    the page; the output sets no [color-scheme] itself. With
+    [:root { color-scheme: light dark; }] in the page stylesheet, the code
+    follows the system setting. To switch with a control, set [color-scheme] on
+    the root, for example [:root[data-theme="dark"] { color-scheme: dark; }]:
+    these colours read no CSS variable, so {!val-html_theme_css} and
+    [css_variable_prefix] do not change them. [font-weight], [font-style] and
+    [text-decoration] keep the variables above, with the default theme's value
+    as fallback, inline also in {!Html_options.Css_classes} mode, so a font
+    style that differs between the two themes still needs {!val-html_theme_css}.
+    Any other set of labels keeps the variable output described above.
+
+    {@ocaml[
+    let themed =
+      Ochre.highlight_themes ~label:"light" ~theme:Ochre.Theme.light
+        ~extra_themes:[ ("dark", Ochre.Theme.dark) ]
+        ~lang code
+    in
+    Result.map Ochre.to_html themed
+    ]} *)
 
 (** {2 html_theme_css} *)
 
@@ -950,6 +1100,11 @@ val html_theme_css : ?css_variable_prefix:string -> string -> string
 
     Wrap this in your own selector (a media query, a [.dark] class, a
     [data-theme] attribute selector, etc.) to control when the theme activates.
+
+    For two themes labelled [light] and [dark], the colours are written with
+    [light-dark()] and read no variable, so this rule changes only their
+    [font-weight], [font-style] and [text-decoration]. Switch their colours with
+    [color-scheme] on the root (see {!val-to_html}).
 
     {@ocaml[
     Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
@@ -964,7 +1119,8 @@ val html_render_theme_css :
     {!Html_options.Css_classes} mode. Walks all tokens to discover unique styles
     and maps each to a deterministic class name prefixed with [class_prefix].
     Pass the [css_variable_prefix] of the {!Html_options.type-t} used to render
-    the HTML as [~css_variable_prefix]; the class names depend on it. *)
+    the HTML as [~css_variable_prefix]; the class names depend on it. For light
+    and dark themes (see {!val-to_html}) the rules use [light-dark()]. *)
 
 (** {2 to_ansi} *)
 
