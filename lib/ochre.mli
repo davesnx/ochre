@@ -574,13 +574,14 @@ module Transform : sig
       (line_index:int -> column:int -> token -> attributes -> attributes) option;
         (** Changes the attributes of the [<span>] of [token] on the rendered
             line [line_index]. [token] is the token of [line], as the [line]
-            hook gets it, and [column] is its byte offset in the text of that
-            line. The [<span>] can hold a different text: the HTML backend moves
-            the ["\r"] that ends a token into the next token when that one
-            starts with ["\n"], so that the pair stays together. A token that
-            holds only that ["\r"] has no [<span>] and no [span] call. A token
-            with no attributes after every hook is written as text, with no
-            [<span>]. *)
+            hook gets it, and [column] is the byte offset of [token] in the text
+            of that line. The [<span>] can hold a different text: the HTML
+            backend moves the ["\r"] that ends a token into the next token when
+            that one starts with ["\n"], so that the pair stays together. Such a
+            [<span>] starts at [column - 1], one byte before [token]. A token
+            that holds only that ["\r"] has no [<span>] and no [span] call. A
+            token with no attributes after every hook is written as text, with
+            no [<span>]. *)
   }
   (** HTML attribute hooks, run by {!val-to_jsx} and {!val-to_html}. Each hook
       takes the attributes built so far and returns the new list. The HTML
@@ -620,17 +621,18 @@ module Transform : sig
       its own. Its hooks are kept in {!Themed.t.hooks}, and the HTML backend
       calls them in the order of the transforms. The [line_index] of a hook is
       the index of the rendered line, and the [column] of a [span] hook is a
-      byte offset in its text. An [attributes] that computes lines or columns
-      from its document sees only the [before_render] changes of the transforms
-      before it. It does not see the [before_render] changes of the transforms
-      after it, or the changes of any [before_line], [after_line] or
-      [after_render] hook, because those run after every [attributes]. When one
-      of these changes adds or removes lines, or changes the text of a line,
-      those lines and columns no longer match the rendered code. So a transform
-      that changes text must do it in [before_render] and come before the
-      transform whose [attributes] reads the text, as
-      {!Transform_builtin.val-diff_markers} does when it removes a leading [+].
-  *)
+      byte offset in its text. An [attributes] sees only the [before_render]
+      changes of the transforms before it. It does not see the [before_render]
+      changes of the transforms after it, or the changes of any [before_line],
+      [after_line] or [after_render] hook, because those run after every
+      [attributes]. When one of these changes adds or removes lines, or changes
+      the text of a line, a [line_index] or [column] that [attributes] computed
+      from its document no longer matches the rendered code. The
+      {!Token.type-position} of a token does not change, so identify lines and
+      tokens by it: a [line] hook by the [position.line] of the tokens of
+      [line], and a [span] hook by the source bytes of [token]. The built-in
+      transforms do this for the lines and tokens they mark, so they give the
+      same classes in any order. *)
 
   (** {2 make} *)
 
@@ -823,12 +825,13 @@ module Transform_builtin : sig
       marker to the end of the code; [[!code word:xxx:2]] limits it to two
       lines. A backslash escapes a character of the word. In HTML, each
       highlighted piece gets the class [highlighted-word]; the pieces are found
-      by line and column from the document after the [before_render] of the
-      transforms before this one, so a transform that changes text must do it in
-      [before_render] and come before this one; text changes made by line hooks
-      or [after_render] are not seen (see {!Transform.type-t}). Mirrors Shiki's
-      [transformerNotationWordHighlight]; see {!val-notation_highlight} for
-      where a marker may sit and what is removed.
+      in the document after the [before_render] of the transforms before this
+      one, and matched by their {!Token.type-position}, so a later transform
+      that removes or splits text keeps the class on what remains of a piece.
+      Text inserted after this transform runs is not seen (see
+      {!Transform.type-t}). Mirrors Shiki's [transformerNotationWordHighlight];
+      see {!val-notation_highlight} for where a marker may sit and what is
+      removed.
 
       Default foreground: ["#ffff00"]. Default font style: bold.
 

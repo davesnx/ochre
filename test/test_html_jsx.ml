@@ -286,9 +286,9 @@ let test_notation_combined () =
     ~pre:"ochre has-highlighted has-diff"
     ~lines:[ "line highlighted"; "line diff add" ]
     (render [ highlight; diff ] "# [!code highlight]\nlet a\nlet b # [!code ++]");
-  check_lines "a later deletion leaves the earlier indices stale"
-    ~pre:"ochre has-highlighted"
-    ~lines:[ "line highlighted"; "line" ]
+  check_lines "diff keeps its lines when highlight removes one after it"
+    ~pre:"ochre has-diff has-highlighted"
+    ~lines:[ "line highlighted"; "line diff add" ]
     (render [ diff; highlight ] "# [!code highlight]\nlet a\nlet b # [!code ++]")
 
 let classes_with_prefix prefix html =
@@ -596,8 +596,76 @@ let test_word_marks_with_diff_markers () =
     "diff_markers first: the word is marked" [ "foo" ]
     (word_spans (render [ Ochre.Transform_builtin.diff_markers; word ] source));
   Alcotest.(check (list string))
-    "diff_markers after: its edit moves the marked columns" [ "\n" ]
+    "diff_markers after: the word is marked" [ "foo" ]
     (word_spans (render [ word; Ochre.Transform_builtin.diff_markers ] source))
+
+let check_order label ~pre ~lines ~words transforms source =
+  let html = render transforms source in
+  check_lines label ~pre ~lines html;
+  Alcotest.(check (list string)) (label ^ " words") words (word_spans html)
+
+let check_both_orders label first second ~pre:(first_pre, second_pre)
+    ~lines:(first_lines, second_lines) ~words source =
+  check_order (label ^ ", first order") ~pre:first_pre ~lines:first_lines ~words
+    [ first; second ] source;
+  check_order (label ^ ", second order") ~pre:second_pre ~lines:second_lines
+    ~words [ second; first ] source
+
+let both value = (value, value)
+
+let test_builtin_orders () =
+  let open Ochre.Transform_builtin in
+  check_both_orders "notation_word_highlight and diff_markers"
+    (notation_word_highlight ())
+    diff_markers ~pre:(both "ochre has-diff") ~lines:(both [ "line diff add" ])
+    ~words:[ "xyz" ] "+abc xyz # [!code word:xyz]";
+  check_both_orders "diff_markers and notation_highlight" diff_markers
+    (notation_highlight ())
+    ~pre:("ochre has-diff has-highlighted", "ochre has-highlighted has-diff")
+    ~lines:
+      ( [ "line diff add highlighted"; "line" ],
+        [ "line highlighted diff add"; "line" ]
+      )
+    ~words:[] "# [!code hl]\n+let a\nlet b";
+  check_both_orders "line_highlight and notation_diff" (line_highlight [ 1 ])
+    (notation_diff ())
+    ~pre:("ochre has-highlighted has-diff", "ochre has-diff has-highlighted")
+    ~lines:(both [ "line diff add"; "line highlighted" ])
+    ~words:[] "# [!code ++]\nlet a\nlet b";
+  check_both_orders "word_highlight and notation_highlight"
+    (word_highlight [ "let" ]) (notation_highlight ())
+    ~pre:(both "ochre has-highlighted")
+    ~lines:(both [ "line highlighted" ])
+    ~words:[ "let" ] "# [!code hl]\nlet a";
+  check_both_orders "notation_word_highlight and notation_highlight"
+    (notation_word_highlight ())
+    (notation_highlight ())
+    ~pre:(both "ochre has-highlighted")
+    ~lines:(both [ "line highlighted"; "line" ])
+    ~words:[ "xyz"; "xyz" ] "# [!code hl]\nlet xyz # [!code word:xyz]\nxyz";
+  check_both_orders "notation_word_highlight and notation_diff"
+    (notation_word_highlight ())
+    (notation_diff ()) ~pre:(both "ochre has-diff")
+    ~lines:(both [ "line"; "line diff remove"; "line" ])
+    ~words:[ "b"; "b" ] "# [!code word:b]\nlet a\n# [!code --]\nlet b\nb";
+  check_both_orders "scope_marker and diff_markers" (scope_marker "keyword")
+    diff_markers ~pre:(both "ochre has-diff") ~lines:(both [ "line diff add" ])
+    ~words:[] "+let a";
+  check_both_orders "notation_diff and diff_markers" (notation_diff ())
+    diff_markers ~pre:(both "ochre has-diff")
+    ~lines:
+      ( [ "line diff remove"; "line diff remove add" ],
+        [ "line diff remove"; "line diff add remove" ]
+      )
+    ~words:[] "# [!code --]\n-let a\n+let b # [!code --]"
+
+let test_builtin_orders_crlf () =
+  let open Ochre.Transform_builtin in
+  check_both_orders "notation_word_highlight and diff_markers with CRLF"
+    (notation_word_highlight ())
+    diff_markers ~pre:(both "ochre has-diff")
+    ~lines:(both [ "line diff add"; "line diff add"; "line" ])
+    ~words:[ "x"; "x" ] "+let x # [!code word:x]\r\n+#x\r\nlet"
 
 let test_pre_attribute_names_merge_ignoring_case () =
   let extra =
@@ -693,6 +761,10 @@ let () =
             test_word_marks_with_diff_markers;
           Alcotest.test_case "class names are not repeated" `Quick
             test_classes_not_repeated;
+          Alcotest.test_case "built-ins work in any order" `Quick
+            test_builtin_orders;
+          Alcotest.test_case "built-ins work in any order with CRLF" `Quick
+            test_builtin_orders_crlf;
         ]
       );
       ( "themes",

@@ -24,27 +24,43 @@ let class_when condition name attrs =
 
 let no_hooks = { Transform.pre = None; line = None; span = None }
 
-let line_classes ~pre_class classes =
+let line_classes ~pre_class class_of =
   {
     no_hooks with
     pre =
       Some
         (fun doc ->
-          let count = List.length doc in
           class_when
-            (List.exists (fun (index, _) -> index >= 0 && index < count) classes)
+            (List.exists Option.is_some
+               (List.mapi (fun line_index line -> class_of ~line_index line) doc)
+            )
             pre_class
         );
     line =
       Some
-        (fun ~line_index _ attrs ->
-          match List.assoc_opt line_index classes with
+        (fun ~line_index line attrs ->
+          match class_of ~line_index line with
           | Some name ->
               add_class name attrs
           | None ->
               attrs
         );
   }
+
+let source_line_classes ~pre_class marks =
+  let table = Hashtbl.create 16 in
+  List.iter
+    (fun (line, name) ->
+      List.iter
+        (fun (tok : Token.t) -> Hashtbl.replace table tok.position.line name)
+        line
+    )
+    marks;
+  line_classes ~pre_class (fun ~line_index:_ line ->
+      List.find_map
+        (fun (tok : Token.t) -> Hashtbl.find_opt table tok.position.line)
+        line
+  )
 
 let span_class name marked =
   {
@@ -65,8 +81,12 @@ let line_highlight ?(background = default_highlight_background) lines =
         line
     )
     ~attributes:(fun _ ->
-      line_classes ~pre_class:"has-highlighted"
-        (List.map (fun index -> (index, "highlighted")) lines)
+      line_classes ~pre_class:"has-highlighted" (fun ~line_index _ ->
+          if List.mem line_index lines then
+            Some "highlighted"
+          else
+            None
+      )
     )
 
 let word_highlight ?(foreground = default_word_foreground) ?(font_style = bold)
@@ -124,18 +144,12 @@ let diff_markers =
         doc
     )
     ~attributes:(fun doc ->
-      line_classes ~pre_class:"has-diff"
-        (List.concat
-           (List.mapi
-              (fun index line ->
-                match diff_kind line with
-                | Some (_, name) ->
-                    [ (index, name) ]
-                | None ->
-                    []
-              )
-              doc
+      source_line_classes ~pre_class:"has-diff"
+        (List.filter_map
+           (fun line ->
+             Option.map (fun (_, name) -> (line, name)) (diff_kind line)
            )
+           doc
         )
     )
 
@@ -555,17 +569,6 @@ let run_notation ~parse ~default_count ~apply doc =
           removed.(i) <- true
     )
     markers;
-  let rendered = Array.make count 0 in
-  for i = 1 to count - 1 do
-    rendered.(i) <-
-      (rendered.(i - 1)
-      +
-      if removed.(i - 1) then
-        0
-      else
-        1
-      )
-  done;
   let applied =
     List.concat_map
       (fun (i, marker) ->
@@ -585,7 +588,7 @@ let run_notation ~parse ~default_count ~apply doc =
             if removed.(j) then
               None
             else
-              Some (rendered.(j), marker.payload)
+              Some (lines.(j), marker.payload)
           )
           (List.init (max 0 (last - first)) (fun k -> first + k))
       )
@@ -630,8 +633,8 @@ let set_line_background background line =
   List.map (set_background background) line
 
 let marked_lines ~pre_class ~line_class applied =
-  line_classes ~pre_class
-    (List.rev_map (fun (index, payload) -> (index, line_class payload)) applied)
+  source_line_classes ~pre_class
+    (List.map (fun (line, payload) -> (line, line_class payload)) applied)
 
 let notation_lines ~name ~keywords ~pre_class ~line_class ~background =
   let run ~apply =
@@ -714,6 +717,9 @@ let word_ranges word line =
   else
     occurrences 0
 
+let has_source_bytes (tok : Token.t) =
+  tok.position.length > 0 && tok.position.length = String.length tok.text
+
 let notation_word_highlight ?(foreground = default_word_foreground)
     ?(font_style = bold) () =
   let run ~apply =
@@ -732,28 +738,30 @@ let notation_word_highlight ?(foreground = default_word_foreground)
         )
     )
     ~attributes:(fun doc ->
-      let lines, applied = run ~apply:(fun _ line -> line) doc in
-      let lines = Array.of_list lines in
-      let ranges = Array.make (Array.length lines) [] in
+      let source_ranges = Hashtbl.create 16 in
+      let inserted = Hashtbl.create 16 in
       List.iter
-        (fun (index, word) ->
-          ranges.(index) <- word_ranges word lines.(index) @ ranges.(index)
+        (fun (line, word) ->
+          ignore
+            (edit_ranges line (word_ranges word line) (fun (tok : Token.t) ->
+                 let { Token.offset; line; length; _ } = tok.position in
+                 if has_source_bytes tok then
+                   Hashtbl.add source_ranges line (offset, offset + length)
+                 else
+                   Hashtbl.replace inserted (tok.position, tok.text) ();
+                 Some tok
+             )
+            )
         )
-        applied;
-      {
-        no_hooks with
-        span =
-          Some
-            (fun ~line_index ~column (tok : Token.t) attrs ->
-              let stop = column + String.length tok.text in
-              class_when
-                (line_index < Array.length ranges
-                && column < stop
-                && List.exists
-                     (fun (start, finish) -> start <= column && stop <= finish)
-                     ranges.(line_index)
-                )
-                "highlighted-word" attrs
-            );
-      }
+        (snd (run ~apply:(fun _ line -> line) doc));
+      let marked (tok : Token.t) =
+        let { Token.offset; line; length; _ } = tok.position in
+        if has_source_bytes tok then
+          List.exists
+            (fun (start, stop) -> start <= offset && offset + length <= stop)
+            (Hashtbl.find_all source_ranges line)
+        else
+          Hashtbl.mem inserted (tok.position, tok.text)
+      in
+      span_class "highlighted-word" marked
     )
