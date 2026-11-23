@@ -72,7 +72,13 @@ Returns [`Error.t.Grammar_error`](./Ochre-Error.md#type-t.Grammar_error) when a 
 The first call to [`load`](./#val-load) or [`load_from_files`](./#val-load_from_files) in a process configures ochre's Oniguruma regex engine limits (retry and match-stack size) process-wide; later calls do not change them.
 
 ```ocaml
-match Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ] with
+match
+  Ochre.load
+    [
+      (Tm_grammar_ocaml.lang_id, Tm_grammar_ocaml.json);
+      (Tm_grammar_ocaml_interface.lang_id, Tm_grammar_ocaml_interface.json);
+    ]
+with
 | Ok hl ->
     hl
 | Error e ->

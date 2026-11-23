@@ -11,7 +11,7 @@ package, through the public `Ochre` API except where noted.
 
 - Every grammar with a sample: no exception, the token texts join back to the
   sample, and no line hits the tokenizer's time limit. Ochre's API does not
-  report a hit, so this check uses the vendored tokenizer directly: it
+  report a hit, so this check uses the `TmLanguage` tokenizer directly: it
   tokenizes the sample with the default limits and again with no time limit,
   and fails at the first line where the two differ.
 - Every grammar on the `parity` list: each line's token texts and scope stacks
@@ -51,7 +51,7 @@ version built from the same commit and refresh `samples/` from that commit.
 
 ## Hand-written cases
 
-`cases/suite.json` holds small cases for the vendored tokenizer. Run them from
+`cases/suite.json` holds small cases for the `TmLanguage` tokenizer. Run them from
 the repository root with:
 
 ```sh

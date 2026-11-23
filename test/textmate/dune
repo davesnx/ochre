@@ -12,4 +12,4 @@
  (modes native)
  (deps
   (glob_files data/*))
- (libraries alcotest ezjsonm plist-xml ochre.textmate_language yojson unix))
+ (libraries alcotest ezjsonm plist-xml ochre.textmate yojson unix))

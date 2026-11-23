@@ -6,7 +6,7 @@ description:
   "CLI tool for highlighting source code using TextMate grammars and themes."
 maintainer: ["David Sancho"]
 authors: ["David Sancho"]
-license: "MIT"
+license: "MIT AND BSD-2-Clause"
 homepage: "https://github.com/davesnx/ochre"
 doc: "https://davesnx.github.io/ochre/odoc/"
 bug-reports: "https://github.com/davesnx/ochre/issues"
@@ -14,7 +14,7 @@ depends: [
   "dune" {>= "3.22"}
   "ocaml" {>= "4.14.0"}
   "ochre"
-  "tm-grammars" {>= "2.0.0"}
+  "tm-grammars" {>= "2.1.0~dev"}
   "cmdliner" {>= "1.1.0"}
   "dune-build-info"
   "ezjsonm" {with-test}
@@ -37,3 +37,6 @@ build: [
 ]
 dev-repo: "git+https://github.com/davesnx/ochre.git"
 x-maintenance-intent: ["(latest)"]
+pin-depends: [
+  ["tm-grammars.2.1.0~dev" "git+https://github.com/davesnx/tm-grammars.git#721208e5c8d158246fdcc0de3935aa9f01774a3a"]
+]

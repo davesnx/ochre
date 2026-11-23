@@ -21,6 +21,7 @@
 - `Decoration.make` returns `(Decoration.t, Ochre.Error.t) result`: a `~data` key that is empty or holds a byte outside `A-Za-z0-9_-` gives `Error (Invalid_data_key key)` instead of raising `Invalid_argument`. `Decoration.t` and `Token.decoration_properties` are private records, so every data key goes through this check.
 - `Token.sub` returns `None` for a range outside the token text instead of raising.
 - No function of the library raises on its inputs. The built-in themes are built once at startup without a raising path.
+- The public library `ochre.textmate_language` is renamed to `ochre.textmate`. It and `ochre.oniguruma` are internal to ochre and not supported for direct use; use the `Ochre` API instead.
 
 ### Other changes
 
@@ -83,6 +84,7 @@
 - Fix wrong tokens after a minor GC and a double free in the Oniguruma bindings.
 - Escape theme, option, decoration and scope values in HTML and SVG output.
 - Raise `Failure` from the `_exn` loaders on any malformed input, and report CLI errors as one `ochre: ...` line.
+- OCaml and mlx highlighting: modules, constructors, fields and types get their own scopes (`entity.name.namespace.ocaml`, `variable.other.enummember.ocaml`, `variable.other.property.ocaml`, `entity.name.type.ocaml`), from `tm-grammars` pinned to davesnx/tm-grammars@799519b. The CLI loads the `ocaml-interface` grammar that `ocaml` and `mlx` include.
 
 ## 1.1.0
 

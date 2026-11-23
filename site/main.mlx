@@ -236,9 +236,19 @@ let get_ok = function
   | Error error ->
       failwith (Ochre.Error.to_string error)
 
+let included_grammars = function
+  | "ocaml" | "mlx" ->
+      [ "ocaml-interface" ]
+  | _ ->
+      []
+
 let highlighter =
   get_ok
-    (Ochre.load (List.map (fun (lang, json, _) -> (lang, json)) languages))
+    (Ochre.load
+       (("ocaml-interface", Tm_grammars.ocaml_interface)
+       :: List.map (fun (lang, json, _) -> (lang, json)) languages
+       )
+    )
 
 let find_lang name = get_ok (Ochre.lang highlighter name)
 
@@ -461,13 +471,20 @@ let playground_html =
   let snippets =
     languages
     |> List.map (fun (lang, _, _) ->
+        let grammars =
+          lang :: included_grammars lang
+          |> List.map (fun lang ->
+              Printf.sprintf "(%S, Tm_grammars.%s)" lang (ocaml_ident lang)
+          )
+          |> String.concat "; "
+        in
         let html =
           highlight ~lang:"ocaml"
             (Printf.sprintf
-               "let hl = Result.get_ok (Ochre.load [ (%S, Tm_grammars.%s) ]) in\n\
+               "let hl = Result.get_ok (Ochre.load [ %s ]) in\n\
                 let lang = Result.get_ok (Ochre.lang hl %S) in\n\
                 Ochre.to_html (Ochre.highlight ~theme:Ochre.Theme.%s ~lang source)"
-               lang (ocaml_ident lang) lang placeholder
+               grammars lang placeholder
             )
         in
         match Str.split_delim (Str.regexp_string placeholder) html with

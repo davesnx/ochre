@@ -6,7 +6,7 @@ description:
   "ochre is a syntax highlighter inspired by Shiki, using TextMate grammars and themes. It supports HTML output (inline styles or CSS classes), ANSI terminal colors, LaTeX, SVG, and raw token output."
 maintainer: ["David Sancho"]
 authors: ["David Sancho"]
-license: "MIT"
+license: "MIT AND BSD-2-Clause"
 homepage: "https://github.com/davesnx/ochre"
 doc: "https://davesnx.github.io/ochre/odoc/"
 bug-reports: "https://github.com/davesnx/ochre/issues"
@@ -25,7 +25,7 @@ depends: [
   "omd" {>= "2.0.0~alpha4" & with-dev-setup}
   "yocaml" {>= "3.0.0" & with-dev-setup}
   "yocaml_unix" {>= "3.0.0" & with-dev-setup}
-  "tm-grammars" {= "2.0.0" & with-test}
+  "tm-grammars" {= "2.1.0~dev" & with-test}
   "alcotest" {with-test}
   "crowbar" {with-test}
   "mlx" {with-test}
@@ -49,3 +49,6 @@ build: [
 ]
 dev-repo: "git+https://github.com/davesnx/ochre.git"
 x-maintenance-intent: ["(latest)"]
+pin-depends: [
+  ["tm-grammars.2.1.0~dev" "git+https://github.com/davesnx/tm-grammars.git#721208e5c8d158246fdcc0de3935aa9f01774a3a"]
+]

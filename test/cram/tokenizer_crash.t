@@ -108,15 +108,15 @@ patterns for the attribute name
 
   $ printf 'type t = { id : string } [@@deriving codec]\n' | ochre ocaml --theme nord --format tokens
   line 1:
-    "type"  keyword.other.ocaml, source.ocaml
+    "type"  keyword.ocaml, source.ocaml
     " "  source.ocaml
-    "t"  source.ocaml, source.ocaml
+    "t"  entity.name.type.ocaml, source.ocaml
     " "  source.ocaml
     "="  keyword.operator.ocaml, source.ocaml
     " "  source.ocaml
     "{"  source.ocaml
     " "  source.ocaml
-    "id"  source.ocaml, source.ocaml
+    "id"  variable.other.property.ocaml, source.ocaml
     " "  source.ocaml
     ":"  punctuation.colon, punctuation.other.colon, keyword.other.ocaml, source.ocaml
     " "  source.ocaml

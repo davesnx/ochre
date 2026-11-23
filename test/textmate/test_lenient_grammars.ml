@@ -5,8 +5,7 @@
    mirrors). ochre's bundled tm-grammars package ships several real-world
    grammars with exactly these bugs (Blade, CodeQL, D, Move, Racket, Stata,
    Wikitext, XML); this file isolates the shapes in a small synthetic
-   grammar instead of depending on tm-grammars from the vendored library's
-   own test suite. *)
+   grammar instead of depending on tm-grammars. *)
 open Util
 
 (* Checks that tokenizing [line] does not raise and that the emitted tokens

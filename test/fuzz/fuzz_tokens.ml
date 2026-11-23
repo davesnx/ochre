@@ -1,6 +1,7 @@
 let langs =
   [
     "ocaml";
+    "ocaml-interface";
     "javascript";
     "typescript";
     "markdown";
