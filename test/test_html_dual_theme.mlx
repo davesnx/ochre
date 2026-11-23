@@ -3,7 +3,7 @@ let render_page ~highlighter ~source =
     JSX.unsafe
       (Ochre.to_html
          (Test_html_common.get_ok
-            (Ochre.highlight_themes ~theme:(Test_html_common.load_theme Tm_themes.light_plus)
+            (Ochre.highlight_themes ~label:"light" ~theme:(Test_html_common.load_theme Tm_themes.light_plus)
                ~extra_themes:[ ("dark", Test_html_common.load_theme Tm_themes.dark_plus) ]
                ~lang:(Test_html_common.lang highlighter "ocaml")
                source
@@ -26,11 +26,8 @@ let render_page ~highlighter ~source =
       "#theme-label { display:inline-block; width:5ch; text-align:center; }";
       "pre.ochre { margin: 0; padding: 24px 20px; border-radius: 10px; \
        overflow-x: auto; }";
-      ":root[data-theme=\"dark\"] .ochre, :root[data-theme=\"dark\"] .ochre \
-       span { --ochre: var(--ochre-dark); --ochre-bg: var(--ochre-dark-bg); \
-       --ochre-font-style: var(--ochre-dark-font-style); --ochre-font-weight: \
-       var(--ochre-dark-font-weight); --ochre-text-decoration: \
-       var(--ochre-dark-text-decoration); }";
+      ":root[data-theme=\"light\"] { color-scheme: light; }";
+      ":root[data-theme=\"dark\"] { color-scheme: dark; }";
     ]
   in
   let script =
@@ -45,7 +42,8 @@ let render_page ~highlighter ~source =
         "    label.textContent = mode === 'dark' ? 'Dark' : 'Light';";
         "    toggle.checked = mode === 'dark';";
         "  }";
-        "  setTheme('light');";
+        "  var system = window.matchMedia('(prefers-color-scheme: dark)');";
+        "  setTheme(system.matches ? 'dark' : 'light');";
         "  toggle.addEventListener('change', function () {";
         "    setTheme(toggle.checked ? 'dark' : 'light');";
         "  });";

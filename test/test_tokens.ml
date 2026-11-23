@@ -13,7 +13,11 @@ let source =
 let lang_of grammar =
   match
     Result.bind
-      (Ochre.load [ ("ocaml", grammar) ])
+      (Ochre.load
+         [
+           ("ocaml", grammar); ("ocaml-interface", Tm_grammars.ocaml_interface);
+         ]
+      )
       (fun hl -> Ochre.lang hl "ocaml")
   with
   | Ok lang ->

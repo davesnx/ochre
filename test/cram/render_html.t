@@ -63,7 +63,7 @@ No default color with multi-theme (only CSS vars, no inline color)
 
 CSS classes mode replaces inline styles with class names
   $ ./test_render_html.exe css-classes
-  <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span class="s-a3999696055f0509">let</span><span class="s-232033c531ff619a"> x = </span><span class="s-125f486d4472df11">42</span></span></code></pre>
+  <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span class="s-d97b062dc4187f8e s-0f188c0cf325ded1">let</span><span class="s-232033c531ff619a"> x = </span><span class="s-125f486d4472df11">42</span></span></code></pre>
 
 Custom CSS variable prefix
   $ ./test_render_html.exe custom-prefix
@@ -153,10 +153,10 @@ CSS-class rendering of real OCaml uses
 Without tokens, a style that takes its colour from one rule and its font
 style from another gets a class
   $ ./test_render_html.exe theme-css-combined-rule
-  <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span class="s-72d0165d983a2819"># c</span></span></code></pre>
+  <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span class="s-ae2cf74260356c77 s-b15f3da5ff0399f1"># c</span></span></code></pre>
   .ochre { background-color:#1e1e1e; color:#d4d4d4 }
   .s-b15f3da5ff0399f1 { color:var(--ochre,#112233) }
-  .s-72d0165d983a2819 { font-style:var(--ochre-font-style,italic);color:var(--ochre,#112233) }
+  .s-ae2cf74260356c77 { font-style:var(--ochre-font-style,italic) }
   .s-232033c531ff619a { color:var(--ochre,#d4d4d4) }
 
 Without tokens, the theme stylesheet also has a rule for every class of code

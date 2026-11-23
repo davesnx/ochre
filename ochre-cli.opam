@@ -14,7 +14,7 @@ depends: [
   "dune" {>= "3.22"}
   "ocaml" {>= "4.14.0"}
   "ochre"
-  "tm-grammars" {>= "2.0.0"}
+  "tm-grammars" {>= "2.1.0~dev"}
   "tm-themes"
   "cmdliner" {>= "1.1.0"}
   "dune-build-info"
@@ -39,5 +39,6 @@ build: [
 dev-repo: "git+https://github.com/davesnx/ochre.git"
 x-maintenance-intent: ["(latest)"]
 pin-depends: [
-  ["tm-themes.dev" "git+https://github.com/davesnx/tm-grammars.git#7ca98ea21db12dba339542ea0cd4edc85da07093"]
+  ["tm-grammars.2.1.0~dev" "git+https://github.com/davesnx/tm-grammars.git#cf160b78b96aa622fba14929a9418878c409ccec"]
+  ["tm-themes.dev" "git+https://github.com/davesnx/tm-grammars.git#cf160b78b96aa622fba14929a9418878c409ccec"]
 ]

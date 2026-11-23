@@ -147,10 +147,14 @@ let decorated ?(decorations = []) ~themes ~lang source =
 
 let highlight ?decorations ?(transforms = []) ?label ~(theme : Theme.theme)
     ~lang source =
-  let lines = decorated ?decorations ~themes:[ theme ] ~lang source in
+  let lines, hooks =
+    Transform.run_with_hooks transforms
+      (decorated ?decorations ~themes:[ theme ] ~lang source)
+  in
   {
     Themed.themes = ((Option.value label ~default:theme.name, theme), []);
-    lines = Transform.run transforms lines;
+    lines;
+    hooks;
   }
 
 let first_duplicate labels =
@@ -185,10 +189,13 @@ let highlight_themes ?decorations ?(transforms = []) ?label
           Some (Error.Foreign_token { transform = transform.name })
       in
       Result.map
-        (fun lines -> { Themed.themes = ((label, theme), extra_themes); lines })
+        (fun (lines, hooks) ->
+          { Themed.themes = ((label, theme), extra_themes); lines; hooks }
+        )
         (Transform.run_checked ~check transforms lines)
 
-let to_html ?options themed = Render_html.render ?options themed
+let to_jsx ?options themed = Render_html.render ?options themed
+let to_html ?options themed = JSX.render (to_jsx ?options themed)
 
 let html_theme_css = Render_html.theme_css
 let html_render_theme_css = Render_html.render_theme_css

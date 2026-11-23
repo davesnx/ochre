@@ -18,6 +18,7 @@ let highlighter =
         "toml";
         "java";
         "ocaml";
+        "ocaml-interface";
         "css";
         "html";
         "markdown";

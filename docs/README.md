@@ -73,7 +73,13 @@ Returns [`Error.t.Grammar_error`](./Ochre-Error.md#type-t.Grammar_error) when a 
 The first call to [`load`](./#val-load) or [`load_from_files`](./#val-load_from_files) in a process configures ochre's Oniguruma regex engine limits (retry and match-stack size) process-wide; later calls do not change them.
 
 ```ocaml
-match Ochre.load [ ("ocaml", Tm_grammar_ocaml.json) ] with
+match
+  Ochre.load
+    [
+      (Tm_grammar_ocaml.lang_id, Tm_grammar_ocaml.json);
+      (Tm_grammar_ocaml_interface.lang_id, Tm_grammar_ocaml_interface.json);
+    ]
+with
 | Ok hl ->
     hl
 | Error e ->
@@ -118,14 +124,6 @@ Tokens are the basic unit of highlighted code. Each token is a fragment of the s
 module Token : sig ... end
 ```
 
-## Themed code
-
-Highlighted code is tokenized once and styled under one or more themes.
-
-```ocaml
-module Themed : sig ... end
-```
-
 ## Decorations
 
 Decorations attach format-agnostic properties (CSS class, inline style, data attributes) to ranges of source code identified by line/character position. They are applied after tokenization but before transforms.
@@ -146,10 +144,25 @@ module Transform : sig ... end
 
 ### Built-in transforms
 
-Ready-to-use transforms for common highlighting patterns.
+Ready-to-use transforms for common highlighting patterns. Each one sets its colours on the tokens, and in HTML also adds the class names of the Shiki transformers, so a page can style the marked code with CSS. Ochre ships no CSS. For example:
 
+```css
+.ochre .line.highlighted { background-color: #8888883a; }
+.ochre .line.diff.add { background-color: #22883322; }
+.ochre .line.diff.remove { background-color: #88222222; }
+.ochre .highlighted-word { outline: 1px solid currentColor; }
+.ochre.has-highlighted .line:not(.highlighted) { opacity: 0.6; }
+```
 ```ocaml
 module Transform_builtin : sig ... end
+```
+
+## Themed code
+
+Highlighted code is tokenized once and styled under one or more themes.
+
+```ocaml
+module Themed : sig ... end
 ```
 
 ## Highlighting
@@ -219,6 +232,18 @@ ANSI, LaTeX and SVG show the default theme. Use [`Themed.select`](./Ochre-Themed
 module Html_options : sig ... end
 ```
 
+### to\_jsx
+
+```ocaml
+val to_jsx : ?options:Html_options.t -> Themed.t -> JSX.element
+```
+Render highlighted code to an html\_of\_jsx element: a `<pre>` that holds a `<code>`, with one `<span class="line">` per line. Put it in an html\_of\_jsx page, or render it with `JSX.render`. [`to_html`](./#val-to_html) returns `JSX.render (to_jsx ?options themed)`. Render the page with `JSX.render`, not `JSX.pp`: `JSX.pp` adds whitespace, which shows inside `<pre>`.
+
+```ocaml
+let page code =
+  JSX.node "article" [] [ Ochre.to_jsx (Ochre.highlight ~theme ~lang code) ]
+```
+
 ### to\_html
 
 ```ocaml
@@ -239,6 +264,18 @@ A token follows every theme for its colour, background, `font-weight`, `font-sty
 
 Pair with [`html_theme_css`](./#val-html_theme_css) to activate alternate themes via CSS.
 
+Light and dark themes
+
+When there are exactly two themes, labelled `light` and `dark` (in either order), the colours and backgrounds of the `<pre>` and of each token are written as `light-dark(<light>, <dark>)`, in both style modes and with or without a default colour. The browser picks one from the `color-scheme` of the page; the output sets no `color-scheme` itself. With `:root { color-scheme: light dark; }` in the page stylesheet, the code follows the system setting. To switch with a control, set `color-scheme` on the root, for example `:root[data-theme="dark"] { color-scheme: dark; }`: these colours read no CSS variable, so [`html_theme_css`](./#val-html_theme_css) and `css_variable_prefix` do not change them. `font-weight`, `font-style` and `text-decoration` keep the variables above, with the default theme's value as fallback, inline also in [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode, so a font style that differs between the two themes still needs [`html_theme_css`](./#val-html_theme_css). Any other set of labels keeps the variable output described above.
+
+```ocaml
+let themed =
+  Ochre.highlight_themes ~label:"light" ~theme:light_theme
+    ~extra_themes:[ ("dark", dark_theme) ]
+    ~lang code
+in
+Result.map Ochre.to_html themed
+```
 
 ### html\_theme\_css
 
@@ -248,6 +285,8 @@ val html_theme_css : ?css_variable_prefix:string -> string -> string
 `html_theme_css label` returns a CSS rule that maps base variables (`--ochre-*`) to the label-scoped variables (`--ochre-<label>-*`). `~css_variable_prefix` replaces `"--ochre-"`; give the prefix of the [`Html_options.t`](./Ochre-Html_options.md#type-t) that rendered the code.
 
 Wrap this in your own selector (a media query, a `.dark` class, a `data-theme` attribute selector, etc.) to control when the theme activates.
+
+For two themes labelled `light` and `dark`, the colours are written with `light-dark()` and read no variable, so this rule changes only their `font-weight`, `font-style` and `text-decoration`. Switch their colours with `color-scheme` on the root (see [`to_html`](./#val-to_html)).
 
 ```ocaml
 Printf.sprintf ".dark {\n  %s\n}" (Ochre.html_theme_css "dark")
@@ -262,7 +301,7 @@ val html_render_theme_css :
   Themed.t ->
   string
 ```
-`html_render_theme_css ~class_prefix themed` generates a complete CSS stylesheet for the default theme of `themed` when using [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode. Walks all tokens to discover unique styles and maps each to a deterministic class name prefixed with `class_prefix`. Pass the `css_variable_prefix` of the [`Html_options.t`](./Ochre-Html_options.md#type-t) used to render the HTML as `~css_variable_prefix`; the class names depend on it.
+`html_render_theme_css ~class_prefix themed` generates a complete CSS stylesheet for the default theme of `themed` when using [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode. Walks all tokens and writes one rule for each distinct colour, background and font style they use, named with `class_prefix` and a hash of the rule's declarations. Pass the `css_variable_prefix` of the [`Html_options.t`](./Ochre-Html_options.md#type-t) used to render the HTML as `~css_variable_prefix`; the class names depend on it. For light and dark themes (see [`to_html`](./#val-to_html)) the rules use `light-dark()`.
 
 
 ### html\_render\_whole\_theme\_css
@@ -274,7 +313,7 @@ val html_render_whole_theme_css :
   Theme.theme ->
   string
 ```
-`html_render_whole_theme_css ~class_prefix theme` generates a CSS stylesheet for every style that `theme` can give a token, with no code to highlight: the `.ochre` rule with the theme background and foreground, then one class for each style. The class names are the ones that [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) rendering with `class_prefix` uses, so the stylesheet covers any code highlighted with `theme`. A style that a transform makes, such as a line highlight, is not in the stylesheet; the HTML keeps it inline. Pass the `css_variable_prefix` of the [`Html_options.t`](./Ochre-Html_options.md#type-t) used to render the HTML as `~css_variable_prefix`; the class names depend on it.
+`html_render_whole_theme_css ~class_prefix theme` generates a CSS stylesheet for every style that `theme` can give a token, with no code to highlight: the `.ochre` rule with the theme background and foreground, then one rule for each distinct colour, background and font style of those styles. The class names are the ones that [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) rendering with `class_prefix` uses, so the stylesheet covers any code highlighted with `theme`. A style that a transform makes, such as a line highlight, is not in the stylesheet; the HTML keeps it inline. Pass the `css_variable_prefix` of the [`Html_options.t`](./Ochre-Html_options.md#type-t) used to render the HTML as `~css_variable_prefix`; the class names depend on it.
 
 ```ocaml
 let css = Ochre.html_render_whole_theme_css ~class_prefix:"hl-" theme

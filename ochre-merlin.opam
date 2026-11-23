@@ -15,7 +15,7 @@ depends: [
   "ocaml" {>= "5.4.0" & < "5.5"}
   "ochre" {= version}
   "merlin-lib" {>= "5.7.1-504" & < "5.8"}
-  "tm-grammars" {>= "2.0.0" & with-test}
+  "tm-grammars" {>= "2.1.0~dev" & with-test}
   "alcotest" {with-test}
   "odoc" {>= "3.2.0" & with-doc}
 ]
@@ -35,3 +35,6 @@ build: [
 ]
 dev-repo: "git+https://github.com/davesnx/ochre.git"
 x-maintenance-intent: ["(latest)"]
+pin-depends: [
+  ["tm-grammars.2.1.0~dev" "git+https://github.com/davesnx/tm-grammars.git#cf160b78b96aa622fba14929a9418878c409ccec"]
+]

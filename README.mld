@@ -33,11 +33,14 @@ Install the grammar package, and [tm-themes] for the {{:https://shiki.style/them
 opam install tm-grammars tm-themes -y
 v}
 
-Then load a grammar from OCaml and create a highlighter:
+Then load a grammar from OCaml and create a highlighter. The [ocaml] grammar includes rules from [ocaml-interface], so load both:
 
 {[
 let ( let* ) = Result.bind in
-let* highlighter = Ochre.load [ ("ocaml", Tm_grammars.ocaml) ] in
+let* highlighter =
+  Ochre.load
+    [ ("ocaml", Tm_grammars.ocaml); ("ocaml-interface", Tm_grammars.ocaml_interface) ]
+in
 let* lang = Ochre.lang highlighter "ocaml" in
 let* theme, _warnings = Ochre.Theme.load Tm_themes.nord in
 Ok (Ochre.to_html (Ochre.highlight ~theme ~lang "let x = 42"))
@@ -50,12 +53,40 @@ Try several themes with several grammars in the {{:https://davesnx.github.io/och
 [ochre] can render highlighted code to several output formats (also called backends):
 
 {ul
-{- {b HTML} — Self-contained [<pre><code>] blocks with inline styles or CSS classes. Supports multi-theme via CSS custom properties, line numbers, and configurable class prefixes. See {{:https://davesnx.github.io/ochre/examples/html-preview.html} rendered example}.}
+{- {b HTML} — Self-contained [<pre><code>] blocks with inline styles or CSS classes, as a string ([to_html]) or an html_of_jsx element ([to_jsx]). Supports light and dark themes with CSS [light-dark()], more themes via CSS custom properties, line numbers, and configurable class prefixes. See {{:https://davesnx.github.io/ochre/examples/html-preview.html} rendered example}.}
 {- {b SVG} — Standalone [<svg>] elements with monospace [<text>] and per-token [<tspan>] styling. Open preview: {{:https://davesnx.github.io/ochre/examples/svg-preview.svg} SVG rendered example}. Source: {{:test/svg-preview.svg} .svg file}.}
 {- {b ANSI} — 24-bit color escape sequences for terminal display.}
 {- {b LaTeX} — [\textcolor] commands inside an [ochrehighlight] environment. Requires the [xcolor] and [ulem] packages. See {{:https://davesnx.github.io/ochre/examples/latex-preview.pdf} rendered PDF} (source: {{:test/latex-preview.tex} .tex file}).}}
 
 All backends share the same interface: load a highlighter, look up a language, highlight the code with one or more themes, and call the corresponding [to_*] function.
+
+{1 HTML}
+
+[Ochre.to_jsx] returns a [JSX.element], so highlighted code goes straight into an {{:https://github.com/davesnx/html_of_jsx} html_of_jsx} page:
+
+{@ocaml[
+let page ~lang code =
+  let ( let* ) = Result.bind in
+  let* light, _warnings = Ochre.Theme.load Tm_themes.light_plus in
+  let* dark, _warnings = Ochre.Theme.load Tm_themes.dark_plus in
+  let* themed =
+    Ochre.highlight_themes ~label:"light" ~theme:light
+      ~extra_themes:[ ("dark", dark) ]
+      ~lang code
+  in
+  Ok (JSX.render (JSX.node "article" [] [ Ochre.to_jsx themed ]))
+]}
+
+With two themes labelled [light] and [dark], colors are written as CSS [light-dark()]. Set the [color-scheme] of the page to choose one, or [:root { color-scheme: light dark; }] to follow the system setting.
+
+The built-in transforms add the class names of the Shiki transformers. Ochre ships no CSS; style them in the page, for example:
+
+{@css[
+.ochre .line.highlighted { background-color: #8888883a; }
+.ochre .line.diff.add { background-color: #22883322; }
+.ochre .line.diff.remove { background-color: #88222222; }
+.ochre .highlighted-word { outline: 1px solid currentColor; }
+]}
 
 {1 Documentation}
 

@@ -166,7 +166,8 @@ let pre_style html =
 let tokens_with_class_styles html css =
   let re =
     Str.regexp
-      "<span \\(style=\"\\([^\"]*\\)\" \\)?class=\"\\(c-[0-9a-f]+\\)\">"
+      "<span \\(style=\"\\([^\"]*\\)\" \\)?class=\"\\(c-[0-9a-f]+\\( \
+       c-[0-9a-f]+\\)*\\)\">"
   in
   let class_style cls =
     let marker = "." ^ cls ^ " { " in
@@ -179,9 +180,12 @@ let tokens_with_class_styles html css =
     match Str.search_forward re html pos with
     | _ ->
         let inline = try Str.matched_group 2 html with Not_found -> "" in
-        let cls = Str.matched_group 3 html in
+        let classes = String.split_on_char ' ' (Str.matched_group 3 html) in
         let next = Str.match_end () in
-        all next ((class_style cls ^ ";" ^ inline) :: acc)
+        all next
+          ((String.concat ";" (List.map class_style classes) ^ ";" ^ inline)
+          :: acc
+          )
     | exception Not_found ->
         List.rev acc
   in

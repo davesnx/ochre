@@ -229,6 +229,12 @@ let resolve_include name_or_path =
              (String.concat ", " Tm_grammars.available)
           )
 
+let bundled_dependencies = function
+  | "ocaml" | "mlx" ->
+      [ ("ocaml-interface", Tm_grammars.ocaml_interface) ]
+  | _ ->
+      []
+
 let highlight lang theme_path theme_dark theme_light grammars includes format
     input_file css_classes line_numbers no_default_color css_var_prefix
     scopes_data =
@@ -291,7 +297,14 @@ let highlight lang theme_path theme_dark theme_light grammars includes format
               | [] -> (
                   match Tm_grammars.find lang with
                   | Some json ->
-                      (lang, json) :: include_grammars
+                      let required =
+                        List.filter
+                          (fun (id, _) ->
+                            not (List.mem_assoc id include_grammars)
+                          )
+                          (bundled_dependencies lang)
+                      in
+                      ((lang, json) :: required) @ include_grammars
                   | None ->
                       include_grammars
                 )
@@ -358,8 +371,7 @@ let theme_dark =
   let doc =
     "Theme name or path for dark mode. When both --theme-light and \
      --theme-dark are given with --format html, produces dual-theme output \
-     with CSS custom properties (--ochre-dark-*) for automatic dark mode \
-     switching"
+     with CSS light-dark() colors, which follow the page color-scheme"
   in
   Arg.(value & opt (some string) None & info [ "theme-dark" ] ~docv:"THEME" ~doc)
 
@@ -367,7 +379,7 @@ let theme_light =
   let doc =
     "Theme name or path for light mode. When both --theme-light and \
      --theme-dark are given with --format html, produces dual-theme output \
-     with the light theme as default and dark theme as CSS custom properties"
+     with CSS light-dark() colors, which follow the page color-scheme"
   in
   Arg.(
     value & opt (some string) None & info [ "theme-light" ] ~docv:"THEME" ~doc
@@ -404,8 +416,9 @@ let input_file =
 
 let css_classes =
   let doc =
-    "Use CSS class names instead of inline styles for HTML output. Each unique \
-     style gets a deterministic class like ochre-<hash>"
+    "Use CSS class names instead of inline styles for HTML output. Each token \
+     gets deterministic classes like ochre-<hash>, one for its colour, one for \
+     its background and one for its font style"
   in
   Arg.(value & flag & info [ "html-css-classes" ] ~doc)
 
@@ -419,13 +432,16 @@ let no_default_color =
   let doc =
     "Suppress inline color/background-color on the primary theme. All colors \
      come from CSS custom properties only. Useful with multi-theme output when \
-     you control theme switching entirely via CSS"
+     you control theme switching entirely via CSS. Light and dark themes use \
+     light-dark() colors with or without this flag"
   in
   Arg.(value & flag & info [ "no-default-color" ] ~doc)
 
 let css_var_prefix =
   let doc =
-    "CSS custom property prefix for multi-theme output (default: --ochre-)"
+    "CSS custom property prefix for multi-theme output (default: --ochre-). \
+     With --theme-light and --theme-dark, colors use light-dark() and read no \
+     variable, so the prefix applies only to font styles"
   in
   Arg.(
     value

@@ -49,22 +49,24 @@ SVG output (header only)
   <svg xmlns="http://www.w3.org/2000/svg" width="96" height="38" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace" font-size="14px">
    <rect width="100%" height="100%" fill="#2e3440"/>
 
-Dual-theme HTML emits dark CSS custom properties with light as default
+Dual-theme HTML emits light-dark() colors and no inline color-scheme
 
-  $ printf 'let x = 1\n' | ochre ocaml --theme-light light-plus --theme-dark nord | grep -o -- '--ochre-dark-[a-z-]*bg:[^;"]*' | sort -u
-  --ochre-dark-bg:#2e3440
-  $ printf 'let x = 1\n' | ochre ocaml --theme-light light-plus --theme-dark nord | grep -o 'background-color:var(--ochre-bg,#[0-9A-Fa-f]*)' | sort -u
-  background-color:var(--ochre-bg,#ffffff)
+  $ printf 'let x = 1\n' | ochre ocaml --theme-light light-plus --theme-dark nord | grep -o 'background-color:light-dark([^)]*)' | sort -u
+  background-color:light-dark(#ffffff,#2e3440)
+  $ printf 'let x = 1\n' | ochre ocaml --theme-light light-plus --theme-dark nord | grep -c 'color-scheme'
+  0
+  [1]
 
 Custom CSS variable prefix
 
-  $ printf 'let x = 1\n' | ochre ocaml --theme-light light-plus --theme-dark nord --css-var-prefix=--hl- | grep -o -- '--hl-dark-[a-z-]*bg:[^;"]*' | sort -u
-  --hl-dark-bg:#2e3440
+  $ printf 'let x = 1\n' | ochre ocaml --theme nord --css-var-prefix=--hl- | grep -o 'var(--hl[a-z-]*,' | sort -u
+  var(--hl,
+  var(--hl-bg,
 
-No default color suppresses inline colors and emits every theme as variables
+No default color keeps light-dark() for light and dark themes
 
   $ printf 'let x = 1\n' | ochre ocaml --theme-light light-plus --theme-dark nord --no-default-color | head -1
-  <pre class="ochre ochre-themes light-plus nord" style="--ochre-light-bg:#ffffff;--ochre-light:#000000;--ochre-dark-bg:#2e3440;--ochre-dark:#d8dee9" tabindex="0"><code><span class="line"><span style="--ochre-light:#0000ff;--ochre-dark:#81a1c1">let</span><span style="--ochre-light:#000000;--ochre-dark:#d8dee9"> </span><span style="--ochre-light:#795e26;--ochre-dark:#88c0d0">x</span><span style="--ochre-light:#000000;--ochre-dark:#d8dee9"> </span><span style="--ochre-light:#000000;--ochre-dark:#81a1c1">=</span><span style="--ochre-light:#000000;--ochre-dark:#d8dee9"> </span><span style="--ochre-light:#098658;--ochre-dark:#b48ead">1</span><span style="--ochre-light:#000000;--ochre-dark:#d8dee9">
+  <pre class="ochre ochre-themes light-plus nord" style="background-color:light-dark(#ffffff,#2e3440);color:light-dark(#000000,#d8dee9)" tabindex="0"><code><span class="line"><span style="color:light-dark(#0000ff,#81a1c1)">let</span><span style="color:light-dark(#000000,#d8dee9)"> </span><span style="color:light-dark(#795e26,#88c0d0)">x</span><span style="color:light-dark(#000000,#d8dee9)"> </span><span style="color:light-dark(#000000,#81a1c1)">=</span><span style="color:light-dark(#000000,#d8dee9)"> </span><span style="color:light-dark(#098658,#b48ead)">1</span><span style="color:light-dark(#000000,#d8dee9)">
 
 CSS classes mode
 
@@ -234,20 +236,6 @@ No default color on one theme emits that theme as variables
   --ochre-nord:#b48ead
   --ochre-nord:#d8dee9
 
-No default color on two themes emits the light theme as variables too
-
-  $ printf 'let x = 1\n' | ochre ocaml --theme-light light-plus --theme-dark nord --no-default-color | grep -o -- '--ochre-[a-z-]*:[#0-9A-Za-z]*' | sort -u
-  --ochre-dark-bg:#2e3440
-  --ochre-dark:#81a1c1
-  --ochre-dark:#88c0d0
-  --ochre-dark:#b48ead
-  --ochre-dark:#d8dee9
-  --ochre-light-bg:#ffffff
-  --ochre-light:#000000
-  --ochre-light:#0000ff
-  --ochre-light:#098658
-  --ochre-light:#795e26
-
 COLORFGBG picks the default theme from the background colour: 0-6 and 8 are dark, 7 and 9-15 light, anything else is unknown and gives dark
   $ for value in '15;0' '15;6' '0;7' '0;8' '0;9' '0;15' '15;default;7' '0;250' 'x'; do
   >   printf '%s ' "$value"
@@ -262,3 +250,15 @@ COLORFGBG picks the default theme from the background colour: 0-6 and 8 are dark
   15;default;7 #ffffff
   0;250 #1e1e1e
   x #1e1e1e
+
+The ocaml grammar loads the bundled ocaml-interface grammar it includes, also when --include names it
+  $ printf 'val x : t\n' | ochre ocaml --theme nord --format tokens | head -4
+  line 1:
+    "val"  keyword.ocaml, source.ocaml
+    " "  source.ocaml
+    "x"  entity.name.function.binding.ocaml, source.ocaml
+  $ printf 'val x : t\n' | ochre ocaml --theme nord --format tokens --include ocaml-interface | head -4
+  line 1:
+    "val"  keyword.ocaml, source.ocaml
+    " "  source.ocaml
+    "x"  entity.name.function.binding.ocaml, source.ocaml

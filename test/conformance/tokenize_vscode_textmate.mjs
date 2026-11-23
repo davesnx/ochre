@@ -72,7 +72,7 @@ function parseRequest(rawJson) {
 
 // opam tm-grammars takes these grammars from ocamllabs/vscode-ocaml-platform,
 // not from shikijs/textmate-grammars-themes (see its sources.json).
-const notFromNpm = new Set(["cram", "dune", "menhir", "mlx", "ocaml", "ocamllex", "opam", "reason"]);
+const notFromNpm = new Set(["cram", "dune", "menhir", "mlx", "ocaml", "ocaml-interface", "ocamllex", "opam", "reason"]);
 
 async function checkBundledGrammarsMatchNpm(bundled) {
   const npmRoot = dirname(fileURLToPath(import.meta.resolve("tm-grammars")));

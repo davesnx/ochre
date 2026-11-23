@@ -296,11 +296,12 @@ let () =
           ~class_prefix:"c-" themed
       in
       let classes =
-        let re = Str.regexp "class=\"\\(c-[0-9a-f]+\\)\"" in
+        let re = Str.regexp "class=\"\\(c-[0-9a-f]+\\( c-[0-9a-f]+\\)*\\)\"" in
         let rec all pos acc =
           match Str.search_forward re html pos with
           | _ ->
-              all (Str.match_end ()) (Str.matched_group 1 html :: acc)
+              all (Str.match_end ())
+                (String.split_on_char ' ' (Str.matched_group 1 html) @ acc)
           | exception Not_found ->
               List.sort_uniq compare acc
         in

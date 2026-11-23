@@ -42,7 +42,7 @@ let find_grammar name =
   | None ->
       failwith (Printf.sprintf "grammar %s not found in tm-grammars" name)
 
-let ocaml_highlighter = Test_html_common.get_ok (Ochre.load [ find_grammar "ocaml" ])
+let ocaml_highlighter = Test_html_common.get_ok (Ochre.load (List.map find_grammar [ "ocaml"; "ocaml-interface" ]))
 
 let html_highlighter =
   let grammars = List.map find_grammar [ "html"; "css"; "javascript" ] in
