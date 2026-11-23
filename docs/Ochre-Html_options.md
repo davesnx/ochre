@@ -9,7 +9,7 @@ type style_mode =
   | Inline_styles (* Emit style="color:..." on each <span>. Default. *)
   | Css_classes of {
     class_prefix : string;
-  } (* Replace inline styles with deterministic CSS class names. *)
+  } (* Replace inline styles with deterministic CSS class names: one class for the token colour, one for its background when it has one, and one for its font-weight, font-style and text-decoration when it has any. Each class sets different properties, so their order does not matter. For two themes labelled light and dark, only the colour and background get a class, with light-dark() values; font-weight, font-style and text-decoration stay inline as CSS variable reads, for example style="font-weight:var(--ochre-font-weight,bold)". *)
 ```
 How token colors are expressed in the output.
 

@@ -301,7 +301,7 @@ val html_render_theme_css :
   Themed.t ->
   string
 ```
-`html_render_theme_css ~class_prefix themed` generates a complete CSS stylesheet for the default theme of `themed` when using [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode. Walks all tokens to discover unique styles and maps each to a deterministic class name prefixed with `class_prefix`. Pass the `css_variable_prefix` of the [`Html_options.t`](./Ochre-Html_options.md#type-t) used to render the HTML as `~css_variable_prefix`; the class names depend on it. For light and dark themes (see [`to_html`](./#val-to_html)) the rules use `light-dark()`.
+`html_render_theme_css ~class_prefix themed` generates a complete CSS stylesheet for the default theme of `themed` when using [`Html_options.style_mode.Css_classes`](./Ochre-Html_options.md#type-style_mode.Css_classes) mode. Walks all tokens and writes one rule for each distinct colour, background and font style they use, named with `class_prefix` and a hash of the rule's declarations. Pass the `css_variable_prefix` of the [`Html_options.t`](./Ochre-Html_options.md#type-t) used to render the HTML as `~css_variable_prefix`; the class names depend on it. For light and dark themes (see [`to_html`](./#val-to_html)) the rules use `light-dark()`.
 
 
 ### to\_ansi

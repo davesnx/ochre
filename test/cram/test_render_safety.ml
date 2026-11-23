@@ -77,7 +77,14 @@ let class_names ~prefix html =
       List.rev acc
     else if String.sub html i n = prefix && html.[i - 1] = '"' then
       let j = String.index_from html i '"' in
-      go j (String.sub html i (j - i) :: acc)
+      go j
+        (List.rev_append
+           (List.filter
+              (String.starts_with ~prefix)
+              (String.split_on_char ' ' (String.sub html i (j - i)))
+           )
+           acc
+        )
     else
       go (i + 1) acc
   in
@@ -372,19 +379,28 @@ let () =
             )
         in
         let used = class_names ~prefix:"c-" html in
-        let defined =
-          List.filter_map
-            (fun line ->
-              if String.starts_with ~prefix:".c-" line then
-                Some (String.sub line 1 (String.index line ' ' - 1))
-              else
-                None
+        let rules =
+          List.sort_uniq compare
+            (List.filter_map
+               (fun line ->
+                 if String.starts_with ~prefix:".c-" line then
+                   let space = String.index line ' ' in
+                   Some
+                     ( String.sub line 1 (space - 1),
+                       String.sub line space (String.length line - space)
+                     )
+                 else
+                   None
+               )
+               (String.split_on_char '\n' css)
             )
-            (String.split_on_char '\n' css)
         in
+        let defined = List.sort_uniq compare (List.map fst rules) in
         Printf.printf "distinct classes in html: %d\n" (List.length used);
         Printf.printf "every class defined in the stylesheet: %b\n"
-          (List.for_all (fun c -> List.mem c defined) used)
+          (List.for_all (fun c -> List.mem c defined) used);
+        Printf.printf "each class has one set of declarations: %b\n"
+          (List.length rules = List.length defined)
     | s ->
         Printf.eprintf "unknown: %s\n" s;
         exit 1

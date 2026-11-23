@@ -115,36 +115,43 @@ let light_dark_declarations ~(light : Style.t) ~(dark : Style.t) =
       ^ light_dark (Color.to_hex light.foreground) (Color.to_hex dark.foreground);
     ]
 
-let variable_reads ~colors ~prefix token =
-  List.filter_map
-    (fun prop ->
-      Option.map
-        (fun value ->
-          prop.css ^ ":var(" ^ read_var ~prefix prop ^ "," ^ value ^ ")"
-        )
-        (prop.value (Token.style token))
-    )
-    (variable_props colors)
+let variable_read ~prefix token prop =
+  Option.map
+    (fun value -> prop.css ^ ":var(" ^ read_var ~prefix prop ^ "," ^ value ^ ")")
+    (prop.value (Token.style token))
 
-let class_style ~colors ~prefix token =
-  String.concat ";"
-    ( match colors with
-    | Variables ->
-        variable_reads ~colors ~prefix token
-    | Light_dark { light; dark } ->
-        light_dark_declarations
-          ~light:(Token.style_at light token)
-          ~dark:(Token.style_at dark token)
-    )
+let variable_reads ~colors ~prefix token =
+  List.filter_map (variable_read ~prefix token) (variable_props colors)
+
+let class_fields ~colors ~prefix token =
+  match colors with
+  | Variables ->
+      let field keep =
+        String.concat ";"
+          (List.filter_map
+             (variable_read ~prefix token)
+             (List.filter keep props)
+          )
+      in
+      List.filter (( <> ) "")
+        [
+          field (fun prop -> not (is_colour_prop prop));
+          field (fun prop -> prop.css = "background-color");
+          field (fun prop -> prop.kind = Colour);
+        ]
+  | Light_dark { light; dark } ->
+      light_dark_declarations
+        ~light:(Token.style_at light token)
+        ~dark:(Token.style_at dark token)
 
 let token_styles ~colors ~emit_default ~prefix token =
   match colors with
   | Variables when not emit_default ->
-      ("", [])
+      ([], [])
   | Variables ->
-      (class_style ~colors ~prefix token, [])
+      (class_fields ~colors ~prefix token, [])
   | Light_dark _ ->
-      (class_style ~colors ~prefix token, variable_reads ~colors ~prefix token)
+      (class_fields ~colors ~prefix token, variable_reads ~colors ~prefix token)
 
 let token_theme_declarations ~props ~prefix ~emit_default ~label (theme, style)
     extras =
@@ -273,7 +280,7 @@ let class_for_style registry style =
 
 let join_styles parts = String.concat ";" (List.filter (( <> ) "") parts)
 
-let render_span_attrs ~options ~registry ~style ~extra_style
+let render_span_attrs ~options ~registry ~fields ~extra_style
     (decoration : Token.decoration_properties option) scopes =
   let open Html_options in
   let attrs = [] in
@@ -301,12 +308,12 @@ let render_span_attrs ~options ~registry ~style ~extra_style
   in
   let class_style, inline_style =
     match (options.style_mode, registry) with
-    | Css_classes _, Some reg when style <> "" ->
-        ( Some (class_for_style reg style),
+    | Css_classes _, Some reg when fields <> [] ->
+        ( Some (String.concat " " (List.map (class_for_style reg) fields)),
           join_styles [ extra_style; decoration_style ]
         )
     | _ ->
-        (None, join_styles [ style; extra_style; decoration_style ])
+        (None, join_styles (fields @ [ extra_style; decoration_style ]))
   in
   let attrs =
     match class_style with
@@ -458,10 +465,10 @@ let render_token ~options ~registry ~colors ~label ~theme ~extra_themes
       ~label (theme, primary) extras
   in
   let text = JSX.unsafe (escape_token_text token.text) in
-  let style, reads = token_styles ~colors ~emit_default ~prefix token in
+  let fields, reads = token_styles ~colors ~emit_default ~prefix token in
   let attrs =
     string_attrs
-      (render_span_attrs ~options ~registry ~style
+      (render_span_attrs ~options ~registry ~fields
          ~extra_style:(String.concat ";" (reads @ extra_vars))
          token.decoration token.scopes
       )
@@ -672,8 +679,9 @@ let render_theme_css ?(css_variable_prefix = "--ochre-") ~class_prefix
   let reg = create_registry (Escape.css_ident class_prefix) in
   List.iter
     (List.iter (fun token ->
-         let style = class_style ~colors ~prefix token in
-         if style <> "" then ignore (class_for_style reg style)
+         List.iter
+           (fun field -> ignore (class_for_style reg field))
+           (class_fields ~colors ~prefix token)
      )
     )
     themed.lines;
