@@ -6,6 +6,9 @@ let css_var_foreground_name prefix =
 
 let css_var_background_name prefix = prefix ^ "bg"
 
+let variable_prefix prefix =
+  Escape.css_ident (Html_options.normalize_css_variable_prefix prefix)
+
 type var_kind = Colour | Named of string
 
 type prop = {
@@ -125,17 +128,20 @@ let variable_reads ~colors ~prefix token =
     (variable_read ~prefix (Token.style token))
     (variable_props colors)
 
+let font_field prop = not (is_colour_prop prop)
+let background_field prop = prop.css = "background-color"
+let colour_field prop = prop.kind = Colour
+
+let field ~prefix keep style =
+  String.concat ";"
+    (List.filter_map (variable_read ~prefix style) (List.filter keep props))
+
 let style_fields ~prefix style =
-  let field keep =
-    String.concat ";"
-      (List.filter_map (variable_read ~prefix style) (List.filter keep props))
-  in
   List.filter (( <> ) "")
-    [
-      field (fun prop -> not (is_colour_prop prop));
-      field (fun prop -> prop.css = "background-color");
-      field (fun prop -> prop.kind = Colour);
-    ]
+    (List.map
+       (fun keep -> field ~prefix keep style)
+       [ font_field; background_field; colour_field ]
+    )
 
 let class_fields ~colors ~prefix token =
   match colors with
@@ -452,6 +458,9 @@ let apply_hooks hooks get attrs =
     )
     attrs hooks
 
+let classed ~colors theme token =
+  colors <> Variables || Scope.produces theme (Token.style token)
+
 let render_token ~options ~registry ~colors ~label ~theme ~extra_themes
     ~emit_default ~hooks ~line_index (token, source, column) =
   let prefix = options.Html_options.css_variable_prefix in
@@ -471,7 +480,7 @@ let render_token ~options ~registry ~colors ~label ~theme ~extra_themes
   let attrs =
     string_attrs
       (render_span_attrs ~options ~registry
-         ~themed:(fun () -> colors <> Variables || Scope.produces theme primary)
+         ~themed:(fun () -> classed ~colors theme token)
          ~fields
          ~extra_style:(String.concat ";" (reads @ extra_vars))
          token.decoration token.scopes
@@ -505,7 +514,7 @@ let render ?(options = Html_options.default) (themed : Themed.t) =
     {
       options with
       Html_options.css_variable_prefix =
-        Escape.css_ident options.css_variable_prefix;
+        variable_prefix options.css_variable_prefix;
       style_mode =
         ( match options.style_mode with
         | Html_options.Css_classes { class_prefix } ->
@@ -639,10 +648,7 @@ let render ?(options = Html_options.default) (themed : Themed.t) =
 
 let theme_css ?(css_variable_prefix = "--ochre-") label =
   let label = Escape.css_ident label in
-  let prefix =
-    Escape.css_ident
-      (Html_options.normalize_css_variable_prefix css_variable_prefix)
-  in
+  let prefix = variable_prefix css_variable_prefix in
   let rule prop =
     Printf.sprintf "  %s: var(%s);" (read_var ~prefix prop)
       (theme_var ~prefix ~label prop)
@@ -673,10 +679,7 @@ let collect_classes registry =
   Buffer.contents buf
 
 let stylesheet ~css_variable_prefix ~class_prefix ~page fields =
-  let prefix =
-    Escape.css_ident
-      (Html_options.normalize_css_variable_prefix css_variable_prefix)
-  in
+  let prefix = variable_prefix css_variable_prefix in
   let reg = create_registry (Escape.css_ident class_prefix) in
   List.iter
     (List.iter (fun field -> ignore (class_for_style reg field)))
@@ -703,18 +706,38 @@ let render_theme_css ?(css_variable_prefix = "--ochre-") ~class_prefix
         page_colors theme
   in
   stylesheet ~css_variable_prefix ~class_prefix ~page (fun ~prefix ->
-      List.concat_map (List.map (class_fields ~colors ~prefix)) themed.lines
+      List.concat_map
+        (List.filter_map (fun token ->
+             if classed ~colors theme token then
+               Some (class_fields ~colors ~prefix token)
+             else
+               None
+         )
+        )
+        themed.lines
   )
 
 let render_whole_theme_css ?(css_variable_prefix = "--ochre-") ~class_prefix
     (theme : Theme.theme) =
+  let { Scope.foregrounds; backgrounds; font_styles } = Scope.palette theme in
+  let base = Scope.style theme None in
   stylesheet ~css_variable_prefix ~class_prefix ~page:(page_colors theme)
     (fun ~prefix ->
-      List.map (style_fields ~prefix)
-        (List.sort compare
-           (List.map
-              (fun settings -> Scope.style theme (Some settings))
-              (Scope.styles theme.token_colors)
-           )
-        )
+      let fields keep styles =
+        List.filter_map
+          (fun style ->
+            match field ~prefix keep style with
+            | "" ->
+                None
+            | field ->
+                Some [ field ]
+          )
+          styles
+      in
+      fields font_field
+        (List.map (fun font_style -> { base with font_style }) font_styles)
+      @ fields background_field
+          (List.map (fun background -> { base with background }) backgrounds)
+      @ fields colour_field
+          (List.map (fun foreground -> { base with foreground }) foregrounds)
   )

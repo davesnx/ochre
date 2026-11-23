@@ -229,7 +229,7 @@ let entries_of_rules rules =
 type compiled = {
   trie : element;
   defaults : Theme.token_color_settings;
-  produced : ((Color.t * Color.t) * (Style.t, unit) Hashtbl.t) option Atomic.t;
+  produced : ((Color.t * Color.t) * (Style.t -> bool)) option Atomic.t;
 }
 
 let compile rules =
@@ -492,57 +492,6 @@ let match_selector scopes selector =
   in
   search path_of_stack
 
-let styles rules =
-  let compiled = compiled_for rules in
-  let rec collect element acc =
-    Hashtbl.fold
-      (fun _ child acc -> collect child acc)
-      element.children
-      ((element.main :: element.with_parents) @ acc)
-  in
-  let overrides =
-    List.sort_uniq compare
-      (List.map
-         (fun rule -> (rule.font_style, rule.foreground, rule.background))
-         (collect compiled.trie [])
-      )
-  in
-  let pick value inherited =
-    if value <> None then
-      value
-    else
-      inherited
-  in
-  let seen = Hashtbl.create 64 in
-  let rec close = function
-    | [] ->
-        ()
-    | (settings : Theme.token_color_settings) :: rest ->
-        let fresh =
-          List.filter_map
-            (fun (font_style, foreground, background) ->
-              let next =
-                {
-                  Theme.font_style = pick font_style settings.font_style;
-                  foreground = pick foreground settings.foreground;
-                  background = pick background settings.background;
-                }
-              in
-              if Hashtbl.mem seen next then
-                None
-              else (
-                Hashtbl.add seen next ();
-                Some next
-              )
-            )
-            overrides
-        in
-        close (fresh @ rest)
-  in
-  Hashtbl.add seen compiled.defaults ();
-  close [ compiled.defaults ];
-  Hashtbl.fold (fun settings () acc -> settings :: acc) seen []
-
 let style (theme : Theme.theme) settings : Style.t =
   let field get = Option.bind settings get in
   {
@@ -563,21 +512,71 @@ let style (theme : Theme.theme) settings : Style.t =
         ~default:Style.plain;
   }
 
+type palette = {
+  foregrounds : Color.t list;
+  backgrounds : Color.t option list;
+  font_styles : Style.font_style list;
+}
+
+let palette (theme : Theme.theme) =
+  let compiled = compiled_for theme.token_colors in
+  let defaults = compiled.defaults in
+  let rec collect element acc =
+    Hashtbl.fold
+      (fun _ child acc -> collect child acc)
+      element.children
+      ((element.main :: element.with_parents) @ acc)
+  in
+  let pick value inherited =
+    if value <> None then
+      value
+    else
+      inherited
+  in
+  let styles =
+    List.map
+      (fun settings -> style theme (Some settings))
+      (defaults
+      :: List.map
+           (fun (rule : rule) ->
+             {
+               Theme.font_style = pick rule.font_style defaults.font_style;
+               foreground = pick rule.foreground defaults.foreground;
+               background = pick rule.background defaults.background;
+             }
+           )
+           (collect compiled.trie [])
+      )
+  in
+  let values get = List.sort_uniq compare (List.map get styles) in
+  {
+    foregrounds = values (fun (s : Style.t) -> s.foreground);
+    backgrounds = values (fun (s : Style.t) -> s.background);
+    font_styles = values (fun (s : Style.t) -> s.font_style);
+  }
+
 let produces (theme : Theme.theme) (style_ : Style.t) =
   let compiled = compiled_for theme.token_colors in
   let key = (theme.fg, theme.bg) in
-  let table =
+  let test =
     match Atomic.get compiled.produced with
-    | Some (k, table) when k = key ->
-        table
+    | Some (k, test) when k = key ->
+        test
     | _ ->
-        let table = Hashtbl.create 64 in
-        List.iter
-          (fun settings ->
-            Hashtbl.replace table (style theme (Some settings)) ()
-          )
-          (styles theme.token_colors);
-        Atomic.set compiled.produced (Some (key, table));
-        table
+        let { foregrounds; backgrounds; font_styles } = palette theme in
+        let set values =
+          let table = Hashtbl.create 64 in
+          List.iter (fun value -> Hashtbl.replace table value ()) values;
+          Hashtbl.mem table
+        in
+        let foreground = set foregrounds
+        and background = set backgrounds
+        and font_style = set font_styles in
+        let test (s : Style.t) =
+          foreground s.foreground && background s.background
+          && font_style s.font_style
+        in
+        Atomic.set compiled.produced (Some (key, test));
+        test
   in
-  Hashtbl.mem table style_
+  test style_

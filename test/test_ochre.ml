@@ -1541,6 +1541,88 @@ let test_budget_js_file_to_html () =
           )
   )
 
+let test_whole_theme_css_scales_with_values () =
+  let hex_color i = color (Printf.sprintf "#%06x" i) in
+  let rules prefix n make =
+    List.init n (fun i ->
+        make ~scope:[ Printf.sprintf "%s%d" prefix i ] (hex_color (i + 1))
+    )
+  in
+  let font_styles =
+    Ochre.Style.
+      [
+        { plain with bold = true };
+        { plain with italic = true };
+        { plain with underline = true };
+        { plain with strikethrough = true };
+      ]
+  in
+  let theme =
+    Ochre.Theme.make ~name:"many"
+      ~colors:
+        [
+          ("editor.foreground", color "#ffffff");
+          ("editor.background", color "#000000");
+        ]
+      ~token_colors:
+        (rules "fg" 500 (fun ~scope c ->
+             Ochre.Theme.rule ~scope ~foreground:c ()
+         )
+        @ rules "bg" 50 (fun ~scope c ->
+            Ochre.Theme.rule ~scope ~background:c ()
+        )
+        @ List.mapi
+            (fun i font_style ->
+              Ochre.Theme.rule ~scope:[ Printf.sprintf "fs%d" i ] ~font_style ()
+            )
+            font_styles
+        )
+      ()
+  in
+  let css = ref "" in
+  check_under ~seconds:1.0 "500 colours x 50 backgrounds x 4 font styles"
+    (fun () ->
+      css := Ochre.html_render_whole_theme_css ~class_prefix:"c-" theme;
+      ignore
+        ( Ochre.to_html
+            ~options:
+              (Ochre.Html_options.make
+                 ~style_mode:(Css_classes { class_prefix = "c-" })
+                 ()
+              )
+            (Ochre.highlight ~theme ~lang:Ochre.Lang.plaintext "x")
+          : string
+          )
+  );
+  let declarations =
+    List.filter_map
+      (fun line ->
+        match String.index_opt line '{' with
+        | Some i when String.starts_with ~prefix:".c-" line ->
+            Some (String.sub line (i + 2) (String.length line - i - 2))
+        | _ ->
+            None
+      )
+      (String.split_on_char '\n' !css)
+  in
+  let count props =
+    List.length
+      (List.filter
+         (fun decl ->
+           List.exists (fun prefix -> String.starts_with ~prefix decl) props
+         )
+         declarations
+      )
+  in
+  Alcotest.(check (list int))
+    "one rule per distinct colour, background and font style" [ 501; 50; 4 ]
+    [
+      count [ "color:" ];
+      count [ "background-color:" ];
+      count [ "font-weight:"; "font-style:"; "text-decoration:" ];
+    ];
+  Alcotest.(check int) "no other rule" 555 (List.length declarations)
+
 let test_budget_long_line_without_limits () =
   let grammar =
     TmLanguage.of_yojson_exn (Yojson.Basic.from_string Tm_grammars.ocaml)
@@ -2144,6 +2226,8 @@ let () =
             test_decorations_scale;
           test_case "10,000-line JS file renders to HTML in budget" `Quick
             test_budget_js_file_to_html;
+          test_case "Whole-theme stylesheet scales with distinct values" `Quick
+            test_whole_theme_css_scales_with_values;
           test_case "Long line without limits tokenizes in budget" `Quick
             test_budget_long_line_without_limits;
           test_case "Line just under max_line_length tokenizes in budget" `Quick

@@ -155,8 +155,8 @@ style from another gets a class
   $ ./test_render_html.exe theme-css-combined-rule
   <pre class="ochre" style="background-color:var(--ochre-bg,#1e1e1e);color:var(--ochre,#d4d4d4)" tabindex="0"><code><span class="line"><span class="s-ae2cf74260356c77 s-b15f3da5ff0399f1"># c</span></span></code></pre>
   .ochre { background-color:#1e1e1e; color:#d4d4d4 }
-  .s-b15f3da5ff0399f1 { color:var(--ochre,#112233) }
   .s-ae2cf74260356c77 { font-style:var(--ochre-font-style,italic) }
+  .s-b15f3da5ff0399f1 { color:var(--ochre,#112233) }
   .s-232033c531ff619a { color:var(--ochre,#d4d4d4) }
 
 Without tokens, the theme stylesheet also has a rule for every class of code

@@ -1108,9 +1108,13 @@ val html_render_whole_theme_css :
     for each distinct colour, background and font style of those styles. The
     class names are the ones that {!Html_options.Css_classes} rendering with
     [class_prefix] uses, so the stylesheet covers any code highlighted with
-    [theme]. A style that a transform makes, such as a line highlight, is not in
-    the stylesheet; the HTML keeps it inline. Pass the [css_variable_prefix] of
-    the {!Html_options.type-t} used to render the HTML as
+    [theme] alone or with other themes that use CSS variables. A style that a
+    transform makes, such as a line highlight, is not in the stylesheet; the
+    HTML keeps it inline. The stylesheet has no [light-dark()] rules: for two
+    themes labelled [light] and [dark] (see {!val-to_html}), every token style
+    gets a class, the styles that transforms make included, so use
+    {!val-html_render_theme_css} for that output. Pass the [css_variable_prefix]
+    of the {!Html_options.type-t} used to render the HTML as
     [~css_variable_prefix]; the class names depend on it.
 
     {@ocaml[
