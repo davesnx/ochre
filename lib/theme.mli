@@ -20,7 +20,11 @@ type theme = {
   token_colors : token_color_rule list;
 }
 
-type warning = { path : string option; location : string; value : string }
+type problem =
+  | Invalid_color of string
+  | Wrong_type of { expected : string; found : string }
+
+type warning = { path : string option; location : string; problem : problem }
 
 val warning_to_string : warning -> string
 

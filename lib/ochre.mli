@@ -158,16 +158,29 @@ module Theme : sig
 
   (** {2 warning} *)
 
+  (** Why a value was dropped. *)
+  type problem = Theme.problem =
+    | Invalid_color of string
+        (** A color that is not [#rgb], [#rgba], [#rrggbb] or [#rrggbbaa]. *)
+    | Wrong_type of { expected : string; found : string }
+        (** A value of the wrong JSON type, such as a number in ["fg"] or a
+            string in ["tokenColors"]. [expected] and [found] describe the
+            types, such as ["a string"] and ["an object"]. *)
+
   type warning = Theme.warning = {
     path : string option;  (** The file that holds the value, if any. *)
     location : string;
-        (** Where the value is, such as ["tokenColors[2].settings.foreground"]
-            or ["colors.editor.background"]. *)
-    value : string;  (** The value that was dropped. *)
+        (** Where the value is, such as ["tokenColors[2].settings.foreground"],
+            ["tokenColors[3]"] or ["fg"]. *)
+    problem : problem;  (** Why the value was dropped. *)
   }
-  (** A color that is not [#rgb], [#rgba], [#rrggbb] or [#rrggbbaa]. As in
-      vscode-textmate, loading drops it, so the rule or the [colors] entry acts
-      as if the value were not there. *)
+  (** A value that loading dropped. As in vscode-textmate, the theme acts as if
+      the value were not there: a dropped color leaves its rule or [colors]
+      entry without it, a dropped ["fg"], ["foreground"], ["bg"] or
+      ["background"] lets the next source of the default color apply, and a
+      dropped ["tokenColors"] or ["settings"] entry adds no rule. A [null] entry
+      in these lists, or a [null] default color, counts as absent and gives no
+      warning. *)
 
   val warning_to_string : warning -> string
   (** A message for humans. *)
@@ -177,7 +190,7 @@ module Theme : sig
   val load :
     ?base_dir:string -> string -> (theme * warning list, Error.t) result
   (** Load a theme from a raw JSON string. Returns the theme and one warning for
-      each color that was dropped.
+      each value that was dropped.
 
       When [~base_dir] is provided, ["include"] paths in the JSON are resolved
       relative to that directory (same as {!val-load_from_file} does with the
