@@ -20,12 +20,23 @@ type theme = {
   token_colors : token_color_rule list;
 }
 
-type warning = { path : string option; location : string; value : string }
+type problem =
+  | Invalid_color of string
+  | Wrong_type of { expected : string; found : string }
 
-let warning_to_string { path; location; value } =
-  Printf.sprintf "%s%s: invalid color %S dropped"
+type warning = { path : string option; location : string; problem : problem }
+
+let warning_to_string { path; location; problem } =
+  let description =
+    match problem with
+    | Invalid_color value ->
+        Printf.sprintf "invalid color %S dropped" value
+    | Wrong_type { expected; found } ->
+        Printf.sprintf "expected %s, found %s; ignored" expected found
+  in
+  Printf.sprintf "%s%s: %s"
     (match path with Some path -> path ^ ": " | None -> "")
-    location value
+    location description
 
 type loaded_theme_data = {
   name_opt : string option;
@@ -50,13 +61,34 @@ let json_field key = function
 
 type parser = { path : string option; mutable warnings : warning list }
 
+let warn parser ~location problem =
+  parser.warnings <-
+    { path = parser.path; location; problem } :: parser.warnings
+
+let describe_json_type = function
+  | `Null ->
+      "null"
+  | `Bool _ ->
+      "a boolean"
+  | `Int _ | `Float _ ->
+      "a number"
+  | `String _ ->
+      "a string"
+  | `List _ ->
+      "an array"
+  | `Assoc _ ->
+      "an object"
+
+let wrong_type parser ~location ~expected json =
+  warn parser ~location
+    (Wrong_type { expected; found = describe_json_type json })
+
 let parse_color parser ~location value =
   match Color.of_hex value with
   | Some _ as color ->
       color
   | None ->
-      parser.warnings <-
-        { path = parser.path; location; value } :: parser.warnings;
+      warn parser ~location (Invalid_color value);
       None
 
 let string_color parser ~location = function
@@ -162,7 +194,12 @@ let parse_token_color_rule parser ~location = function
       | _ ->
           None
     )
-  | _ ->
+  | `Null ->
+      (* Real themes leave stray nulls in their rule lists, and
+         vscode-textmate skips them too. *)
+      None
+  | json ->
+      wrong_type parser ~location ~expected:"an object" json;
       None
 
 let parse_rules_json parser ~key = function
@@ -315,7 +352,10 @@ let parse_theme_fields ?path ?base_dir json =
         match json_field key json with
         | Some (`String value) ->
             parse_color parser ~location:key value
-        | _ ->
+        | None | Some `Null ->
+            None
+        | Some json ->
+            wrong_type parser ~location:key ~expected:"a string" json;
             None
       )
       keys

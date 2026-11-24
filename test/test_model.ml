@@ -310,6 +310,53 @@ let test_legacy_colors_fall_through () =
     ]
     (List.map Ochre.Theme.warning_to_string warnings)
 
+let test_legacy_colors_of_wrong_type () =
+  let theme, warnings =
+    get_ok
+      (Ochre.Theme.load
+         {|{ "fg": { "color": "#111111" }, "foreground": "#123456",
+             "bg": 42, "background": null }|}
+      )
+  in
+  Alcotest.check color_testable "foreground" (color "#123456") theme.fg;
+  Alcotest.check color_testable "background falls back" (color "#ffffff")
+    theme.bg;
+  Alcotest.(check (list string))
+    "present keys of the wrong type are reported, null is absent"
+    [
+      "fg: expected a string, found an object; ignored";
+      "bg: expected a string, found a number; ignored";
+    ]
+    (List.map Ochre.Theme.warning_to_string warnings)
+
+let test_malformed_token_color_entries () =
+  let theme, warnings =
+    get_ok
+      (Ochre.Theme.load
+         {|{ "tokenColors": [
+               null,
+               "comment",
+               { "scope": "keyword", "settings": { "foreground": "#ff0000" } },
+               3,
+               [ { "scope": "string" } ]
+             ] }|}
+      )
+  in
+  Alcotest.(check (list (list string)))
+    "only the object entry becomes a rule" [ [ "keyword" ] ]
+    (List.map
+       (fun (rule : Ochre.Theme.token_color_rule) -> rule.scope)
+       theme.token_colors
+    );
+  Alcotest.(check (list string))
+    "every non-null entry that is not an object is reported by index"
+    [
+      "tokenColors[1]: expected an object, found a string; ignored";
+      "tokenColors[3]: expected an object, found a number; ignored";
+      "tokenColors[4]: expected an object, found an array; ignored";
+    ]
+    (List.map Ochre.Theme.warning_to_string warnings)
+
 let test_unused_workbench_colors () =
   let theme, warnings =
     get_ok
@@ -791,6 +838,10 @@ let () =
             test_theme_drops_invalid_colors;
           Alcotest.test_case "Valid themes have no warnings" `Quick
             test_theme_without_invalid_colors_has_no_warnings;
+          Alcotest.test_case "Default colors of the wrong type are reported"
+            `Quick test_legacy_colors_of_wrong_type;
+          Alcotest.test_case "Malformed tokenColors entries are reported" `Quick
+            test_malformed_token_color_entries;
           Alcotest.test_case "Rule font styles" `Quick test_rule_font_style;
           Alcotest.test_case "Legacy colors use the first valid key" `Quick
             test_legacy_colors_fall_through;
