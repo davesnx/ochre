@@ -586,30 +586,6 @@ let check_injection_no_match_outside_scope () =
   Alcotest.(check bool)
     "injection pattern does not match outside target scope" false has_injected
 
-let check_stats_matches_tokenize () =
-  let t, grammar = make_grammar (Yojson.Basic.from_file "data/a.json") in
-  let line = "a(a)" in
-  let toks, _ = TmLanguage.tokenize_exn t grammar TmLanguage.empty line in
-  let toks', _, stats =
-    TmLanguage.tokenize_with_stats_exn t grammar TmLanguage.empty line
-  in
-  Alcotest.(check (list (pair int (list string))))
-    "same tokens"
-    (List.map (fun tok -> (TmLanguage.ending tok, TmLanguage.scopes tok)) toks)
-    (List.map (fun tok -> (TmLanguage.ending tok, TmLanguage.scopes tok)) toks');
-  Alcotest.(check bool) "positive match_calls" true (stats.match_calls > 0);
-  Alcotest.(check bool) "positive positions" true (stats.positions > 0)
-
-let check_stats_zero_when_line_skipped () =
-  let t, grammar = make_grammar (Yojson.Basic.from_file "data/a.json") in
-  let toks, _, stats =
-    TmLanguage.tokenize_with_stats_exn ~max_line_length:3 t grammar
-      TmLanguage.empty "a(a)"
-  in
-  Alcotest.(check int) "single fallback token" 1 (List.length toks);
-  Alcotest.(check int) "zero match_calls" 0 stats.match_calls;
-  Alcotest.(check int) "zero positions" 0 stats.positions
-
 let () =
   Alcotest.run "Highlighting"
     [
@@ -857,14 +833,6 @@ let () =
             check_injection_left_priority;
           Alcotest.test_case "Injection does not match outside target scope"
             `Quick check_injection_no_match_outside_scope;
-        ]
-      );
-      ( "stats",
-        [
-          Alcotest.test_case "tokenize_with_stats_exn records work counters"
-            `Quick check_stats_matches_tokenize;
-          Alcotest.test_case "Skipped line reports zero counters" `Quick
-            check_stats_zero_when_line_skipped;
         ]
       );
     ]

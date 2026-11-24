@@ -1,4 +1,5 @@
 let ratio_limit = 7.0
+let alloc_ratio_limit = 4.5
 
 let repeated_line ~prefix ~chunk ~suffix ~bytes =
   let count =
@@ -46,6 +47,12 @@ let min_times_interleaved trials f g =
        (fun (a, b) (x, y) -> (Float.min a x, Float.min b y))
        (Float.infinity, Float.infinity)
 
+let allocated_bytes f =
+  f ();
+  let before = Gc.allocated_bytes () in
+  f ();
+  Gc.allocated_bytes () -. before
+
 let check_linear (lang, json, includes, (prefix, chunk, suffix)) () =
   let parse json = TmLanguage.of_yojson_exn (Yojson.Basic.from_string json) in
   let grammar = parse json in
@@ -61,9 +68,21 @@ let check_linear (lang, json, includes, (prefix, chunk, suffix)) () =
           : TmLanguage.token list * TmLanguage.stack
           )
   in
-  let small, large =
-    min_times_interleaved 5 (tokenize 16_000) (tokenize 64_000)
-  in
+  let small_fn = tokenize 16_000 in
+  let large_fn = tokenize 64_000 in
+  let small_alloc = allocated_bytes small_fn in
+  let large_alloc = allocated_bytes large_fn in
+  if small_alloc <= 0.0 then
+    Alcotest.failf "%s: expected positive allocations, got %.0f bytes" lang
+      small_alloc;
+  if large_alloc > small_alloc *. alloc_ratio_limit then
+    Alcotest.failf
+      "%s: a line four times as long allocated %.2fx as much (%.0f B -> %.0f \
+       B), limit %.1fx"
+      lang
+      (large_alloc /. small_alloc)
+      small_alloc large_alloc alloc_ratio_limit;
+  let small, large = min_times_interleaved 5 small_fn large_fn in
   if large > small *. ratio_limit then
     Alcotest.failf
       "%s: a line four times as long took %.1fx as long (%.4f s -> %.4f s), \
