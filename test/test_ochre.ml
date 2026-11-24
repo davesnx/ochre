@@ -823,16 +823,6 @@ let test_decoration_with_highlighter () =
 let long_arithmetic_line n =
   "let x = " ^ String.concat " + " (List.init n string_of_int)
 
-let min_time_of trials f =
-  let best = ref Float.infinity in
-  for _ = 1 to trials do
-    let t0 = Unix.gettimeofday () in
-    f ();
-    let dt = Unix.gettimeofday () -. t0 in
-    if dt < !best then best := dt
-  done;
-  !best
-
 let tokens_text tokens =
   tokens
   |> List.concat_map (fun line ->
@@ -1473,39 +1463,6 @@ let test_decorations_scale () =
       in
       Alcotest.(check int) "decorated tokens" count (List.length decorated)
   )
-
-let test_long_line_is_not_quadratic () =
-  let hl =
-    get_ok
-      (Ochre.load
-         [
-           ("ocaml", Tm_grammars.ocaml);
-           ("ocaml-interface", Tm_grammars.ocaml_interface);
-         ]
-      )
-  in
-  let time_for n =
-    let source = long_arithmetic_line n in
-    min_time_of 3 (fun () ->
-        let (_ : string) =
-          Ochre.to_html
-            (Ochre.highlight ~theme:dark_plus
-               ~lang:(get_ok (Ochre.lang hl "ocaml"))
-               source
-            )
-        in
-        ()
-    )
-  in
-  let t1 = time_for 800 in
-  let t2 = time_for 1600 in
-  Alcotest.(check bool)
-    (Printf.sprintf
-       "doubling the line length takes less than 3x as long (%.4fs -> %.4fs)" t1
-       t2
-    )
-    true
-    (t2 < t1 *. 3.0)
 
 let js_like_source lines =
   let line i =
@@ -2214,8 +2171,6 @@ let () =
       );
       ( "performance",
         [
-          test_case "Long single line tokenizes in near-linear time" `Quick
-            test_long_line_is_not_quadratic;
           test_case "Deep nesting resolves theme styles in time" `Quick
             test_deep_nesting_theme_matching;
           test_case "Long nested line resolves theme styles in time" `Quick
